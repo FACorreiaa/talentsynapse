@@ -15,20 +15,11 @@ RUN go install github.com/a-h/templ/cmd/templ@latest
 COPY go.mod go.sum ./
 RUN go mod download
 
-# Copy package.json for Node dependencies
-COPY package.json ./
-
-# Install Node dependencies (Tailwind CSS & DaisyUI)
-RUN npm install
-
 # Copy source code
 COPY . .
 
 # Generate Templ templates
 RUN templ generate
-
-# Build CSS for production using npm
-RUN npm run build:css
 
 # Build the binary
 RUN CGO_ENABLED=0 GOOS=linux go build -ldflags="-s -w" -o /app/server ./cmd/server

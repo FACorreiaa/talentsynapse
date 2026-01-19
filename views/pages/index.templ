@@ -7,7 +7,6 @@ templ Index() {
 	@layouts.Base("Home | GoForge App") {
 		<div class="min-h-screen flex flex-col">
 			@components.Navbar()
-			
 			<main class="flex-1">
 				<!-- Hero Section -->
 				<section class="hero min-h-[70vh] bg-gradient-to-br from-primary/10 via-base-100 to-secondary/10">
@@ -23,7 +22,7 @@ templ Index() {
 							<div class="flex gap-4 justify-center flex-wrap">
 								<a href="https://go.dev" target="_blank" class="btn btn-primary btn-lg">
 									<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-										<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+										<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
 									</svg>
 									Get Started
 								</a>
@@ -34,7 +33,6 @@ templ Index() {
 						</div>
 					</div>
 				</section>
-				
 				<!-- Features Section -->
 				<section class="py-20 px-4">
 					<div class="container mx-auto max-w-6xl">
@@ -49,7 +47,6 @@ templ Index() {
 						</div>
 					</div>
 				</section>
-				
 				<!-- HTMX Demo Section -->
 				<section class="py-20 px-4 bg-base-200">
 					<div class="container mx-auto max-w-2xl text-center">
@@ -73,7 +70,6 @@ templ Index() {
 					</div>
 				</section>
 			</main>
-			
 			@components.Footer()
 		</div>
 	}

@@ -147,3 +147,17 @@ help: ## Show this help message
 	@echo ""
 	@echo "Targets:"
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-20s\033[0m %s\n", $$1, $$2}'
+
+# Run templ generation in watch mode
+templ:
+	templ fmt . && templ generate --watch --proxy="http://localhost:7000" --open-browser=false
+
+t-fmt:
+	templ fmt .
+
+# Watch Tailwind CSS changes
+tailwind:
+	tailwindcss -i ./assets/input.css -o ./assets/css/output.css --watch
+
+tailwind-build:
+	tailwindcss -i ./assets/input.css -o ./assets/css/output.css --build
