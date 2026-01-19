@@ -153,3 +153,26 @@ tailwind:
 
 tailwind-build:
 	tailwindcss -i ./assets/css/input.css -o ./assets/css/output.css --minify
+
+# =========================================================================
+# Build Analysis
+# =========================================================================
+
+size-report: ## Show size breakdown of build artifacts
+	@echo "📊 Build Size Report"
+	@echo "===================="
+	@echo ""
+	@echo "Binary:"
+	@ls -lh bin/server 2>/dev/null | awk '{print "  Size:", $$5}' || echo "  Not built (run 'make build' first)"
+	@echo ""
+	@echo "CSS:"
+	@ls -lh assets/css/output.css 2>/dev/null | awk '{print "  Size:", $$5}' || echo "  Not built"
+	@echo ""
+	@echo "Total Assets:"
+	@du -sh assets/ 2>/dev/null | awk '{print "  Size:", $$1}' || echo "  Not found"
+	@echo ""
+	@echo "Binary Contents:"
+	@du -sh bin/ 2>/dev/null | awk '{print "  Total:", $$1}' || echo "  Not built"
+
+build-prod: ## Build production binary with optimization report
+	@./scripts/build-prod.sh

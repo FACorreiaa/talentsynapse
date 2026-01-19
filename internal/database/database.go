@@ -4,6 +4,7 @@ import (
 	"context"
 	"log"
 	"os"
+	"strconv"
 	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -94,14 +95,10 @@ func (s *service) Health() map[string]string {
 
 	return map[string]string{
 		"status":         "healthy",
-		"total_conns":    itoa(int(stats.TotalConns())),
-		"acquired_conns": itoa(int(stats.AcquiredConns())),
-		"idle_conns":     itoa(int(stats.IdleConns())),
-		"constructing":   itoa(int(stats.ConstructingConns())),
-		"max_conns":      itoa(int(stats.MaxConns())),
+		"total_conns":    strconv.Itoa(int(stats.TotalConns())),
+		"acquired_conns": strconv.Itoa(int(stats.AcquiredConns())),
+		"idle_conns":     strconv.Itoa(int(stats.IdleConns())),
+		"constructing":   strconv.Itoa(int(stats.ConstructingConns())),
+		"max_conns":      strconv.Itoa(int(stats.MaxConns())),
 	}
-}
-
-func itoa(i int) string {
-	return string(rune('0' + i%10))
 }
