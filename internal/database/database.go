@@ -30,7 +30,7 @@ func New() Service {
 
 	databaseURL := os.Getenv("DATABASE_URL")
 	if databaseURL == "" {
-		databaseURL = "postgres://localhost:5432/myapp?sslmode=disable"
+		databaseURL = "postgres://localhost:5470/myapp?sslmode=disable"
 	}
 
 	// Parse configuration
@@ -93,12 +93,12 @@ func (s *service) Health() map[string]string {
 	}
 
 	return map[string]string{
-		"status":           "healthy",
-		"total_conns":      itoa(int(stats.TotalConns())),
-		"acquired_conns":   itoa(int(stats.AcquiredConns())),
-		"idle_conns":       itoa(int(stats.IdleConns())),
-		"constructing":     itoa(int(stats.ConstructingConns())),
-		"max_conns":        itoa(int(stats.MaxConns())),
+		"status":         "healthy",
+		"total_conns":    itoa(int(stats.TotalConns())),
+		"acquired_conns": itoa(int(stats.AcquiredConns())),
+		"idle_conns":     itoa(int(stats.IdleConns())),
+		"constructing":   itoa(int(stats.ConstructingConns())),
+		"max_conns":      itoa(int(stats.MaxConns())),
 	}
 }
 

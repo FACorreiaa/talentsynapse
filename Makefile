@@ -29,8 +29,9 @@ setup: ## Install all development tools
 	go install github.com/air-verse/air@latest
 	go install github.com/pressly/goose/v3/cmd/goose@latest
 	@echo ""
-	@echo "📥 Installing Node dependencies (Tailwind CSS + DaisyUI)..."
-	npm install
+	@echo "⚠️  Note: Using standalone Tailwind CLI (must be installed separately)"
+	@echo "   macOS: brew install tailwindcss"
+	@echo "   Linux: Download from https://github.com/tailwindlabs/tailwindcss/releases"
 	@echo ""
 	@echo "✅ Setup complete! Run 'make dev' to start development."
 
@@ -40,29 +41,24 @@ tidy: ## Tidy Go modules
 ci-setup: ## Setup for CI environments (GitHub Actions)
 	@echo "📦 Installing Go tools for CI..."
 	go install github.com/a-h/templ/cmd/templ@latest
-	@echo "📥 Installing Node dependencies for CI..."
-	npm ci
+	@echo "📥 Installing Tailwind CSS standalone binary..."
+	@echo "See: https://tailwindcss.com/blog/standalone-cli"
 	@echo "✅ CI setup complete!"
 
 # =========================================================================
 # Development
 # =========================================================================
 
-dev: ## Start development server with live reload
-	@echo "🚀 Starting development server..."
-	@make -j2 dev-air dev-tailwind
-
-dev-air:
+dev: ## Start development server with live reload (Air handles Templ + Tailwind + Go)
+	@echo "🚀 Starting development server with Air..."
+	@echo "📝 Watching: .templ → template generation → Tailwind CSS rebuild → Go binary"
 	@GO_ENV=development air
-
-dev-tailwind:
-	@npx tailwindcss -i ./assets/input.css -o ./assets/output.css --watch
 
 templ: ## Generate Templ templates
 	templ generate
 
 css: ## Build CSS once
-	npm run build:css
+	tailwindcss -i ./assets/css/input.css -o ./assets/css/output.css --minify
 
 # =========================================================================
 # Build
@@ -70,9 +66,9 @@ css: ## Build CSS once
 
 build: templ ## Build production binary
 	@echo "🔨 Building CSS..."
-	npm run build:css
+	@tailwindcss -i ./assets/css/input.css -o ./assets/css/output.css --minify
 	@echo "🔨 Building binary..."
-	CGO_ENABLED=0 go build -ldflags="-s -w" -o ./bin/$(BINARY_NAME) ./cmd/server
+	@CGO_ENABLED=0 go build -ldflags="-s -w" -o ./bin/$(BINARY_NAME) ./cmd/server
 	@echo "✅ Build complete: ./bin/$(BINARY_NAME)"
 
 run: build ## Build and run the application
@@ -81,11 +77,7 @@ run: build ## Build and run the application
 clean: ## Remove build artifacts
 	rm -rf bin/
 	rm -rf tmp/
-	rm -rf node_modules/
-	rm -f assets/output.css
-	rm -f assets/tailwindcss
-	rm -f assets/daisyui.mjs
-	rm -f assets/daisyui-theme.mjs
+	rm -f assets/css/output.css
 	find . -name "*_templ.go" -delete
 
 # =========================================================================
@@ -155,9 +147,9 @@ templ:
 t-fmt:
 	templ fmt .
 
-# Watch Tailwind CSS changes
+# Manual Tailwind CSS commands (not needed if using 'make dev')
 tailwind:
-	tailwindcss -i ./assets/input.css -o ./assets/css/output.css --watch
+	tailwindcss -i ./assets/css/input.css -o ./assets/css/output.css --watch
 
 tailwind-build:
-	tailwindcss -i ./assets/input.css -o ./assets/css/output.css --build
+	tailwindcss -i ./assets/css/input.css -o ./assets/css/output.css --minify

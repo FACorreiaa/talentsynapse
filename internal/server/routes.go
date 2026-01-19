@@ -39,22 +39,24 @@ func (s *Server) RegisterRoutes() http.Handler {
 	// ──────────────────────────────────────────────────────────────────
 
 	// Secure Headers (HSTS, SSL Redirect, CSP, etc)
-	secureMiddleware := secure.New(secure.Options{
-		AllowedHosts:          []string{"localhost", "127.0.0.1"},
-		AllowedHostsAreRegex:  false,
-		HostsProxyHeaders:     []string{"X-Forwarded-Host"},
-		SSLRedirect:           false, // Set to true in production with HTTPS
-		SSLHost:               "",
-		SSLProxyHeaders:       map[string]string{"X-Forwarded-Proto": "https"},
-		STSSeconds:            31536000,
-		STSIncludeSubdomains:  true,
-		STSPreload:            true,
+	isDev := os.Getenv("GO_ENV") == "development"
+	secureOpts := secure.Options{
 		FrameDeny:             true,
 		ContentTypeNosniff:    true,
 		BrowserXssFilter:      true,
 		ContentSecurityPolicy: "default-src 'self'; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; script-src 'self' 'unsafe-inline' https://unpkg.com;",
 		ReferrerPolicy:        "strict-origin-when-cross-origin",
-	})
+	}
+	if !isDev {
+		// Production-only strict settings
+		secureOpts.AllowedHosts = []string{"yourdomain.com"}
+		secureOpts.SSLRedirect = true
+		secureOpts.STSSeconds = 31536000
+		secureOpts.STSIncludeSubdomains = true
+		secureOpts.STSPreload = true
+		secureOpts.SSLProxyHeaders = map[string]string{"X-Forwarded-Proto": "https"}
+	}
+	secureMiddleware := secure.New(secureOpts)
 	r.Use(func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			secureMiddleware.Handler(next).ServeHTTP(w, r)
@@ -115,7 +117,9 @@ func (s *Server) handleHealth(w http.ResponseWriter, r *http.Request) {
 // handleHome renders the home page using Templ
 func (s *Server) handleHome(w http.ResponseWriter, r *http.Request) {
 	component := pages.Index()
-	component.Render(r.Context(), w)
+	if err := component.Render(r.Context(), w); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	}
 }
 
 // handleAPIHello is a sample JSON API endpoint

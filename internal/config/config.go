@@ -20,7 +20,7 @@ func Load() *Config {
 	return &Config{
 		Port:        port,
 		Environment: getEnv("GO_ENV", "development"),
-		DatabaseURL: getEnv("DATABASE_URL", "postgres://localhost:5432/myapp?sslmode=disable"),
+		DatabaseURL: getEnv("DATABASE_URL", "postgres://postgres:postgres@localhost:5470/myapp?sslmode=disable"),
 		Debug:       getEnv("DEBUG", "false") == "true",
 	}
 }
