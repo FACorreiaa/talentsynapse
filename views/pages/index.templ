@@ -1,0 +1,90 @@
+package pages
+
+import "github.com/FACorreiaa/skillsphere-pwa/views/layouts"
+import "github.com/FACorreiaa/skillsphere-pwa/views/components"
+
+templ Index() {
+	@layouts.Base("Home | GoForge App") {
+		<div class="min-h-screen flex flex-col">
+			@components.Navbar()
+			
+			<main class="flex-1">
+				<!-- Hero Section -->
+				<section class="hero min-h-[70vh] bg-gradient-to-br from-primary/10 via-base-100 to-secondary/10">
+					<div class="hero-content text-center">
+						<div class="max-w-2xl">
+							<h1 class="text-5xl font-bold mb-6">
+								Welcome to <span class="text-primary">GoForge</span>
+							</h1>
+							<p class="text-xl mb-8 text-base-content/70">
+								A production-ready starter with Go, Chi, Templ, HTMX, Tailwind, and DaisyUI.
+								No Node.js required.
+							</p>
+							<div class="flex gap-4 justify-center flex-wrap">
+								<a href="https://go.dev" target="_blank" class="btn btn-primary btn-lg">
+									<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+										<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+									</svg>
+									Get Started
+								</a>
+								<a href="https://github.com" target="_blank" class="btn btn-outline btn-lg">
+									View on GitHub
+								</a>
+							</div>
+						</div>
+					</div>
+				</section>
+				
+				<!-- Features Section -->
+				<section class="py-20 px-4">
+					<div class="container mx-auto max-w-6xl">
+						<h2 class="text-3xl font-bold text-center mb-12">Stack Features</h2>
+						<div class="grid md:grid-cols-3 gap-6">
+							@featureCard("🚀", "Chi Router", "Lightweight, composable router with excellent middleware support.")
+							@featureCard("📝", "Templ", "Type-safe HTML templates with Go. No runtime parsing.")
+							@featureCard("⚡", "HTMX", "High-powered hypermedia exchange. No JavaScript framework needed.")
+							@featureCard("🎨", "DaisyUI", "Beautiful UI components built on Tailwind CSS.")
+							@featureCard("🐘", "PostgreSQL", "Robust database with pgxpool connection pooling.")
+							@featureCard("🔥", "Live Reload", "Air + Tailwind watch for instant feedback during development.")
+						</div>
+					</div>
+				</section>
+				
+				<!-- HTMX Demo Section -->
+				<section class="py-20 px-4 bg-base-200">
+					<div class="container mx-auto max-w-2xl text-center">
+						<h2 class="text-3xl font-bold mb-8">HTMX in Action</h2>
+						<div class="card bg-base-100 shadow-xl">
+							<div class="card-body">
+								<p class="mb-4">Click the button to fetch data from the API:</p>
+								<button
+									class="btn btn-primary"
+									hx-get="/api/hello"
+									hx-target="#api-result"
+									hx-swap="innerHTML"
+								>
+									Fetch Message
+								</button>
+								<div id="api-result" class="mt-4 p-4 bg-base-200 rounded-lg min-h-[60px]">
+									<span class="text-base-content/50">Click the button above...</span>
+								</div>
+							</div>
+						</div>
+					</div>
+				</section>
+			</main>
+			
+			@components.Footer()
+		</div>
+	}
+}
+
+templ featureCard(emoji string, title string, description string) {
+	<div class="card bg-base-200 hover:bg-base-300 transition-all duration-300 hover:-translate-y-1">
+		<div class="card-body items-center text-center">
+			<div class="text-4xl mb-2">{ emoji }</div>
+			<h3 class="card-title">{ title }</h3>
+			<p class="text-base-content/70">{ description }</p>
+		</div>
+	</div>
+}

@@ -1,0 +1,39 @@
+# Git
+.git
+.gitignore
+
+# Node
+node_modules
+
+# Build artifacts
+server
+*.exe
+
+# Development files
+.env
+.env.local
+*.log
+
+# IDE
+.vscode
+.idea
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Documentation
+README.md
+docs/
+*.md
+
+# Testing
+*_test.go
+testdata/
+
+# Binaries
+assets/tailwindcss
+assets/daisyui.mjs
+assets/daisyui-theme.mjs

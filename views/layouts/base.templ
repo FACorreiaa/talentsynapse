@@ -1,0 +1,45 @@
+package layouts
+
+templ Base(title string) {
+	<!DOCTYPE html>
+	<html lang="en" data-theme="dark">
+		<head>
+			<meta charset="UTF-8"/>
+			<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+			<title>{ title }</title>
+			
+			<!-- SEO Meta Tags -->
+			<meta name="description" content="Built with GoForge - Go + Chi + Templ + HTMX"/>
+			<meta name="author" content="GoForge"/>
+			
+			<!-- PWA Meta Tags -->
+			<link rel="manifest" href="/assets/static/manifest.json"/>
+			<meta name="theme-color" content="#570df8"/>
+			<meta name="apple-mobile-web-app-capable" content="yes"/>
+			<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+			<link rel="apple-touch-icon" href="/assets/static/icon-192.png"/>
+			
+			<!-- Tailwind CSS + DaisyUI (compiled locally, no CDN needed) -->
+			<link rel="stylesheet" href="/assets/output.css"/>
+			
+			<!-- Frontend Scripts (HTMX + optional Hyperscript/Alpine) -->
+			<script src="https://unpkg.com/htmx.org@2.0.4" integrity="sha384-HGfztofotfshcF7+8n44JQL2oJmowVChPTg48S+jvZoztPfvwD79OC/LTtG6dMp+" crossorigin="anonymous"></script>
+			<!-- Hyperscript - _hyperscript -->
+			<script src="https://unpkg.com/hyperscript.org@0.9.14"></script>
+		</head>
+		<body class="min-h-screen bg-base-100 text-base-content">
+			{ children... }
+			
+			<!-- Service Worker Registration -->
+			<script>
+				if ('serviceWorker' in navigator) {
+					window.addEventListener('load', () => {
+						navigator.serviceWorker.register('/assets/static/sw.js')
+							.then(reg => console.log('SW registered'))
+							.catch(err => console.log('SW registration failed:', err));
+					});
+				}
+			</script>
+		</body>
+	</html>
+}
