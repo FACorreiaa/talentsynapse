@@ -58,7 +58,7 @@ templ: ## Generate Templ templates
 	templ generate
 
 css: ## Build CSS once
-	tailwindcss -i ./assets/css/index.css -o ./assets/css/output.css --minify
+	tailwindcss -i ./assets/css/basecoat.min.css -o ./assets/css/output.css --minify
 
 # =========================================================================
 # Build
