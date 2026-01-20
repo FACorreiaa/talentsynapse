@@ -58,7 +58,7 @@ templ: ## Generate Templ templates
 	templ generate
 
 css: ## Build CSS once
-	tailwindcss -i ./assets/css/input.css -o ./assets/css/output.css --minify
+	tailwindcss -i ./assets/css/index.css -o ./assets/css/output.css --minify
 
 # =========================================================================
 # Build
@@ -66,7 +66,7 @@ css: ## Build CSS once
 
 build: templ ## Build production binary
 	@echo "🔨 Building CSS..."
-	@tailwindcss -i ./assets/css/input.css -o ./assets/css/output.css --minify
+	@tailwindcss -i ./assets/css/index.css -o ./assets/css/output.css --minify
 	@echo "🔨 Building binary..."
 	@CGO_ENABLED=0 go build -ldflags="-s -w" -o ./bin/$(BINARY_NAME) ./cmd/server
 	@echo "✅ Build complete: ./bin/$(BINARY_NAME)"
@@ -149,10 +149,10 @@ t-fmt:
 
 # Manual Tailwind CSS commands (not needed if using 'make dev')
 tailwind:
-	tailwindcss -i ./assets/css/input.css -o ./assets/css/output.css --watch
+	tailwindcss -i ./assets/css/index.css -o ./assets/css/output.css --watch
 
 tailwind-build:
-	tailwindcss -i ./assets/css/input.css -o ./assets/css/output.css --minify
+	tailwindcss -i ./assets/css/index.css -o ./assets/css/output.css --minify
 
 # =========================================================================
 # Build Analysis

@@ -8,7 +8,7 @@ tmp_dir = "tmp"
   # 1. Generate Templ files
   # 2. Build Tailwind CSS (scans generated templates for classes)
   # 3. Build the Go binary
-  cmd = "templ generate && tailwindcss -i ./assets/css/input.css -o ./assets/css/output.css --minify && go build -o ./tmp/main ./cmd/server"
+  cmd = "templ generate && tailwindcss -i ./assets/css/basecoat.min.css -o ./assets/css/output.css --minify && go build -o ./tmp/main ./cmd/server"
 
   # Binary to run after build
   bin = "./tmp/main"
