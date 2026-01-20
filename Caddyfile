@@ -1,11 +1,12 @@
 # Skillsphere PWA - Caddy Configuration
 # ============================================
+# ⚠️  IMPORTANT: Replace "your-domain.com" with your actual domain!
 # This handles HTTPS automatically via Let's Encrypt
 # Your Go binary stays simple and runs on :8080
 
 {
     # Global options
-    email admin@skillsphere.com  # Change this!
+    email admin@your-domain.com  # ⚠️ CHANGE THIS to your email!
 }
 
 # Development (optional - if you want local HTTPS testing)
@@ -15,7 +16,7 @@
 # }
 
 # Production
-skillsphere.com {
+your-domain.com {  # ⚠️ CHANGE THIS to your actual domain!
     # Automatic HTTPS via Let's Encrypt
     # No configuration needed!
 
@@ -67,6 +68,6 @@ skillsphere.com {
 }
 
 # Optional: Redirect www to non-www
-www.skillsphere.com {
-    redir https://skillsphere.com{uri} permanent
+www.your-domain.com {  # ⚠️ CHANGE THIS to your actual domain!
+    redir https://your-domain.com{uri} permanent
 }

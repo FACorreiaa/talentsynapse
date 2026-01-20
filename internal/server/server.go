@@ -18,8 +18,8 @@ type Server struct {
 	db   database.Service
 }
 
-// NewServer creates and configures a new HTTP server
-func NewServer() *http.Server {
+// New creates a new Server instance
+func New() *Server {
 	port, _ := strconv.Atoi(os.Getenv("PORT"))
 	if port == 0 {
 		port = 8080
@@ -30,6 +30,13 @@ func NewServer() *http.Server {
 		db:   database.New(),
 	}
 
+	return s
+}
+
+// NewServer creates and configures a new HTTP server (backward compatibility)
+func NewServer() *http.Server {
+	s := New()
+
 	server := &http.Server{
 		Addr:         fmt.Sprintf(":%d", s.port),
 		Handler:      s.RegisterRoutes(),
@@ -39,6 +46,17 @@ func NewServer() *http.Server {
 	}
 
 	return server
+}
+
+// HTTPServer returns a configured *http.Server from this Server
+func (s *Server) HTTPServer() *http.Server {
+	return &http.Server{
+		Addr:         fmt.Sprintf(":%d", s.port),
+		Handler:      s.RegisterRoutes(),
+		IdleTimeout:  time.Minute,
+		ReadTimeout:  10 * time.Second,
+		WriteTimeout: 30 * time.Second,
+	}
 }
 
 // GetDB returns the database service (for handlers)

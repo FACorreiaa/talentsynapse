@@ -244,7 +244,7 @@ FROM golang:1.23-alpine AS builder
 RUN apk add --no-cache git tailwindcss upx
 
 WORKDIR /app
-COPY . .
+COPY .. .
 
 RUN templ generate
 RUN tailwindcss -i ./assets/css/input.css -o ./assets/css/output.css --minify
