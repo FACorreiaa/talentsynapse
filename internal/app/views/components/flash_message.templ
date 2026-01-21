@@ -5,12 +5,12 @@ templ FlashMessage(message string, flashType string) {
 		<div
 			class={ "flash-message", flashClass(flashType) }
 			data-flash-message
-			_="on load wait 5s then transition opacity to 0 over 300ms then transition transform to 'translateY(-10px)' over 300ms then remove me"
+			data-duration="5000"
 		>
 			<div class="flex items-center gap-3">
 				@flashIcon(flashType)
 				<span class="flex-1">{ message }</span>
-				<button _="on click remove closest <[data-flash-message]/>" class="p-1 hover:opacity-70 transition-opacity">
+				<button data-flash-close class="p-1 hover:opacity-70 transition-opacity">
 					<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
 					</svg>

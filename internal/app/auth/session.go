@@ -9,7 +9,7 @@ import (
 
 	"github.com/gorilla/sessions"
 
-	"github.com/FACorreiaa/skillsphere-pwa/internal/app/user"
+	"github.com/FACorreiaa/skillsphere/internal/app/user"
 )
 
 const (

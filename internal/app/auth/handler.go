@@ -5,9 +5,9 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/FACorreiaa/skillsphere-pwa/internal/app/user"
-	"github.com/FACorreiaa/skillsphere-pwa/views/pages"
-	authpages "github.com/FACorreiaa/skillsphere-pwa/views/pages/auth"
+	"github.com/FACorreiaa/skillsphere/internal/app/user"
+	"github.com/FACorreiaa/skillsphere/internal/app/views/pages"
+	authpages "github.com/FACorreiaa/skillsphere/internal/app/views/pages/auth"
 )
 
 // Handler handles authentication HTTP requests

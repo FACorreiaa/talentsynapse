@@ -3,10 +3,10 @@ package container
 import (
 	"github.com/jackc/pgx/v5/pgxpool"
 
-	"github.com/FACorreiaa/skillsphere-pwa/internal/app/auth"
-	"github.com/FACorreiaa/skillsphere-pwa/internal/app/dashboard"
-	"github.com/FACorreiaa/skillsphere-pwa/internal/app/home"
-	"github.com/FACorreiaa/skillsphere-pwa/internal/app/user"
+	"github.com/FACorreiaa/skillsphere/internal/app/auth"
+	"github.com/FACorreiaa/skillsphere/internal/app/dashboard"
+	"github.com/FACorreiaa/skillsphere/internal/app/home"
+	"github.com/FACorreiaa/skillsphere/internal/app/user"
 )
 
 // Container holds all application dependencies

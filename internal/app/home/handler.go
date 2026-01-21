@@ -3,8 +3,8 @@ package home
 import (
 	"net/http"
 
-	"github.com/FACorreiaa/skillsphere-pwa/internal/app/auth"
-	"github.com/FACorreiaa/skillsphere-pwa/views/pages"
+	"github.com/FACorreiaa/skillsphere/internal/app/auth"
+	"github.com/FACorreiaa/skillsphere/internal/app/views/pages"
 )
 
 // Handler handles home page HTTP requests

@@ -4,7 +4,7 @@ import (
 	"context"
 	"errors"
 
-	"github.com/FACorreiaa/skillsphere-pwa/internal/app/user"
+	"github.com/FACorreiaa/skillsphere/internal/app/user"
 )
 
 var (

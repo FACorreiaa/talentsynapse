@@ -7,8 +7,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 
-	"github.com/FACorreiaa/skillsphere-pwa/internal/app/auth"
-	"github.com/FACorreiaa/skillsphere-pwa/internal/app/user"
+	"github.com/FACorreiaa/skillsphere/internal/app/auth"
+	"github.com/FACorreiaa/skillsphere/internal/app/user"
 )
 
 // MockUserRepository is a mock implementation of user.RepositoryInterface
