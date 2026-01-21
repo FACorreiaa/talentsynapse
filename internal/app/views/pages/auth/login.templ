@@ -1,62 +1,72 @@
 package auth
 
-import "github.com/FACorreiaa/skillsphere-pwa/views/layouts"
-import "github.com/FACorreiaa/skillsphere-pwa/views/components"
+import "github.com/FACorreiaa/skillsphere/internal/app/views/layouts"
+import "github.com/FACorreiaa/skillsphere/internal/app/views/components"
 
-templ Register(errorMsg string) {
-	@layouts.Base("Create Account | SkillSphere") {
+templ Login(errorMsg string, successMsg string) {
+	@layouts.Base("Sign In | SkillSphere") {
 		<div class="min-h-screen flex flex-col bg-background">
 			@components.Navbar(false, "", "")
 			
 			<main class="flex-1 flex items-center justify-center py-12 px-4">
 				<div class="w-full max-w-5xl flex rounded-2xl overflow-hidden shadow-2xl">
-					<!-- Left Side - Form -->
-					<div class="w-full lg:w-1/2 bg-card p-8 md:p-12 order-2 lg:order-1">
+					<!-- Left Side - Illustration -->
+					<div class="hidden lg:flex lg:w-1/2 auth-illustration relative">
+						<div class="absolute inset-0 bg-gradient-to-br from-primary via-primary/80 to-accent"></div>
+						<div class="absolute inset-0 pattern-dots opacity-10"></div>
+						<div class="relative z-10 p-12 flex flex-col justify-center text-primary-foreground">
+							<div class="animate-fade-in-up">
+								<h2 class="text-4xl font-bold mb-4 font-heading">Welcome Back!</h2>
+								<p class="text-lg opacity-90 mb-8">
+									Continue your skill exchange journey. Connect with learners and experts worldwide.
+								</p>
+								<div class="space-y-4">
+									<div class="flex items-center gap-3">
+										<div class="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center">
+											<svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+												<path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+											</svg>
+										</div>
+										<span>Find your perfect skill match</span>
+									</div>
+									<div class="flex items-center gap-3">
+										<div class="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center">
+											<svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+												<path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+											</svg>
+										</div>
+										<span>Learn from real experts</span>
+									</div>
+									<div class="flex items-center gap-3">
+										<div class="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center">
+											<svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+												<path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+											</svg>
+										</div>
+										<span>Share your knowledge</span>
+									</div>
+								</div>
+							</div>
+						</div>
+					</div>
+					
+					<!-- Right Side - Form -->
+					<div class="w-full lg:w-1/2 bg-card p-8 md:p-12">
 						<div class="max-w-md mx-auto">
 							<!-- Flash Messages -->
 							if errorMsg != "" {
 								@components.FlashMessage(errorMsg, "error")
 							}
+							if successMsg != "" {
+								@components.FlashMessage(successMsg, "success")
+							}
 							
 							<div class="text-center mb-8 animate-fade-in">
-								<h1 class="text-3xl font-bold text-foreground mb-2">Create Account</h1>
-								<p class="text-muted-foreground">Join thousands of skill exchangers worldwide</p>
+								<h1 class="text-3xl font-bold text-foreground mb-2">Sign In</h1>
+								<p class="text-muted-foreground">Enter your credentials to access your account</p>
 							</div>
 							
-							<form action="/register" method="POST" class="space-y-4 animate-fade-in-up delay-100">
-								<!-- Display Name Field -->
-								<div class="space-y-2">
-									<label for="name" class="text-sm font-medium text-foreground">Display Name</label>
-									<input 
-										type="text" 
-										id="name" 
-										name="name" 
-										placeholder="John Doe"
-										required
-										class="input w-full"
-										autocomplete="name"
-									/>
-								</div>
-								
-								<!-- Username Field -->
-								<div class="space-y-2">
-									<label for="username" class="text-sm font-medium text-foreground">Username</label>
-									<div class="relative">
-										<span class="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">&#64;</span>
-										<input 
-											type="text" 
-											id="username" 
-											name="username" 
-											placeholder="johndoe"
-											required
-											class="input w-full pl-8"
-											autocomplete="username"
-											pattern="^[a-zA-Z0-9_]+$"
-											title="Only letters, numbers, and underscores allowed"
-										/>
-									</div>
-								</div>
-								
+							<form action="/login" method="POST" class="space-y-5 animate-fade-in-up delay-100">
 								<!-- Email Field -->
 								<div class="space-y-2">
 									<label for="email" class="text-sm font-medium text-foreground">Email</label>
@@ -73,7 +83,12 @@ templ Register(errorMsg string) {
 								
 								<!-- Password Field -->
 								<div class="space-y-2">
-									<label for="password" class="text-sm font-medium text-foreground">Password</label>
+									<div class="flex justify-between items-center">
+										<label for="password" class="text-sm font-medium text-foreground">Password</label>
+										<a href="/forgot-password" class="text-sm text-primary hover:text-primary/80 transition-colors">
+											Forgot password?
+										</a>
+									</div>
 									<div class="relative" data-password-toggle>
 										<input 
 											type="password"
@@ -81,9 +96,8 @@ templ Register(errorMsg string) {
 											name="password" 
 											placeholder="••••••••"
 											required
-											minlength="8"
 											class="input w-full pr-10"
-											autocomplete="new-password"
+											autocomplete="current-password"
 										/>
 										<button
 											type="button"
@@ -102,44 +116,27 @@ templ Register(errorMsg string) {
 											</svg>
 										</button>
 									</div>
-									<p class="text-xs text-muted-foreground">Minimum 8 characters</p>
 								</div>
 								
-								<!-- Confirm Password Field -->
-								<div class="space-y-2">
-									<label for="confirm_password" class="text-sm font-medium text-foreground">Confirm Password</label>
-									<input 
-										type="password"
-										id="confirm_password" 
-										name="confirm_password" 
-										placeholder="••••••••"
-										required
-										class="input w-full"
-										autocomplete="new-password"
-									/>
-								</div>
-								
-								<!-- Terms Checkbox -->
-								<div class="flex items-start gap-2">
-									<input type="checkbox" id="terms" name="terms" required class="checkbox mt-0.5"/>
-									<label for="terms" class="text-sm text-muted-foreground">
-										I agree to the <a href="/terms" class="text-primary hover:underline">Terms of Service</a> and <a href="/privacy" class="text-primary hover:underline">Privacy Policy</a>
-									</label>
+								<!-- Remember Me -->
+								<div class="flex items-center gap-2">
+									<input type="checkbox" id="remember" name="remember" class="checkbox"/>
+									<label for="remember" class="text-sm text-muted-foreground">Remember me for 30 days</label>
 								</div>
 								
 								<!-- Submit Button -->
-								<button type="submit" class="btn btn-primary btn-glow w-full py-3 text-base font-semibold mt-2">
-									Create Account
+								<button type="submit" class="btn btn-primary btn-glow w-full py-3 text-base font-semibold">
+									Sign In
 								</button>
 							</form>
 							
 							<!-- Divider -->
-							<div class="relative my-6">
+							<div class="relative my-8">
 								<div class="absolute inset-0 flex items-center">
 									<div class="w-full border-t border-border"></div>
 								</div>
 								<div class="relative flex justify-center text-sm">
-									<span class="px-4 bg-card text-muted-foreground">Or sign up with</span>
+									<span class="px-4 bg-card text-muted-foreground">Or continue with</span>
 								</div>
 							</div>
 							
@@ -161,46 +158,15 @@ templ Register(errorMsg string) {
 									GitHub
 								</button>
 							</div>
+							<p class="text-center text-xs text-muted-foreground mt-2">Social login coming soon</p>
 							
-							<!-- Sign In Link -->
+							<!-- Sign Up Link -->
 							<p class="text-center text-sm text-muted-foreground mt-8">
-								Already have an account? 
-								<a href="/login" class="text-primary font-semibold hover:text-primary/80 transition-colors">
-									Sign in
+								Don't have an account? 
+								<a href="/register" class="text-primary font-semibold hover:text-primary/80 transition-colors">
+									Sign up for free
 								</a>
 							</p>
-						</div>
-					</div>
-					
-					<!-- Right Side - Illustration -->
-					<div class="hidden lg:flex lg:w-1/2 auth-illustration relative order-1 lg:order-2">
-						<div class="absolute inset-0 bg-gradient-to-bl from-accent via-primary/80 to-primary"></div>
-						<div class="absolute inset-0 pattern-grid opacity-10"></div>
-						<div class="relative z-10 p-12 flex flex-col justify-center text-primary-foreground">
-							<div class="animate-fade-in-up">
-								<h2 class="text-4xl font-bold mb-4 font-heading">Start Your Journey</h2>
-								<p class="text-lg opacity-90 mb-8">
-									Join SkillSphere and unlock a world of peer-to-peer learning and skill exchange.
-								</p>
-								<div class="grid grid-cols-2 gap-4">
-									<div class="bg-white/10 backdrop-blur-sm rounded-xl p-4 text-center">
-										<div class="text-3xl font-bold">10K+</div>
-										<div class="text-sm opacity-80">Active Users</div>
-									</div>
-									<div class="bg-white/10 backdrop-blur-sm rounded-xl p-4 text-center">
-										<div class="text-3xl font-bold">500+</div>
-										<div class="text-sm opacity-80">Skills</div>
-									</div>
-									<div class="bg-white/10 backdrop-blur-sm rounded-xl p-4 text-center">
-										<div class="text-3xl font-bold">50K+</div>
-										<div class="text-sm opacity-80">Exchanges</div>
-									</div>
-									<div class="bg-white/10 backdrop-blur-sm rounded-xl p-4 text-center">
-										<div class="text-3xl font-bold">120+</div>
-										<div class="text-sm opacity-80">Countries</div>
-									</div>
-								</div>
-							</div>
 						</div>
 					</div>
 				</div>

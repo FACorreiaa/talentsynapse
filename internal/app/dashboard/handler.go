@@ -3,8 +3,8 @@ package dashboard
 import (
 	"net/http"
 
-	"github.com/FACorreiaa/skillsphere-pwa/internal/app/auth"
-	dashboardpages "github.com/FACorreiaa/skillsphere-pwa/views/pages/dashboard"
+	"github.com/FACorreiaa/skillsphere/internal/app/auth"
+	dashboardpages "github.com/FACorreiaa/skillsphere/internal/app/views/pages/dashboard"
 )
 
 // Handler handles dashboard HTTP requests

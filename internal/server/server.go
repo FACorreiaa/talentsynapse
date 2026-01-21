@@ -9,7 +9,7 @@ import (
 
 	_ "github.com/joho/godotenv/autoload"
 
-	"github.com/FACorreiaa/skillsphere-pwa/internal/database"
+	"github.com/FACorreiaa/skillsphere/internal/database"
 )
 
 // Server holds the dependencies for HTTP handlers

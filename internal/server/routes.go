@@ -12,9 +12,9 @@ import (
 	"github.com/go-chi/httprate"
 	"github.com/unrolled/secure"
 
-	"github.com/FACorreiaa/skillsphere-pwa/assets"
-	"github.com/FACorreiaa/skillsphere-pwa/internal/app/auth"
-	"github.com/FACorreiaa/skillsphere-pwa/internal/container"
+	"github.com/FACorreiaa/skillsphere/assets"
+	"github.com/FACorreiaa/skillsphere/internal/app/auth"
+	"github.com/FACorreiaa/skillsphere/internal/container"
 )
 
 // RegisterRoutes sets up all routes and middleware

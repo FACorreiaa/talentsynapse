@@ -8,7 +8,7 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/FACorreiaa/skillsphere-pwa/internal/server"
+	"github.com/FACorreiaa/skillsphere/internal/server"
 )
 
 func main() {
@@ -20,9 +20,9 @@ func main() {
 	signal.Notify(done, os.Interrupt, syscall.SIGINT, syscall.SIGTERM)
 
 	// Determine deployment mode
-	domain := os.Getenv("DOMAIN")        // e.g., "skillsphere.com"
-	useTLS := os.Getenv("USE_TLS")       // "true" for built-in TLS
-	goEnv := os.Getenv("GO_ENV")         // "production" or "development"
+	domain := os.Getenv("DOMAIN")  // e.g., "skillsphere.com"
+	useTLS := os.Getenv("USE_TLS") // "true" for built-in TLS
+	goEnv := os.Getenv("GO_ENV")   // "production" or "development"
 
 	// Start server based on configuration
 	go func() {

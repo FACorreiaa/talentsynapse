@@ -81,7 +81,7 @@ linters-settings:
       - style
 
   goimports:
-    local-prefixes: github.com/FACorreiaa/skillsphere-pwa
+    local-prefixes: github.com/FACorreiaa/skillsphere
 
   misspell:
     locale: US

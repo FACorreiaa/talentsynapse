@@ -1,6 +1,6 @@
-module github.com/FACorreiaa/skillsphere-pwa
+module github.com/FACorreiaa/skillsphere
 
-go 1.24.0
+go 1.25.6
 
 require (
 	github.com/a-h/templ v0.3.977

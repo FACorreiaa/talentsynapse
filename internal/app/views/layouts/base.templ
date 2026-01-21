@@ -24,9 +24,21 @@ templ Base(title string) {
 			<!-- JavaScript Libraries (loaded at end for performance) -->
 			<script src="/assets/js/htmx.min.js"></script>
 			<script src="/assets/js/hyperscript.min.js"></script>
-			<script src="/assets/js/components.js" defer></script>
-			<script src="/assets/js/alpinejs.min.js" defer></script>
 			<script src="/assets/js/basecoat.min.js" defer></script>
+			<!-- Theme initialization (apply saved theme preference on load) -->
+			<script>
+				(function() {
+					const savedTheme = localStorage.getItem('theme');
+					const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+					const isDark = savedTheme === 'dark' || (savedTheme === null && prefersDark);
+					document.documentElement.classList.toggle('dark', isDark);
+					// Update icons after DOM is ready
+					document.addEventListener('DOMContentLoaded', function() {
+						document.querySelectorAll('.sun-icon').forEach(el => el.classList.toggle('hidden', !isDark));
+						document.querySelectorAll('.moon-icon').forEach(el => el.classList.toggle('hidden', isDark));
+					});
+				})();
+			</script>
 			<!-- Service Worker Registration -->
 			<script>
 				if ('serviceWorker' in navigator) {
