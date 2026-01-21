@@ -13,12 +13,16 @@ import (
 	"github.com/unrolled/secure"
 
 	"github.com/FACorreiaa/skillsphere-pwa/assets"
-	"github.com/FACorreiaa/skillsphere-pwa/views/pages"
+	"github.com/FACorreiaa/skillsphere-pwa/internal/app/auth"
+	"github.com/FACorreiaa/skillsphere-pwa/internal/container"
 )
 
 // RegisterRoutes sets up all routes and middleware
 func (s *Server) RegisterRoutes() http.Handler {
 	r := chi.NewRouter()
+
+	// Create dependency injection container
+	c := container.New(s.db.GetPool())
 
 	// ──────────────────────────────────────────────────────────────────
 	// Core Middleware
@@ -34,6 +38,9 @@ func (s *Server) RegisterRoutes() http.Handler {
 	// Compression (Gzip/Deflate)
 	r.Use(middleware.Compress(5))
 
+	// Inject session data into all requests
+	r.Use(auth.InjectSessionData)
+
 	// ──────────────────────────────────────────────────────────────────
 	// Security Middleware
 	// ──────────────────────────────────────────────────────────────────
@@ -44,7 +51,7 @@ func (s *Server) RegisterRoutes() http.Handler {
 		FrameDeny:             true,
 		ContentTypeNosniff:    true,
 		BrowserXssFilter:      true,
-		ContentSecurityPolicy: "default-src 'self'; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; script-src 'self' 'unsafe-inline' https://unpkg.com;",
+		ContentSecurityPolicy: "default-src 'self'; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; script-src 'self' 'unsafe-inline' https://unpkg.com;",
 		ReferrerPolicy:        "strict-origin-when-cross-origin",
 	}
 	if !isDev {
@@ -90,16 +97,45 @@ func (s *Server) RegisterRoutes() http.Handler {
 	}
 
 	// ──────────────────────────────────────────────────────────────────
-	// Application Routes
+	// Health Check
 	// ──────────────────────────────────────────────────────────────────
-
-	// Health check
 	r.Get("/health", s.handleHealth)
 
-	// Pages
-	r.Get("/", s.handleHome)
+	// ──────────────────────────────────────────────────────────────────
+	// Public Routes
+	// ──────────────────────────────────────────────────────────────────
+	r.Get("/", c.HomeHandler.Index)
 
-	// API routes (example)
+	// Auth routes (redirect if already authenticated)
+	r.Group(func(r chi.Router) {
+		r.Use(auth.RedirectIfAuthenticated)
+		r.Get("/login", c.AuthHandler.ShowLogin)
+		r.Post("/login", c.AuthHandler.HandleLogin)
+		r.Get("/register", c.AuthHandler.ShowRegister)
+		r.Post("/register", c.AuthHandler.HandleRegister)
+		r.Get("/forgot-password", c.AuthHandler.ShowForgotPassword)
+		r.Post("/forgot-password", c.AuthHandler.HandleForgotPassword)
+	})
+
+	// Logout (needs to work for authenticated users)
+	r.Post("/logout", c.AuthHandler.HandleLogout)
+
+	// ──────────────────────────────────────────────────────────────────
+	// Protected Routes (require authentication)
+	// ──────────────────────────────────────────────────────────────────
+	r.Group(func(r chi.Router) {
+		r.Use(auth.RequireAuth)
+		r.Get("/dashboard", c.DashboardHandler.Show)
+		// Future protected routes:
+		// r.Get("/profile", c.ProfileHandler.Show)
+		// r.Get("/skills", c.SkillsHandler.List)
+		// r.Get("/matches", c.MatchesHandler.List)
+		// r.Get("/messages", c.MessagesHandler.List)
+	})
+
+	// ──────────────────────────────────────────────────────────────────
+	// API Routes
+	// ──────────────────────────────────────────────────────────────────
 	r.Route("/api", func(r chi.Router) {
 		r.Get("/hello", s.handleAPIHello)
 	})
@@ -114,18 +150,10 @@ func (s *Server) handleHealth(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(health)
 }
 
-// handleHome renders the home page using Templ
-func (s *Server) handleHome(w http.ResponseWriter, r *http.Request) {
-	component := pages.Index()
-	if err := component.Render(r.Context(), w); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-	}
-}
-
 // handleAPIHello is a sample JSON API endpoint
 func (s *Server) handleAPIHello(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]string{
-		"message": "Hello from GoForge!",
+		"message": "Hello from SkillSphere!",
 	})
 }

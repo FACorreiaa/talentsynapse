@@ -9,7 +9,7 @@ echo "📝 Generating Templ templates..."
 templ generate
 
 echo "🎨 Building optimized CSS..."
-tailwindcss -i ./assets/css/index.css -o ./assets/css/output.css --minify
+tailwindcss -i ./assets/css/input.css -o ./assets/css/output.css --minify
 
 echo "🔨 Building Go binary..."
 CGO_ENABLED=0 go build \

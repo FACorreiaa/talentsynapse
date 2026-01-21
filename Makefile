@@ -11,7 +11,7 @@ PROJECT_NAME := myapp
 BINARY_NAME := server
 
 # Database settings (override via .env or environment)
-DB_DSN ?= postgres://localhost:5432/$(PROJECT_NAME)?sslmode=disable
+DB_DSN ?= postgres://postgres:postgres@localhost:5470/$(PROJECT_NAME)?sslmode=disable
 GOOSE_DRIVER := postgres
 GOOSE_MIGRATION_DIR := ./internal/database/migrations
 
@@ -49,16 +49,41 @@ ci-setup: ## Setup for CI environments (GitHub Actions)
 # Development
 # =========================================================================
 
-dev: ## Start development server with live reload (Air handles Templ + Tailwind + Go)
+dev: ## Start development server with live reload (using Air)
 	@echo "🚀 Starting development server with Air..."
-	@echo "📝 Watching: .templ → template generation → Tailwind CSS rebuild → Go binary"
 	@GO_ENV=development air
 
-templ: ## Generate Templ templates
-	templ generate
+# run templ generation in watch mode to detect all .templ files and 
+# re-create _templ.txt files on change, then send reload event to browser. 
+# Default url: http://localhost:7331
+live/templ:
+	templ generate --watch --proxy="http://localhost:8081" --open-browser=false -v
 
-css: ## Build CSS once
-	tailwindcss -i ./assets/css/basecoat.min.css -o ./assets/css/output.css --minify
+# run air to detect any go file changes to re-build and re-run the server.
+live/server:
+	go run github.com/air-verse/air@v1.63.0 \
+	--build.cmd "go build -o tmp/bin/main ./cmd/server" --build.bin "tmp/bin/main" --build.delay "100" \
+	--build.include_ext "go" \
+	--build.stop_on_error "false" \
+	--misc.clean_on_exit true
+
+# run tailwindcss to generate the styles.css bundle in watch mode.
+live/tailwind:
+	tailwindcss -i ./assets/css/input.css -o ./assets/css/output.css --minify --watch
+
+# watch for any js or css change in the assets/ folder, then reload the browser via templ proxy.
+live/sync_assets:
+	go run github.com/air-verse/air@v1.63.0 \
+	--build.cmd "templ generate --notify-proxy" \
+	--build.bin "/usr/bin/true" \
+	--build.delay "100" \
+	--build.exclude_dir "tmp,vendor,bin" \
+	--build.include_dir "assets" \
+	--build.include_ext "js,css"
+
+# start all 5 watch processes in parallel.
+live: 
+	make -j5 live/templ live/server live/tailwind live/sync_assets
 
 # =========================================================================
 # Build
@@ -66,7 +91,7 @@ css: ## Build CSS once
 
 build: templ ## Build production binary
 	@echo "🔨 Building CSS..."
-	@tailwindcss -i ./assets/css/index.css -o ./assets/css/output.css --minify
+	@tailwindcss -i ./assets/css/input.css -o ./assets/css/output.css --minify
 	@echo "🔨 Building binary..."
 	@CGO_ENABLED=0 go build -ldflags="-s -w" -o ./bin/$(BINARY_NAME) ./cmd/server
 	@echo "✅ Build complete: ./bin/$(BINARY_NAME)"
@@ -142,17 +167,19 @@ help: ## Show this help message
 
 # Run templ generation in watch mode
 templ:
-	templ fmt . && templ generate --watch --proxy="http://localhost:7000" --open-browser=false
+	templ generate --watch --proxy="http://localhost:8081" --cmd="go run ."
+
+
 
 t-fmt:
 	templ fmt .
 
 # Manual Tailwind CSS commands (not needed if using 'make dev')
 tailwind:
-	tailwindcss -i ./assets/css/index.css -o ./assets/css/output.css --watch
+	tailwindcss -i ./assets/css/input.css -o ./assets/css/output.css --watch
 
 tailwind-build:
-	tailwindcss -i ./assets/css/index.css -o ./assets/css/output.css --minify
+	tailwindcss -i ./assets/css/input.css -o ./assets/css/output.css --minify
 
 # =========================================================================
 # Build Analysis
