@@ -803,6 +803,11 @@ h6,
     padding: 0.5rem;
 }
 
+/* ── Alpine.js x-cloak ─────────────────────────────────────────────────── */
+[x-cloak] {
+    display: none !important;
+}
+
 /* ── Print Styles ───────────────────────────────────────────────────────── */
 @media print {
 
@@ -822,4 +827,8 @@ h6,
     .flash-message {
         display: none !important;
     }
+}
+
+[x-cloak] {
+    display: none !important;
 }

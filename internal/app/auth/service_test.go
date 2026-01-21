@@ -17,7 +17,7 @@ type MockUserRepository struct {
 }
 
 func (m *MockUserRepository) Create(ctx context.Context, email, username, hashedPassword, displayName string) (*user.User, error) {
-	args := m.Called(ctx, email, username, mock.AnythingOfType("string"), displayName)
+	args := m.Called(ctx, email, username, hashedPassword, displayName)
 	if args.Get(0) == nil {
 		return nil, args.Error(1)
 	}
@@ -142,7 +142,7 @@ func TestAuthService_Register_Success(t *testing.T) {
 	svc := auth.NewService(mockRepo)
 	ctx := context.Background()
 
-	mockRepo.On("Create", ctx, "newuser@example.com", "newuser", mock.AnythingOfType("string"), "New User").
+	mockRepo.On("Create", ctx, "newuser@example.com", "newuser", mock.Anything, "New User").
 		Return(&user.User{
 			ID:          "user-456",
 			Email:       "newuser@example.com",
@@ -240,7 +240,7 @@ func TestAuthService_Register_EmailAlreadyExists(t *testing.T) {
 	svc := auth.NewService(mockRepo)
 	ctx := context.Background()
 
-	mockRepo.On("Create", ctx, "existing@example.com", "newuser", mock.AnythingOfType("string"), "New User").
+	mockRepo.On("Create", ctx, "existing@example.com", "newuser", mock.Anything, "New User").
 		Return(nil, user.ErrEmailAlreadyExists)
 
 	// Act

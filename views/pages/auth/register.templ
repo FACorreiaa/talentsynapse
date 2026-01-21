@@ -85,9 +85,12 @@ templ Register(errorMsg string) {
 											class="input w-full pr-10"
 											autocomplete="new-password"
 										/>
-										<button 
+										<button
 											type="button"
-											onclick="togglePassword(this)"
+											_="on click
+												toggle the *type of #password between 'password' and 'text'
+												toggle .hidden on .eye-open in me
+												toggle .hidden on .eye-closed in me"
 											class="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
 										>
 											<svg class="w-5 h-5 eye-open" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -205,23 +208,5 @@ templ Register(errorMsg string) {
 			
 			@components.Footer()
 		</div>
-		<script>
-			function togglePassword(btn) {
-				const container = btn.closest('[data-password-toggle]');
-				const input = container.querySelector('input');
-				const eyeOpen = btn.querySelector('.eye-open');
-				const eyeClosed = btn.querySelector('.eye-closed');
-				
-				if (input.type === 'password') {
-					input.type = 'text';
-					eyeOpen.classList.add('hidden');
-					eyeClosed.classList.remove('hidden');
-				} else {
-					input.type = 'password';
-					eyeOpen.classList.remove('hidden');
-					eyeClosed.classList.add('hidden');
-				}
-			}
-		</script>
 	}
 }
