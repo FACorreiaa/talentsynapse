@@ -2,34 +2,21 @@ package components
 
 templ FlashMessage(message string, flashType string) {
 	if message != "" {
-		<div 
+		<div
 			class={ "flash-message", flashClass(flashType) }
 			data-flash-message
+			_="on load wait 5s then transition opacity to 0 over 300ms then transition transform to 'translateY(-10px)' over 300ms then remove me"
 		>
 			<div class="flex items-center gap-3">
 				@flashIcon(flashType)
 				<span class="flex-1">{ message }</span>
-				<button onclick="this.closest('[data-flash-message]').remove()" class="p-1 hover:opacity-70 transition-opacity">
+				<button _="on click remove closest <[data-flash-message]/>" class="p-1 hover:opacity-70 transition-opacity">
 					<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
 					</svg>
 				</button>
 			</div>
 		</div>
-		<script>
-			// Auto-dismiss flash messages after 5 seconds
-			(function() {
-				const flashMessages = document.querySelectorAll('[data-flash-message]');
-				flashMessages.forEach(msg => {
-					setTimeout(() => {
-						msg.style.transition = 'opacity 0.3s ease-out, transform 0.3s ease-out';
-						msg.style.opacity = '0';
-						msg.style.transform = 'translateY(-10px)';
-						setTimeout(() => msg.remove(), 300);
-					}, 5000);
-				});
-			})();
-		</script>
 	}
 }
 

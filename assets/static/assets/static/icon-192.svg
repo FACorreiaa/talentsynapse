@@ -1,0 +1,21 @@
+<svg width="240" height="50" viewBox="0 0 240 50" xmlns="http://www.w3.org/2000/svg">
+  <style>
+    .brand { fill: #F59E0B; } /* Orange */
+    .text  { fill: #1F2937; } /* Dark Gray (Light Mode) */
+    
+    @media (prefers-color-scheme: dark) {
+      .text { fill: #F3F4F6; } /* White (Dark Mode) */
+    }
+  </style>
+
+  <g transform="translate(0, 10)">
+      <text x="0" y="24" font-family="system-ui, sans-serif" font-weight="800" font-size="24" class="brand">F</text>
+      <text x="20" y="24" font-family="system-ui, sans-serif" font-weight="300" font-size="24" class="text">|</text>
+      <text x="34" y="24" font-family="system-ui, sans-serif" font-weight="800" font-size="24" class="text">C</text>
+  </g>
+
+  <g transform="translate(70, 10)">
+      <text x="0" y="24" font-family="system-ui, sans-serif" font-weight="800" font-size="24" class="brand">Skill</text>
+      <text x="54" y="24" font-family="system-ui, sans-serif" font-weight="400" font-size="24" class="text">Sphere</text>
+  </g>
+</svg>
