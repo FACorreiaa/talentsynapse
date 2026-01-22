@@ -126,12 +126,28 @@ func (s *Server) RegisterRoutes() http.Handler {
 	r.Group(func(r chi.Router) {
 		r.Use(auth.RequireAuth)
 		r.Get("/dashboard", c.DashboardHandler.Show)
-		// Future protected routes:
-		// r.Get("/profile", c.ProfileHandler.Show)
-		// r.Get("/skills", c.SkillsHandler.List)
-		// r.Get("/matches", c.MatchesHandler.List)
-		// r.Get("/messages", c.MessagesHandler.List)
+
+		// Profile routes
+		r.Get("/profile", c.ProfileHandler.Show)
+		r.Post("/profile", c.ProfileHandler.Update)
+
+		// Skills routes
+		r.Get("/skills", c.SkillsHandler.List)
+		r.Get("/skills/add", c.SkillsHandler.ShowAdd)
+		r.Post("/skills", c.SkillsHandler.Add)
+		r.Delete("/skills/{id}", c.SkillsHandler.Remove)
+
+		// Matches routes
+		r.Get("/matches", c.MatchesHandler.List)
+		r.Post("/matches/{id}/accept", c.MatchesHandler.Accept)
+		r.Post("/matches/{id}/reject", c.MatchesHandler.Reject)
+
+		// Settings routes
+		r.Get("/settings", c.SettingsHandler.Show)
 	})
+
+	// Public discover page (works for both auth and non-auth)
+	r.Get("/discover", c.DiscoverHandler.Show)
 
 	// ──────────────────────────────────────────────────────────────────
 	// API Routes

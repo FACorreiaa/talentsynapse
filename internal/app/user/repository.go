@@ -176,6 +176,13 @@ func (r *Repository) UpdateLastLogin(ctx context.Context, userID string) error {
 	return err
 }
 
+// UpdateProfile updates user's display name and bio
+func (r *Repository) UpdateProfile(ctx context.Context, userID, displayName, bio string) error {
+	query := `UPDATE users SET display_name = $2, bio = $3, updated_at = NOW() WHERE id = $1`
+	_, err := r.pool.Exec(ctx, query, userID, displayName, bio)
+	return err
+}
+
 // isUniqueViolation checks if error is a unique constraint violation
 func isUniqueViolation(err error, constraintName string) bool {
 	if err == nil {

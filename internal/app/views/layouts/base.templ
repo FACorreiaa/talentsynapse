@@ -18,12 +18,13 @@ templ Base(title string) {
 			<link rel="apple-touch-icon" href="/assets/static/icon-192.svg"/>
 			<!-- Stylesheets -->
 			<link rel="stylesheet" href="/assets/css/output.css"/>
+			<!-- Surreal.js - Must load in head before inline scripts -->
+			<script src="/assets/js/surreal.min.js"></script>
 		</head>
 		<body>
 			{ children... }
 			<!-- JavaScript Libraries (loaded at end for performance) -->
 			<script src="/assets/js/htmx.min.js"></script>
-			<script src="/assets/js/hyperscript.min.js"></script>
 			<script src="/assets/js/basecoat.min.js" defer></script>
 			<!-- Theme initialization (apply saved theme preference on load) -->
 			<script>

@@ -4,13 +4,11 @@ const CACHE_NAME = 'skillsphere-v3';
 const urlsToCache = [
   '/',
   '/assets/css/output.css',
-  '/assets/css/basecoat.min.css',
   '/assets/js/htmx.min.js',
   '/assets/js/surreal.min.js',
   '/assets/js/basecoat.min.js',
   '/assets/static/manifest.json',
-  '/assets/static/icon-192.png',
-  '/assets/static/icon-512.png',
+  '/assets/static/icon.svg',
 ];
 
 // Install event - cache static assets
