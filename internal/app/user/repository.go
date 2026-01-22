@@ -57,7 +57,6 @@ func (r *Repository) Create(ctx context.Context, email, username, hashedPassword
 		&user.UpdatedAt,
 		&user.LastLoginAt,
 	)
-
 	if err != nil {
 		if isUniqueViolation(err, "users_email_key") {
 			return nil, ErrEmailAlreadyExists
@@ -94,7 +93,6 @@ func (r *Repository) GetByEmail(ctx context.Context, email string) (*User, error
 		&user.UpdatedAt,
 		&user.LastLoginAt,
 	)
-
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return nil, ErrUserNotFound
@@ -128,7 +126,6 @@ func (r *Repository) GetByID(ctx context.Context, id string) (*User, error) {
 		&user.UpdatedAt,
 		&user.LastLoginAt,
 	)
-
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return nil, ErrUserNotFound
@@ -162,7 +159,6 @@ func (r *Repository) GetByUsername(ctx context.Context, username string) (*User,
 		&user.UpdatedAt,
 		&user.LastLoginAt,
 	)
-
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return nil, ErrUserNotFound

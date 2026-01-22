@@ -7,14 +7,12 @@ templ Dashboard(userName string, userAvatar string, successMsg string) {
 	@layouts.Base("Dashboard | SkillSphere") {
 		<div class="min-h-screen flex flex-col bg-background">
 			@components.Navbar(true, userName, userAvatar)
-			
 			<main class="flex-1 py-8 px-4">
 				<div class="container mx-auto max-w-7xl">
 					<!-- Flash Messages -->
 					if successMsg != "" {
 						@components.FlashMessage(successMsg, "success")
 					}
-					
 					<!-- Welcome Header -->
 					<div class="mb-8 animate-fade-in-up">
 						<h1 class="text-3xl md:text-4xl font-bold text-foreground mb-2">
@@ -24,7 +22,6 @@ templ Dashboard(userName string, userAvatar string, successMsg string) {
 							Here's what's happening with your skill exchange journey.
 						</p>
 					</div>
-					
 					<!-- Stats Cards -->
 					<div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
 						@statCard("Skills Offered", "12", "text-emerald-500", skillsOfferedIcon())
@@ -32,7 +29,6 @@ templ Dashboard(userName string, userAvatar string, successMsg string) {
 						@statCard("Matches", "24", "text-amber-500", matchesIcon())
 						@statCard("Sessions", "7", "text-purple-500", sessionsIcon())
 					</div>
-					
 					<!-- Main Content Grid -->
 					<div class="grid lg:grid-cols-3 gap-6">
 						<!-- Left Column - Activity & Actions -->
@@ -67,7 +63,6 @@ templ Dashboard(userName string, userAvatar string, successMsg string) {
 									</a>
 								</div>
 							</div>
-							
 							<!-- Recent Activity -->
 							<div class="glass-card rounded-xl p-6 animate-fade-in-up delay-200">
 								<div class="flex items-center justify-between mb-4">
@@ -82,7 +77,6 @@ templ Dashboard(userName string, userAvatar string, successMsg string) {
 								</div>
 							</div>
 						</div>
-						
 						<!-- Right Column - Matches & Recommendations -->
 						<div class="space-y-6">
 							<!-- Suggested Matches -->
@@ -97,7 +91,6 @@ templ Dashboard(userName string, userAvatar string, successMsg string) {
 									@matchCard("Sofia Rodriguez", "Spanish, Portuguese", "91%", "/avatars/3.jpg")
 								</div>
 							</div>
-							
 							<!-- Profile Completion -->
 							<div class="glass-card rounded-xl p-6 animate-fade-in-up delay-400">
 								<h2 class="text-lg font-semibold text-foreground mb-4">Profile Strength</h2>
@@ -144,7 +137,6 @@ templ Dashboard(userName string, userAvatar string, successMsg string) {
 					</div>
 				</div>
 			</main>
-			
 			@components.Footer()
 		</div>
 	}

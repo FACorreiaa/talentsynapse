@@ -120,6 +120,26 @@ lint: ## Run golangci-lint
 	golangci-lint run
 
 # =========================================================================
+# Git Hooks
+# =========================================================================
+
+hooks-install: ## Install Git hooks (pre-commit)
+	@echo "📦 Installing Git hooks..."
+	@git config core.hooksPath .githooks
+	@chmod +x .githooks/*
+	@echo "✅ Git hooks installed! Commits will now run: templ fmt, gofumpt, golangci-lint"
+
+hooks-uninstall: ## Uninstall Git hooks
+	@git config --unset core.hooksPath
+	@echo "✅ Git hooks uninstalled"
+
+pre-commit: ## Run pre-commit checks manually
+	@templ fmt .
+	@gofumpt -l -w .
+	@templ generate
+	@golangci-lint run --fix
+
+# =========================================================================
 # Database (Goose)
 # =========================================================================
 

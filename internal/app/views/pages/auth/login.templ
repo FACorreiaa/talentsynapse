@@ -7,7 +7,6 @@ templ Login(errorMsg string, successMsg string) {
 	@layouts.Base("Sign In | SkillSphere") {
 		<div class="min-h-screen flex flex-col bg-background">
 			@components.Navbar(false, "", "")
-			
 			<main class="flex-1 flex items-center justify-center py-12 px-4">
 				<div class="w-full max-w-5xl flex rounded-2xl overflow-hidden shadow-2xl">
 					<!-- Left Side - Illustration -->
@@ -49,7 +48,6 @@ templ Login(errorMsg string, successMsg string) {
 							</div>
 						</div>
 					</div>
-					
 					<!-- Right Side - Form -->
 					<div class="w-full lg:w-1/2 bg-card p-8 md:p-12">
 						<div class="max-w-md mx-auto">
@@ -60,27 +58,24 @@ templ Login(errorMsg string, successMsg string) {
 							if successMsg != "" {
 								@components.FlashMessage(successMsg, "success")
 							}
-							
 							<div class="text-center mb-8 animate-fade-in">
 								<h1 class="text-3xl font-bold text-foreground mb-2">Sign In</h1>
 								<p class="text-muted-foreground">Enter your credentials to access your account</p>
 							</div>
-							
 							<form action="/login" method="POST" class="space-y-5 animate-fade-in-up delay-100">
 								<!-- Email Field -->
 								<div class="space-y-2">
 									<label for="email" class="text-sm font-medium text-foreground">Email</label>
-									<input 
-										type="email" 
-										id="email" 
-										name="email" 
+									<input
+										type="email"
+										id="email"
+										name="email"
 										placeholder="you@example.com"
 										required
 										class="input w-full"
 										autocomplete="email"
 									/>
 								</div>
-								
 								<!-- Password Field -->
 								<div class="space-y-2">
 									<div class="flex justify-between items-center">
@@ -90,10 +85,10 @@ templ Login(errorMsg string, successMsg string) {
 										</a>
 									</div>
 									<div class="relative" data-password-toggle>
-										<input 
+										<input
 											type="password"
-											id="password" 
-											name="password" 
+											id="password"
+											name="password"
 											placeholder="••••••••"
 											required
 											class="input w-full pr-10"
@@ -117,19 +112,16 @@ templ Login(errorMsg string, successMsg string) {
 										</button>
 									</div>
 								</div>
-								
 								<!-- Remember Me -->
 								<div class="flex items-center gap-2">
 									<input type="checkbox" id="remember" name="remember" class="checkbox"/>
 									<label for="remember" class="text-sm text-muted-foreground">Remember me for 30 days</label>
 								</div>
-								
 								<!-- Submit Button -->
 								<button type="submit" class="btn btn-primary btn-glow w-full py-3 text-base font-semibold">
 									Sign In
 								</button>
 							</form>
-							
 							<!-- Divider -->
 							<div class="relative my-8">
 								<div class="absolute inset-0 flex items-center">
@@ -139,7 +131,6 @@ templ Login(errorMsg string, successMsg string) {
 									<span class="px-4 bg-card text-muted-foreground">Or continue with</span>
 								</div>
 							</div>
-							
 							<!-- Social Login -->
 							<div class="grid grid-cols-2 gap-4 animate-fade-in-up delay-200">
 								<button type="button" disabled class="btn btn-outline flex items-center justify-center gap-2 py-2.5 opacity-50 cursor-not-allowed">
@@ -159,7 +150,6 @@ templ Login(errorMsg string, successMsg string) {
 								</button>
 							</div>
 							<p class="text-center text-xs text-muted-foreground mt-2">Social login coming soon</p>
-							
 							<!-- Sign Up Link -->
 							<p class="text-center text-sm text-muted-foreground mt-8">
 								Don't have an account? 
@@ -171,7 +161,6 @@ templ Login(errorMsg string, successMsg string) {
 					</div>
 				</div>
 			</main>
-			
 			@components.Footer()
 		</div>
 	}

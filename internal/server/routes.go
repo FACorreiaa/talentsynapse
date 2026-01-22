@@ -147,13 +147,13 @@ func (s *Server) RegisterRoutes() http.Handler {
 func (s *Server) handleHealth(w http.ResponseWriter, r *http.Request) {
 	health := s.db.Health()
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(health)
+	_ = json.NewEncoder(w).Encode(health)
 }
 
 // handleAPIHello is a sample JSON API endpoint
 func (s *Server) handleAPIHello(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]string{
+	_ = json.NewEncoder(w).Encode(map[string]string{
 		"message": "Hello from SkillSphere!",
 	})
 }

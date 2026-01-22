@@ -43,7 +43,7 @@ func (h *Handler) ShowLogin(w http.ResponseWriter, r *http.Request) {
 // HandleLogin processes the login form
 func (h *Handler) HandleLogin(w http.ResponseWriter, r *http.Request) {
 	if err := r.ParseForm(); err != nil {
-		SetFlash(w, r, "Invalid form data", FlashError)
+		_ = SetFlash(w, r, "Invalid form data", FlashError)
 		http.Redirect(w, r, "/login", http.StatusSeeOther)
 		return
 	}
@@ -54,7 +54,7 @@ func (h *Handler) HandleLogin(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if input.Email == "" || input.Password == "" {
-		SetFlash(w, r, "Email and password are required", FlashError)
+		_ = SetFlash(w, r, "Email and password are required", FlashError)
 		http.Redirect(w, r, "/login", http.StatusSeeOther)
 		return
 	}
@@ -62,16 +62,16 @@ func (h *Handler) HandleLogin(w http.ResponseWriter, r *http.Request) {
 	u, err := h.authService.Login(r.Context(), input)
 	if err != nil {
 		if errors.Is(err, ErrInvalidCredentials) {
-			SetFlash(w, r, "Invalid email or password", FlashError)
+			_ = SetFlash(w, r, "Invalid email or password", FlashError)
 		} else {
-			SetFlash(w, r, "An error occurred. Please try again.", FlashError)
+			_ = SetFlash(w, r, "An error occurred. Please try again.", FlashError)
 		}
 		http.Redirect(w, r, "/login", http.StatusSeeOther)
 		return
 	}
 
 	if err := CreateSession(w, r, u); err != nil {
-		SetFlash(w, r, "Failed to create session", FlashError)
+		_ = SetFlash(w, r, "Failed to create session", FlashError)
 		http.Redirect(w, r, "/login", http.StatusSeeOther)
 		return
 	}
@@ -101,7 +101,7 @@ func (h *Handler) ShowRegister(w http.ResponseWriter, r *http.Request) {
 // HandleRegister processes the registration form
 func (h *Handler) HandleRegister(w http.ResponseWriter, r *http.Request) {
 	if err := r.ParseForm(); err != nil {
-		SetFlash(w, r, "Invalid form data", FlashError)
+		_ = SetFlash(w, r, "Invalid form data", FlashError)
 		http.Redirect(w, r, "/register", http.StatusSeeOther)
 		return
 	}
@@ -115,7 +115,7 @@ func (h *Handler) HandleRegister(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if input.DisplayName == "" || input.Email == "" || input.Username == "" || input.Password == "" {
-		SetFlash(w, r, "All fields are required", FlashError)
+		_ = SetFlash(w, r, "All fields are required", FlashError)
 		http.Redirect(w, r, "/register", http.StatusSeeOther)
 		return
 	}
@@ -137,13 +137,13 @@ func (h *Handler) HandleRegister(w http.ResponseWriter, r *http.Request) {
 		default:
 			msg = "Failed to create account. Please try again."
 		}
-		SetFlash(w, r, msg, FlashError)
+		_ = SetFlash(w, r, msg, FlashError)
 		http.Redirect(w, r, "/register", http.StatusSeeOther)
 		return
 	}
 
 	if err := CreateSession(w, r, u); err != nil {
-		SetFlash(w, r, "Account created! Please log in.", FlashSuccess)
+		_ = SetFlash(w, r, "Account created! Please log in.", FlashSuccess)
 		http.Redirect(w, r, "/login", http.StatusSeeOther)
 		return
 	}
@@ -154,7 +154,7 @@ func (h *Handler) HandleRegister(w http.ResponseWriter, r *http.Request) {
 // HandleLogout destroys the session
 func (h *Handler) HandleLogout(w http.ResponseWriter, r *http.Request) {
 	_ = DestroySession(w, r)
-	SetFlash(w, r, "You have been logged out", FlashSuccess)
+	_ = SetFlash(w, r, "You have been logged out", FlashSuccess)
 	http.Redirect(w, r, "/", http.StatusSeeOther)
 }
 
@@ -181,7 +181,7 @@ func (h *Handler) ShowForgotPassword(w http.ResponseWriter, r *http.Request) {
 // HandleForgotPassword processes the forgot password form
 func (h *Handler) HandleForgotPassword(w http.ResponseWriter, r *http.Request) {
 	if err := r.ParseForm(); err != nil {
-		SetFlash(w, r, "Invalid form data", FlashError)
+		_ = SetFlash(w, r, "Invalid form data", FlashError)
 		http.Redirect(w, r, "/forgot-password", http.StatusSeeOther)
 		return
 	}
@@ -189,14 +189,14 @@ func (h *Handler) HandleForgotPassword(w http.ResponseWriter, r *http.Request) {
 	email := strings.TrimSpace(r.FormValue("email"))
 
 	if email == "" || !ValidateEmail(email) {
-		SetFlash(w, r, "Please enter a valid email address", FlashError)
+		_ = SetFlash(w, r, "Please enter a valid email address", FlashError)
 		http.Redirect(w, r, "/forgot-password", http.StatusSeeOther)
 		return
 	}
 
 	_ = h.authService.RequestPasswordReset(r.Context(), email)
 
-	SetFlash(w, r, "If an account exists with this email, you will receive a password reset link shortly.", FlashSuccess)
+	_ = SetFlash(w, r, "If an account exists with this email, you will receive a password reset link shortly.", FlashSuccess)
 	http.Redirect(w, r, "/forgot-password", http.StatusSeeOther)
 }
 
