@@ -7,7 +7,6 @@ templ Register(errorMsg string) {
 	@layouts.Base("Create Account | SkillSphere") {
 		<div class="min-h-screen flex flex-col bg-background">
 			@components.Navbar(false, "", "")
-			
 			<main class="flex-1 flex items-center justify-center py-12 px-4">
 				<div class="w-full max-w-5xl flex rounded-2xl overflow-hidden shadow-2xl">
 					<!-- Left Side - Form -->
@@ -17,36 +16,33 @@ templ Register(errorMsg string) {
 							if errorMsg != "" {
 								@components.FlashMessage(errorMsg, "error")
 							}
-							
 							<div class="text-center mb-8 animate-fade-in">
 								<h1 class="text-3xl font-bold text-foreground mb-2">Create Account</h1>
 								<p class="text-muted-foreground">Join thousands of skill exchangers worldwide</p>
 							</div>
-							
 							<form action="/register" method="POST" class="space-y-4 animate-fade-in-up delay-100">
 								<!-- Display Name Field -->
 								<div class="space-y-2">
 									<label for="name" class="text-sm font-medium text-foreground">Display Name</label>
-									<input 
-										type="text" 
-										id="name" 
-										name="name" 
+									<input
+										type="text"
+										id="name"
+										name="name"
 										placeholder="John Doe"
 										required
 										class="input w-full"
 										autocomplete="name"
 									/>
 								</div>
-								
 								<!-- Username Field -->
 								<div class="space-y-2">
 									<label for="username" class="text-sm font-medium text-foreground">Username</label>
 									<div class="relative">
 										<span class="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">&#64;</span>
-										<input 
-											type="text" 
-											id="username" 
-											name="username" 
+										<input
+											type="text"
+											id="username"
+											name="username"
 											placeholder="johndoe"
 											required
 											class="input w-full pl-8"
@@ -56,29 +52,27 @@ templ Register(errorMsg string) {
 										/>
 									</div>
 								</div>
-								
 								<!-- Email Field -->
 								<div class="space-y-2">
 									<label for="email" class="text-sm font-medium text-foreground">Email</label>
-									<input 
-										type="email" 
-										id="email" 
-										name="email" 
+									<input
+										type="email"
+										id="email"
+										name="email"
 										placeholder="you@example.com"
 										required
 										class="input w-full"
 										autocomplete="email"
 									/>
 								</div>
-								
 								<!-- Password Field -->
 								<div class="space-y-2">
 									<label for="password" class="text-sm font-medium text-foreground">Password</label>
 									<div class="relative" data-password-toggle>
-										<input 
+										<input
 											type="password"
-											id="password" 
-											name="password" 
+											id="password"
+											name="password"
 											placeholder="••••••••"
 											required
 											minlength="8"
@@ -104,21 +98,19 @@ templ Register(errorMsg string) {
 									</div>
 									<p class="text-xs text-muted-foreground">Minimum 8 characters</p>
 								</div>
-								
 								<!-- Confirm Password Field -->
 								<div class="space-y-2">
 									<label for="confirm_password" class="text-sm font-medium text-foreground">Confirm Password</label>
-									<input 
+									<input
 										type="password"
-										id="confirm_password" 
-										name="confirm_password" 
+										id="confirm_password"
+										name="confirm_password"
 										placeholder="••••••••"
 										required
 										class="input w-full"
 										autocomplete="new-password"
 									/>
 								</div>
-								
 								<!-- Terms Checkbox -->
 								<div class="flex items-start gap-2">
 									<input type="checkbox" id="terms" name="terms" required class="checkbox mt-0.5"/>
@@ -126,13 +118,11 @@ templ Register(errorMsg string) {
 										I agree to the <a href="/terms" class="text-primary hover:underline">Terms of Service</a> and <a href="/privacy" class="text-primary hover:underline">Privacy Policy</a>
 									</label>
 								</div>
-								
 								<!-- Submit Button -->
 								<button type="submit" class="btn btn-primary btn-glow w-full py-3 text-base font-semibold mt-2">
 									Create Account
 								</button>
 							</form>
-							
 							<!-- Divider -->
 							<div class="relative my-6">
 								<div class="absolute inset-0 flex items-center">
@@ -142,7 +132,6 @@ templ Register(errorMsg string) {
 									<span class="px-4 bg-card text-muted-foreground">Or sign up with</span>
 								</div>
 							</div>
-							
 							<!-- Social Login -->
 							<div class="grid grid-cols-2 gap-4 animate-fade-in-up delay-200">
 								<button type="button" disabled class="btn btn-outline flex items-center justify-center gap-2 py-2.5 opacity-50 cursor-not-allowed">
@@ -161,7 +150,6 @@ templ Register(errorMsg string) {
 									GitHub
 								</button>
 							</div>
-							
 							<!-- Sign In Link -->
 							<p class="text-center text-sm text-muted-foreground mt-8">
 								Already have an account? 
@@ -171,7 +159,6 @@ templ Register(errorMsg string) {
 							</p>
 						</div>
 					</div>
-					
 					<!-- Right Side - Illustration -->
 					<div class="hidden lg:flex lg:w-1/2 auth-illustration relative order-1 lg:order-2">
 						<div class="absolute inset-0 bg-gradient-to-bl from-accent via-primary/80 to-primary"></div>
@@ -205,7 +192,6 @@ templ Register(errorMsg string) {
 					</div>
 				</div>
 			</main>
-			
 			@components.Footer()
 		</div>
 	}

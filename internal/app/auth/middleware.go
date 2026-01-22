@@ -20,7 +20,7 @@ func RequireAuth(next http.Handler) http.Handler {
 		if !IsAuthenticated(r) {
 			session, _ := GetSession(r)
 			session.Values["redirect_after_login"] = r.URL.Path
-			session.Save(r, w)
+			_ = session.Save(r, w)
 
 			http.Redirect(w, r, "/login", http.StatusSeeOther)
 			return

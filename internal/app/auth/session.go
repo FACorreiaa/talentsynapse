@@ -188,7 +188,7 @@ func GetFlash(w http.ResponseWriter, r *http.Request) []FlashMessage {
 		return nil
 	}
 
-	session.Save(r, w)
+	_ = session.Save(r, w)
 
 	result := make([]FlashMessage, 0, len(messages))
 	for i, msg := range messages {
@@ -219,13 +219,16 @@ func GetRedirectAfterLogin(w http.ResponseWriter, r *http.Request) string {
 	}
 
 	delete(session.Values, "redirect_after_login")
-	session.Save(r, w)
+	_ = session.Save(r, w)
 
 	return redirect
 }
 
 func generateRandomSecret() string {
 	bytes := make([]byte, 32)
-	rand.Read(bytes)
+	if _, err := rand.Read(bytes); err != nil {
+		// Fallback to a default secret if crypto/rand fails
+		return "default-dev-secret-change-in-production"
+	}
 	return base64.StdEncoding.EncodeToString(bytes)
 }

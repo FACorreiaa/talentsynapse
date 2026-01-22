@@ -1,0 +1,40 @@
+#!/bin/bash
+# Pre-commit hook for SkillSphere
+# Runs: gofumpt, templ fmt, golangci-lint
+
+set -e
+
+echo "🔍 Running pre-commit checks..."
+
+# Check if required tools are installed
+command -v gofumpt >/dev/null 2>&1 || { echo "❌ gofumpt not installed. Run: go install mvdan.cc/gofumpt@latest"; exit 1; }
+command -v templ >/dev/null 2>&1 || { echo "❌ templ not installed. Run: go install github.com/a-h/templ/cmd/templ@latest"; exit 1; }
+command -v golangci-lint >/dev/null 2>&1 || { echo "❌ golangci-lint not installed. See: https://golangci-lint.run/usage/install/"; exit 1; }
+
+# 1. Format templ files
+echo "📝 Formatting templ files..."
+templ fmt .
+
+# 2. Format Go files with gofumpt
+echo "📝 Formatting Go files with gofumpt..."
+gofumpt -l -w .
+
+# 3. Generate templ Go files (in case formatting changed them)
+echo "🔄 Generating templ files..."
+templ generate
+
+# 4. Re-stage any formatted files
+echo "📦 Staging formatted files..."
+git add -u
+
+# 5. Run linter with auto-fix
+echo "🔬 Running golangci-lint..."
+if ! golangci-lint run --fix; then
+    echo "❌ Linting failed. Please fix the issues above and try again."
+    exit 1
+fi
+
+# Re-stage any files fixed by linter
+git add -u
+
+echo "✅ Pre-commit checks passed!"
