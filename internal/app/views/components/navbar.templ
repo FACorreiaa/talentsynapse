@@ -68,10 +68,14 @@ templ Navbar(isAuthenticated bool, userName string, userAvatar string) {
                         <button 
                             class="btn btn-sm btn-icon btn-ghost" 
                             aria-label="Toggle theme"
-                            _="on click toggle .dark on <html/>
-                               on click toggle .hidden on .sun-icon in me
-                               on click toggle .hidden on .moon-icon in me
-                               on click if <html/>.classList.contains('dark') then call localStorage.setItem('theme', 'dark') else call localStorage.setItem('theme', 'light')"
+                            _="on click
+                               js
+                                 document.documentElement.classList.toggle('dark');
+                                 const isDark = document.documentElement.classList.contains('dark');
+                                 localStorage.setItem('theme', isDark ? 'dark' : 'light');
+                               end
+                               toggle .hidden on .sun-icon in me
+                               toggle .hidden on .moon-icon in me"
                         >
                             <!-- Sun icon (shown in dark mode) -->
                             <svg class="h-5 w-5 sun-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
