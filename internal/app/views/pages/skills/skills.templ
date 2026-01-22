@@ -1,0 +1,166 @@
+package skills
+
+import "github.com/FACorreiaa/skillsphere/internal/app/views/layouts"
+import "github.com/FACorreiaa/skillsphere/internal/app/views/components"
+import "strconv"
+
+// SkillItem represents a user's skill for display
+type SkillItem struct {
+	ID           string
+	Name         string
+	CategoryName string
+	Proficiency  int
+}
+
+// CatalogSkill represents a skill from the catalog
+type CatalogSkill struct {
+	ID           string
+	Name         string
+	CategoryName string
+}
+
+templ Skills(offeredSkills []SkillItem, wantedSkills []SkillItem, catalogSkills []CatalogSkill, userName string, userAvatar string, successMsg string) {
+	@layouts.Base("Skills | SkillSphere") {
+		<div class="min-h-screen flex flex-col bg-background">
+			@components.Navbar(true, userName, userAvatar)
+			<main class="flex-1 py-8 px-4">
+				<div class="container mx-auto max-w-6xl">
+					<!-- Flash Messages -->
+					if successMsg != "" {
+						@components.FlashMessage(successMsg, "success")
+					}
+					<!-- Page Header -->
+					<div class="mb-8 animate-fade-in-up">
+						<h1 class="text-3xl md:text-4xl font-bold text-foreground mb-2">
+							My <span class="text-gradient">Skills</span>
+						</h1>
+						<p class="text-muted-foreground">
+							Manage the skills you can teach and the skills you want to learn
+						</p>
+					</div>
+					<!-- Two Column Layout -->
+					<div class="grid lg:grid-cols-2 gap-8">
+						<!-- Skills I Can Teach -->
+						<div class="glass-card rounded-xl p-6 animate-fade-in-up">
+							<div class="flex items-center justify-between mb-6">
+								<div class="flex items-center gap-3">
+									@teachIcon()
+									<h2 class="text-xl font-semibold text-foreground">Skills I Can Teach</h2>
+								</div>
+								<span class="text-sm text-muted-foreground bg-muted px-3 py-1 rounded-full">
+									{ strconv.Itoa(len(offeredSkills)) } skills
+								</span>
+							</div>
+							<!-- Skill List -->
+							<div class="space-y-3 mb-6" id="offered-skills-list">
+								if len(offeredSkills) == 0 {
+									<div class="text-center py-8 text-muted-foreground">
+										<p>No skills added yet</p>
+										<p class="text-sm mt-1">Add skills you can teach to find matches!</p>
+									</div>
+								}
+								for _, skill := range offeredSkills {
+									@skillChip(skill, "offered")
+								}
+							</div>
+							<!-- Add Skill Button -->
+							<a href="/skills/add?type=offered" class="btn btn-outline w-full inline-flex items-center justify-center">
+								<svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+									<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+								</svg>
+								Add Skill
+							</a>
+						</div>
+						<!-- Skills I Want to Learn -->
+						<div class="glass-card rounded-xl p-6 animate-fade-in-up delay-100">
+							<div class="flex items-center justify-between mb-6">
+								<div class="flex items-center gap-3">
+									@learnIcon()
+									<h2 class="text-xl font-semibold text-foreground">Skills I Want to Learn</h2>
+								</div>
+								<span class="text-sm text-muted-foreground bg-muted px-3 py-1 rounded-full">
+									{ strconv.Itoa(len(wantedSkills)) } skills
+								</span>
+							</div>
+							<!-- Skill List -->
+							<div class="space-y-3 mb-6" id="wanted-skills-list">
+								if len(wantedSkills) == 0 {
+									<div class="text-center py-8 text-muted-foreground">
+										<p>No skills added yet</p>
+										<p class="text-sm mt-1">Add skills you want to learn!</p>
+									</div>
+								}
+								for _, skill := range wantedSkills {
+									@skillChip(skill, "wanted")
+								}
+							</div>
+							<!-- Add Skill Button -->
+							<a href="/skills/add?type=wanted" class="btn btn-outline w-full inline-flex items-center justify-center">
+								<svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+									<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+								</svg>
+								Add Skill
+							</a>
+						</div>
+					</div>
+				</div>
+			</main>
+			@components.Footer()
+		</div>
+	}
+}
+
+templ skillChip(skill SkillItem, skillType string) {
+	<div class="flex items-center justify-between p-3 rounded-lg bg-muted/50 group hover:bg-muted transition-colors">
+		<div class="flex items-center gap-3">
+			<div class="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center text-primary font-semibold text-sm">
+				{ getSkillInitial(skill.Name) }
+			</div>
+			<div>
+				<p class="font-medium text-foreground">{ skill.Name }</p>
+				<p class="text-xs text-muted-foreground">{ skill.CategoryName }</p>
+			</div>
+		</div>
+		<div class="flex items-center gap-3">
+			<!-- Proficiency Badge -->
+			<span class="text-xs font-medium px-2 py-1 rounded-full bg-primary/10 text-primary">
+				Level { strconv.Itoa(skill.Proficiency) }
+			</span>
+			<!-- Remove Button -->
+			<button
+				class="opacity-0 group-hover:opacity-100 transition-opacity text-destructive hover:bg-destructive/10 p-1 rounded"
+				hx-delete={ "/skills/" + skill.ID + "?type=" + skillType }
+				hx-confirm="Remove this skill?"
+				hx-swap="outerHTML"
+			>
+				<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+					<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+				</svg>
+			</button>
+		</div>
+	</div>
+}
+
+func getSkillInitial(name string) string {
+	if len(name) == 0 {
+		return "?"
+	}
+	runes := []rune(name)
+	return string(runes[0])
+}
+
+templ teachIcon() {
+	<div class="w-10 h-10 rounded-full bg-emerald-500/10 flex items-center justify-center">
+		<svg class="w-5 h-5 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+			<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path>
+		</svg>
+	</div>
+}
+
+templ learnIcon() {
+	<div class="w-10 h-10 rounded-full bg-blue-500/10 flex items-center justify-center">
+		<svg class="w-5 h-5 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+			<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path>
+		</svg>
+	</div>
+}

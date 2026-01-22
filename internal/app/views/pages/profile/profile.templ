@@ -1,0 +1,138 @@
+package profile
+
+import "github.com/FACorreiaa/skillsphere/internal/app/views/layouts"
+import "github.com/FACorreiaa/skillsphere/internal/app/views/components"
+import "time"
+
+// ProfileData holds profile information for display
+type ProfileData struct {
+	ID          string
+	Username    string
+	DisplayName string
+	Email       string
+	AvatarURL   string
+	Bio         string
+	CreatedAt   time.Time
+}
+
+templ Profile(p ProfileData, userName string, userAvatar string, successMsg string) {
+	@layouts.Base("Profile | SkillSphere") {
+		<div class="min-h-screen flex flex-col bg-background">
+			@components.Navbar(true, userName, userAvatar)
+			<main class="flex-1 py-8 px-4">
+				<div class="container mx-auto max-w-4xl">
+					<!-- Flash Messages -->
+					if successMsg != "" {
+						@components.FlashMessage(successMsg, "success")
+					}
+					<!-- Profile Header -->
+					<div class="glass-card rounded-xl p-8 mb-6 animate-fade-in-up">
+						<div class="flex flex-col md:flex-row items-center gap-6">
+							<!-- Avatar -->
+							<div class="relative group">
+								if p.AvatarURL != "" {
+									<img
+										src={ p.AvatarURL }
+										alt="Profile picture"
+										class="w-32 h-32 rounded-full object-cover ring-4 ring-primary/20"
+									/>
+								} else {
+									<div class="w-32 h-32 rounded-full bg-gradient-to-br from-primary to-accent flex items-center justify-center text-primary-foreground text-4xl font-bold">
+										{ getInitial(p.DisplayName) }
+									</div>
+								}
+								<button class="absolute bottom-0 right-0 w-10 h-10 rounded-full bg-primary text-primary-foreground flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+									@cameraIcon()
+								</button>
+							</div>
+							<!-- Info -->
+							<div class="flex-1 text-center md:text-left">
+								<h1 class="text-3xl font-bold text-foreground mb-1">{ p.DisplayName }</h1>
+								<p class="text-muted-foreground mb-2">{ "@" + p.Username }</p>
+								<p class="text-sm text-muted-foreground">{ p.Email }</p>
+							</div>
+							<!-- Stats -->
+							<div class="grid grid-cols-3 gap-4 mt-4 md:mt-0">
+								@profileStat("Skills", "12")
+								@profileStat("Matches", "24")
+								@profileStat("Sessions", "7")
+							</div>
+						</div>
+					</div>
+					<!-- Edit Profile Form -->
+					<div class="glass-card rounded-xl p-6 animate-fade-in-up delay-100">
+						<h2 class="text-xl font-semibold text-foreground mb-6">Edit Profile</h2>
+						<form action="/profile" method="POST" class="space-y-6">
+							<!-- Display Name -->
+							<div>
+								<label for="display_name" class="block text-sm font-medium text-foreground mb-2">
+									Display Name
+								</label>
+								<input
+									type="text"
+									id="display_name"
+									name="display_name"
+									value={ p.DisplayName }
+									class="input w-full"
+									placeholder="Your display name"
+								/>
+							</div>
+							<!-- Bio -->
+							<div>
+								<label for="bio" class="block text-sm font-medium text-foreground mb-2">
+									Bio
+								</label>
+								<textarea
+									id="bio"
+									name="bio"
+									rows="4"
+									class="input w-full resize-none"
+									placeholder="Tell others about yourself..."
+								>{ p.Bio }</textarea>
+							</div>
+							<!-- Submit Button -->
+							<div class="flex justify-end">
+								<button type="submit" class="btn btn-primary btn-glow">
+									Save Changes
+								</button>
+							</div>
+						</form>
+					</div>
+					<!-- Danger Zone -->
+					<div class="glass-card rounded-xl p-6 mt-6 border border-destructive/20 animate-fade-in-up delay-200">
+						<h2 class="text-xl font-semibold text-destructive mb-4">Danger Zone</h2>
+						<p class="text-sm text-muted-foreground mb-4">
+							Once you delete your account, there is no going back. Please be certain.
+						</p>
+						<button type="button" class="btn btn-outline border-destructive text-destructive hover:bg-destructive hover:text-destructive-foreground">
+							Delete Account
+						</button>
+					</div>
+				</div>
+			</main>
+			@components.Footer()
+		</div>
+	}
+}
+
+func getInitial(name string) string {
+	if len(name) == 0 {
+		return "?"
+	}
+	runes := []rune(name)
+	return string(runes[0])
+}
+
+templ profileStat(label string, value string) {
+	<div class="text-center p-3 rounded-lg bg-muted/50">
+		<div class="text-2xl font-bold text-primary">{ value }</div>
+		<div class="text-xs text-muted-foreground">{ label }</div>
+	</div>
+}
+
+templ cameraIcon() {
+	<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+		<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"></path>
+		<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"></path>
+	</svg>
+}

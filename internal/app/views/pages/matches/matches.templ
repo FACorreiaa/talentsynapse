@@ -1,0 +1,170 @@
+package matches
+
+import "github.com/FACorreiaa/skillsphere/internal/app/views/layouts"
+import "github.com/FACorreiaa/skillsphere/internal/app/views/components"
+import "strconv"
+
+// MatchCard represents a potential match for display
+type MatchCard struct {
+	UserID        string
+	DisplayName   string
+	Username      string
+	AvatarURL     string
+	MatchScore    int // percentage 0-100
+	OverlapSkills []SkillOverlap
+}
+
+// SkillOverlap represents a shared skill interest
+type SkillOverlap struct {
+	Name      string
+	TheyTeach bool // true = they can teach you, false = you can teach them
+}
+
+templ Matches(matches []MatchCard, userName string, userAvatar string, successMsg string) {
+	@layouts.Base("Matches | SkillSphere") {
+		<div class="min-h-screen flex flex-col bg-background">
+			@components.Navbar(true, userName, userAvatar)
+			<main class="flex-1 py-8 px-4">
+				<div class="container mx-auto max-w-3xl">
+					<!-- Flash Messages -->
+					if successMsg != "" {
+						@components.FlashMessage(successMsg, "success")
+					}
+					<!-- Page Header -->
+					<div class="text-center mb-8 animate-fade-in-up">
+						<h1 class="text-3xl md:text-4xl font-bold text-foreground mb-2">
+							Find Your <span class="text-gradient">Match</span>
+						</h1>
+						<p class="text-muted-foreground">
+							Discover people who can teach you and learn from you
+						</p>
+					</div>
+					<!-- Match Cards Stack -->
+					<div id="match-stack" class="relative">
+						if len(matches) == 0 {
+							@emptyState()
+						} else {
+							for i, match := range matches {
+								@matchCard(match, i)
+							}
+						}
+					</div>
+				</div>
+			</main>
+			@components.Footer()
+		</div>
+	}
+}
+
+templ matchCard(match MatchCard, index int) {
+	<div
+		id={ "match-" + match.UserID }
+		class="glass-card rounded-2xl p-6 mb-4 animate-fade-in-up transition-all duration-300"
+		style={ "animation-delay: " + strconv.Itoa(index*50) + "ms" }
+	>
+		<!-- Header -->
+		<div class="flex items-start justify-between mb-6">
+			<div class="flex items-center gap-4">
+				<!-- Avatar -->
+				if match.AvatarURL != "" {
+					<img
+						src={ match.AvatarURL }
+						alt={ match.DisplayName }
+						class="w-16 h-16 rounded-full object-cover ring-4 ring-primary/20"
+					/>
+				} else {
+					<div class="w-16 h-16 rounded-full bg-gradient-to-br from-primary to-accent flex items-center justify-center text-primary-foreground text-2xl font-bold">
+						{ getInitial(match.DisplayName) }
+					</div>
+				}
+				<!-- Info -->
+				<div>
+					<h2 class="text-xl font-bold text-foreground">{ match.DisplayName }</h2>
+					<p class="text-sm text-muted-foreground">{ "@" + match.Username }</p>
+				</div>
+			</div>
+			<!-- Match Score -->
+			<div class="text-right">
+				<div class="text-2xl font-bold text-primary">{ strconv.Itoa(match.MatchScore) }%</div>
+				<div class="text-xs text-muted-foreground">match</div>
+			</div>
+		</div>
+		<!-- Skill Overlap -->
+		<div class="mb-6">
+			<h3 class="text-sm font-medium text-foreground mb-3">Skill Exchange</h3>
+			<div class="space-y-2">
+				for _, skill := range match.OverlapSkills {
+					<div class="flex items-center gap-2 text-sm">
+						if skill.TheyTeach {
+							<span class="w-6 h-6 rounded-full bg-blue-500/10 flex items-center justify-center">
+								<svg class="w-3 h-3 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+									<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3"></path>
+								</svg>
+							</span>
+							<span class="text-muted-foreground">They can teach you</span>
+							<span class="font-medium text-foreground">{ skill.Name }</span>
+						} else {
+							<span class="w-6 h-6 rounded-full bg-emerald-500/10 flex items-center justify-center">
+								<svg class="w-3 h-3 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+									<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 10l7-7m0 0l7 7m-7-7v18"></path>
+								</svg>
+							</span>
+							<span class="text-muted-foreground">You can teach them</span>
+							<span class="font-medium text-foreground">{ skill.Name }</span>
+						}
+					</div>
+				}
+			</div>
+		</div>
+		<!-- Action Buttons -->
+		<div class="flex gap-4">
+			<button
+				class="flex-1 btn btn-outline border-destructive text-destructive hover:bg-destructive hover:text-destructive-foreground transition-all"
+				hx-post={ "/matches/" + match.UserID + "/reject" }
+				hx-target={ "#match-" + match.UserID }
+				hx-swap="outerHTML"
+			>
+				<svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+					<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+				</svg>
+				Skip
+			</button>
+			<button
+				class="flex-1 btn btn-primary btn-glow transition-all"
+				hx-post={ "/matches/" + match.UserID + "/accept" }
+				hx-target={ "#match-" + match.UserID }
+				hx-swap="outerHTML"
+			>
+				<svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+					<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+				</svg>
+				Connect
+			</button>
+		</div>
+	</div>
+}
+
+templ emptyState() {
+	<div class="glass-card rounded-2xl p-12 text-center animate-fade-in-up">
+		<div class="w-20 h-20 mx-auto mb-6 rounded-full bg-muted flex items-center justify-center">
+			<svg class="w-10 h-10 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+				<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
+			</svg>
+		</div>
+		<h2 class="text-xl font-bold text-foreground mb-2">No Matches Yet</h2>
+		<p class="text-muted-foreground mb-6 max-w-md mx-auto">
+			Add more skills to your profile to find people who want to exchange knowledge with you.
+		</p>
+		<a href="/skills" class="btn btn-primary btn-glow">
+			Add Skills
+		</a>
+	</div>
+}
+
+func getInitial(name string) string {
+	if len(name) == 0 {
+		return "?"
+	}
+	runes := []rune(name)
+	return string(runes[0])
+}
