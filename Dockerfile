@@ -38,15 +38,17 @@ WORKDIR /app
 RUN addgroup -g 1001 -S appgroup && \
     adduser -u 1001 -S appuser -G appgroup
 
-# Copy binary and assets from builder
+# Copy binary from builder (assets are embedded)
 COPY --from=builder /app/server .
-COPY --from=builder /app/assets ./assets
 
 # Set ownership
 RUN chown -R appuser:appgroup /app
 
 # Switch to non-root user
 USER appuser
+
+# Set environment to production (enables embedded assets)
+ENV GO_ENV=production
 
 # Expose port
 EXPOSE 8080
