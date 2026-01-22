@@ -1,0 +1,132 @@
+package skills
+
+import "github.com/FACorreiaa/skillsphere/internal/app/views/layouts"
+import "github.com/FACorreiaa/skillsphere/internal/app/views/components"
+
+templ AddSkill(skillType string, catalogSkills []CatalogSkill, userName string, userAvatar string) {
+	@layouts.Base("Add Skill | SkillSphere") {
+		<div class="min-h-screen flex flex-col bg-background">
+			@components.Navbar(true, userName, userAvatar)
+			<main class="flex-1 py-8 px-4">
+				<div class="container mx-auto max-w-xl">
+					<!-- Back Link -->
+					<a href="/skills" class="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground mb-6 transition-colors">
+						<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+						</svg>
+						Back to Skills
+					</a>
+					<!-- Page Header -->
+					<div class="mb-8 animate-fade-in-up">
+						<h1 class="text-3xl font-bold text-foreground mb-2">
+							if skillType == "offered" {
+								Add a Skill You <span class="text-gradient">Can Teach</span>
+							} else {
+								Add a Skill You <span class="text-gradient">Want to Learn</span>
+							}
+						</h1>
+						<p class="text-muted-foreground">
+							if skillType == "offered" {
+								Share your expertise with others in the SkillSphere community
+							} else {
+								Find people who can help you learn something new
+							}
+						</p>
+					</div>
+					<!-- Add Skill Form -->
+					<div class="glass-card rounded-xl p-6 animate-fade-in-up delay-100">
+						<form action="/skills" method="POST" class="space-y-6">
+							<input type="hidden" name="skill_type" value={ skillType }/>
+							<!-- Skill Select -->
+							<div>
+								<label for="skill_id" class="block text-sm font-medium text-foreground mb-2">
+									Select Skill
+								</label>
+								<select
+									id="skill_id"
+									name="skill_id"
+									class="select w-full bg-muted border-border text-foreground"
+									required
+								>
+									<option value="">Choose a skill...</option>
+									for _, skill := range catalogSkills {
+										<option value={ skill.ID }>{ skill.Name } ({ skill.CategoryName })</option>
+									}
+								</select>
+								<p class="text-xs text-muted-foreground mt-1">
+									Can't find your skill? More skills are added regularly.
+								</p>
+							</div>
+							<!-- Proficiency Level -->
+							<div>
+								<label class="block text-sm font-medium text-foreground mb-3">
+									if skillType == "offered" {
+										Your Proficiency Level
+									} else {
+										Desired Proficiency Level
+									}
+								</label>
+								<div class="space-y-3">
+									<input
+										type="range"
+										name="proficiency"
+										id="proficiency-slider"
+										min="1"
+										max="10"
+										value="5"
+										class="w-full h-2 bg-muted rounded-lg appearance-none cursor-pointer accent-primary"
+									/>
+									<div class="flex justify-between text-xs text-muted-foreground">
+										<span>1 - Beginner</span>
+										<span id="proficiency-value" class="font-medium text-primary">5</span>
+										<span>10 - Expert</span>
+									</div>
+								</div>
+								<script>
+									const slider = document.getElementById('proficiency-slider');
+									const display = document.getElementById('proficiency-value');
+									slider.addEventListener('input', () => {
+										display.textContent = slider.value;
+									});
+								</script>
+							</div>
+							<!-- Optional Note -->
+							<div>
+								<label for="note" class="block text-sm font-medium text-foreground mb-2">
+									Additional Notes <span class="text-muted-foreground">(Optional)</span>
+								</label>
+								<textarea
+									id="note"
+									name="note"
+									rows="3"
+									class="input w-full resize-none bg-muted border-border"
+									placeholder={ getNotePlaceholder(skillType) }
+								></textarea>
+							</div>
+							<!-- Action Buttons -->
+							<div class="flex gap-4 pt-4">
+								<a href="/skills" class="btn btn-outline flex-1">
+									Cancel
+								</a>
+								<button type="submit" class="btn btn-primary btn-glow flex-1">
+									<svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+										<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+									</svg>
+									Add Skill
+								</button>
+							</div>
+						</form>
+					</div>
+				</div>
+			</main>
+			@components.Footer()
+		</div>
+	}
+}
+
+func getNotePlaceholder(skillType string) string {
+	if skillType == "offered" {
+		return "e.g., I've been coding in Python for 5 years..."
+	}
+	return "e.g., I want to learn the basics first..."
+}
