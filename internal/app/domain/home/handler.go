@@ -3,7 +3,7 @@ package home
 import (
 	"net/http"
 
-	"github.com/FACorreiaa/skillsphere/internal/app/auth"
+	"github.com/FACorreiaa/skillsphere/internal/app/domain/auth"
 	"github.com/FACorreiaa/skillsphere/internal/app/views/pages"
 )
 

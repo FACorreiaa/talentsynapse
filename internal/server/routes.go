@@ -13,7 +13,7 @@ import (
 	"github.com/unrolled/secure"
 
 	"github.com/FACorreiaa/skillsphere/assets"
-	"github.com/FACorreiaa/skillsphere/internal/app/auth"
+	"github.com/FACorreiaa/skillsphere/internal/app/domain/auth"
 	"github.com/FACorreiaa/skillsphere/internal/container"
 )
 
@@ -168,6 +168,11 @@ func (s *Server) RegisterRoutes() http.Handler {
 	r.Route("/api", func(r chi.Router) {
 		r.Get("/hello", s.handleAPIHello)
 	})
+
+	// ──────────────────────────────────────────────────────────────────
+	// 404 Not Found Handler
+	// ──────────────────────────────────────────────────────────────────
+	r.NotFound(c.ErrorHandler.NotFound)
 
 	return r
 }

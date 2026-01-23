@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/FACorreiaa/skillsphere/internal/app/user"
+	"github.com/FACorreiaa/skillsphere/internal/app/domain/user"
 	"github.com/FACorreiaa/skillsphere/internal/app/views/pages"
 	authpages "github.com/FACorreiaa/skillsphere/internal/app/views/pages/auth"
 )

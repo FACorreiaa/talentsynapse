@@ -3,8 +3,8 @@ package discover
 import (
 	"net/http"
 
-	"github.com/FACorreiaa/skillsphere/internal/app/auth"
-	"github.com/FACorreiaa/skillsphere/internal/app/skills"
+	"github.com/FACorreiaa/skillsphere/internal/app/domain/auth"
+	"github.com/FACorreiaa/skillsphere/internal/app/domain/skills"
 	discoverpages "github.com/FACorreiaa/skillsphere/internal/app/views/pages/discover"
 )
 

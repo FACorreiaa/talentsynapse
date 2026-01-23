@@ -3,7 +3,7 @@ package dashboard
 import (
 	"net/http"
 
-	"github.com/FACorreiaa/skillsphere/internal/app/auth"
+	"github.com/FACorreiaa/skillsphere/internal/app/domain/auth"
 	dashboardpages "github.com/FACorreiaa/skillsphere/internal/app/views/pages/dashboard"
 )
 

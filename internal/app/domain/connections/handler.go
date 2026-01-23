@@ -3,8 +3,8 @@ package connections
 import (
 	"net/http"
 
-	"github.com/FACorreiaa/skillsphere/internal/app/auth"
-	"github.com/FACorreiaa/skillsphere/internal/app/matches"
+	"github.com/FACorreiaa/skillsphere/internal/app/domain/auth"
+	"github.com/FACorreiaa/skillsphere/internal/app/domain/matches"
 	connectionspages "github.com/FACorreiaa/skillsphere/internal/app/views/pages/connections"
 )
 

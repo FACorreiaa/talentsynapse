@@ -3,17 +3,18 @@ package container
 import (
 	"github.com/jackc/pgx/v5/pgxpool"
 
-	"github.com/FACorreiaa/skillsphere/internal/app/auth"
-	"github.com/FACorreiaa/skillsphere/internal/app/chat"
-	"github.com/FACorreiaa/skillsphere/internal/app/connections"
-	"github.com/FACorreiaa/skillsphere/internal/app/dashboard"
-	"github.com/FACorreiaa/skillsphere/internal/app/discover"
-	"github.com/FACorreiaa/skillsphere/internal/app/home"
-	"github.com/FACorreiaa/skillsphere/internal/app/matches"
-	"github.com/FACorreiaa/skillsphere/internal/app/profile"
-	"github.com/FACorreiaa/skillsphere/internal/app/settings"
-	"github.com/FACorreiaa/skillsphere/internal/app/skills"
-	"github.com/FACorreiaa/skillsphere/internal/app/user"
+	"github.com/FACorreiaa/skillsphere/internal/app/domain/auth"
+	"github.com/FACorreiaa/skillsphere/internal/app/domain/chat"
+	"github.com/FACorreiaa/skillsphere/internal/app/domain/connections"
+	"github.com/FACorreiaa/skillsphere/internal/app/domain/dashboard"
+	"github.com/FACorreiaa/skillsphere/internal/app/domain/discover"
+	"github.com/FACorreiaa/skillsphere/internal/app/domain/errors"
+	"github.com/FACorreiaa/skillsphere/internal/app/domain/home"
+	"github.com/FACorreiaa/skillsphere/internal/app/domain/matches"
+	"github.com/FACorreiaa/skillsphere/internal/app/domain/profile"
+	"github.com/FACorreiaa/skillsphere/internal/app/domain/settings"
+	"github.com/FACorreiaa/skillsphere/internal/app/domain/skills"
+	"github.com/FACorreiaa/skillsphere/internal/app/domain/user"
 )
 
 // Container holds all application dependencies
@@ -41,6 +42,7 @@ type Container struct {
 	SettingsHandler    *settings.Handler
 	ChatHandler        *chat.Handler
 	ConnectionsHandler *connections.Handler
+	ErrorHandler       *errors.Handler
 }
 
 // New creates a new dependency injection container
@@ -72,6 +74,7 @@ func New(pool *pgxpool.Pool) *Container {
 	settingsHandler := settings.NewHandler()
 	chatHandler := chat.NewHandler(chatRepo, chatHub)
 	connectionsHandler := connections.NewHandler(matchesRepo)
+	errorHandler := errors.NewHandler()
 
 	return &Container{
 		// Repositories
@@ -97,5 +100,6 @@ func New(pool *pgxpool.Pool) *Container {
 		SettingsHandler:    settingsHandler,
 		ChatHandler:        chatHandler,
 		ConnectionsHandler: connectionsHandler,
+		ErrorHandler:       errorHandler,
 	}
 }

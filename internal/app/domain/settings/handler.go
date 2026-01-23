@@ -3,7 +3,7 @@ package settings
 import (
 	"net/http"
 
-	"github.com/FACorreiaa/skillsphere/internal/app/auth"
+	"github.com/FACorreiaa/skillsphere/internal/app/domain/auth"
 	settingspages "github.com/FACorreiaa/skillsphere/internal/app/views/pages/settings"
 )
 

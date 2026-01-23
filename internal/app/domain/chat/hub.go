@@ -9,7 +9,7 @@ import (
 
 	"github.com/gorilla/websocket"
 
-	"github.com/FACorreiaa/skillsphere/internal/app/auth"
+	"github.com/FACorreiaa/skillsphere/internal/app/domain/auth"
 )
 
 var upgrader = websocket.Upgrader{
