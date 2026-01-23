@@ -131,6 +131,9 @@ func (s *Server) RegisterRoutes() http.Handler {
 		r.Get("/profile", c.ProfileHandler.Show)
 		r.Post("/profile", c.ProfileHandler.Update)
 
+		// Public profile (view other users)
+		r.Get("/users/{id}", c.ProfileHandler.ShowPublic)
+
 		// Skills routes
 		r.Get("/skills", c.SkillsHandler.List)
 		r.Get("/skills/add", c.SkillsHandler.ShowAdd)
@@ -141,6 +144,16 @@ func (s *Server) RegisterRoutes() http.Handler {
 		r.Get("/matches", c.MatchesHandler.List)
 		r.Post("/matches/{id}/accept", c.MatchesHandler.Accept)
 		r.Post("/matches/{id}/reject", c.MatchesHandler.Reject)
+
+		// Connections routes
+		r.Get("/connections", c.ConnectionsHandler.List)
+
+		// Chat routes
+		r.Get("/chat", c.ChatHandler.ListConversations)
+		r.Get("/chat/{id}", c.ChatHandler.ShowChat)
+		r.Post("/chat/{id}/messages", c.ChatHandler.SendMessage)
+		r.Get("/chat/start/{userID}", c.ChatHandler.StartConversation)
+		r.Get("/chat/ws", c.ChatHub.HandleWebSocket)
 
 		// Settings routes
 		r.Get("/settings", c.SettingsHandler.Show)

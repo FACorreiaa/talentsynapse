@@ -6,6 +6,7 @@ import (
 	"github.com/FACorreiaa/skillsphere/internal/app/auth"
 	"github.com/FACorreiaa/skillsphere/internal/app/user"
 	profilepages "github.com/FACorreiaa/skillsphere/internal/app/views/pages/profile"
+	"github.com/go-chi/chi/v5"
 )
 
 // Handler handles profile HTTP requests
@@ -89,4 +90,59 @@ func getStringPtr(s *string) string {
 		return ""
 	}
 	return *s
+}
+
+// ShowPublic renders another user's public profile
+func (h *Handler) ShowPublic(w http.ResponseWriter, r *http.Request) {
+	sessionData := auth.GetSessionData(r)
+	if sessionData.UserID == "" {
+		http.Redirect(w, r, "/login", http.StatusSeeOther)
+		return
+	}
+
+	// Get profile user ID from URL
+	profileUserID := chi.URLParam(r, "id")
+	if profileUserID == "" {
+		http.Error(w, "Missing user ID", http.StatusBadRequest)
+		return
+	}
+
+	// Redirect to own profile if viewing self
+	if profileUserID == sessionData.UserID {
+		http.Redirect(w, r, "/profile", http.StatusSeeOther)
+		return
+	}
+
+	// Get target user data
+	targetUser, err := h.userRepo.GetByID(r.Context(), profileUserID)
+	if err != nil {
+		http.Error(w, "User not found", http.StatusNotFound)
+		return
+	}
+
+	// Get user's skills
+	offeredSkills, wantedSkills, err := h.userRepo.GetUserSkillNames(r.Context(), profileUserID)
+	if err != nil {
+		offeredSkills = []string{}
+		wantedSkills = []string{}
+	}
+
+	// Check if users are connected (mutual match)
+	isConnected, _ := h.userRepo.AreConnected(r.Context(), sessionData.UserID, profileUserID)
+
+	profile := profilepages.PublicProfileData{
+		ID:            targetUser.ID,
+		Username:      targetUser.Username,
+		DisplayName:   targetUser.DisplayName,
+		AvatarURL:     getStringPtr(targetUser.AvatarURL),
+		Bio:           getStringPtr(targetUser.Bio),
+		OfferedSkills: offeredSkills,
+		WantedSkills:  wantedSkills,
+		IsConnected:   isConnected,
+	}
+
+	component := profilepages.PublicProfile(profile, sessionData.UserName, sessionData.UserAvatar)
+	if err := component.Render(r.Context(), w); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	}
 }

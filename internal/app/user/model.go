@@ -12,6 +12,7 @@ type User struct {
 	HashedPassword  string
 	DisplayName     string
 	AvatarURL       *string
+	Bio             *string
 	Role            string
 	IsActive        bool
 	EmailVerifiedAt *time.Time

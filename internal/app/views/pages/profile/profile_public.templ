@@ -1,0 +1,134 @@
+package profile
+
+import (
+	"github.com/FACorreiaa/skillsphere/internal/app/views/components"
+	"github.com/FACorreiaa/skillsphere/internal/app/views/layouts"
+)
+
+// PublicProfileData holds another user's profile info for display
+type PublicProfileData struct {
+	ID            string
+	Username      string
+	DisplayName   string
+	AvatarURL     string
+	Bio           string
+	OfferedSkills []string
+	WantedSkills  []string
+	IsConnected   bool
+}
+
+templ PublicProfile(p PublicProfileData, userName string, userAvatar string) {
+	@layouts.Base(p.DisplayName + " | SkillSphere") {
+		<div class="min-h-screen flex flex-col bg-background">
+			@components.Navbar(true, userName, userAvatar)
+			<main class="flex-1 py-8 px-4">
+				<div class="container mx-auto max-w-3xl">
+					<!-- Profile Header -->
+					<div class="glass-card rounded-2xl p-8 mb-6 animate-fade-in-up">
+						<div class="flex flex-col md:flex-row items-center gap-6">
+							<!-- Avatar -->
+							<div class="relative">
+								if p.AvatarURL != "" {
+									<img
+										src={ p.AvatarURL }
+										alt={ p.DisplayName }
+										class="w-32 h-32 rounded-full object-cover ring-4 ring-primary/20"
+									/>
+								} else {
+									<div class="w-32 h-32 rounded-full bg-gradient-to-br from-primary to-accent flex items-center justify-center text-primary-foreground text-4xl font-bold">
+										{ getPublicInitial(p.DisplayName) }
+									</div>
+								}
+							</div>
+							<!-- Info -->
+							<div class="flex-1 text-center md:text-left">
+								<h1 class="text-3xl font-bold text-foreground mb-1">{ p.DisplayName }</h1>
+								<p class="text-muted-foreground mb-3">{ "@" + p.Username }</p>
+								if p.Bio != "" {
+									<p class="text-foreground/80 max-w-xl">{ p.Bio }</p>
+								}
+							</div>
+							<!-- Action Button -->
+							<div class="flex-shrink-0">
+								if p.IsConnected {
+									<a href={ templ.SafeURL("/chat/start/" + p.ID) } class="btn btn-primary btn-glow">
+										<svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+											<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path>
+										</svg>
+										Message
+									</a>
+								} else {
+									<span class="text-sm text-muted-foreground bg-muted px-4 py-2 rounded-lg">
+										Connect via Matches to chat
+									</span>
+								}
+							</div>
+						</div>
+					</div>
+					<!-- Skills Sections -->
+					<div class="grid md:grid-cols-2 gap-6">
+						<!-- Skills They Teach -->
+						<div class="glass-card rounded-xl p-6 animate-fade-in-up delay-100">
+							<div class="flex items-center gap-3 mb-4">
+								<div class="w-10 h-10 rounded-full bg-emerald-500/10 flex items-center justify-center">
+									<svg class="w-5 h-5 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+										<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path>
+									</svg>
+								</div>
+								<h2 class="text-lg font-semibold text-foreground">Can Teach</h2>
+							</div>
+							if len(p.OfferedSkills) == 0 {
+								<p class="text-sm text-muted-foreground">No teaching skills listed yet</p>
+							} else {
+								<div class="flex flex-wrap gap-2">
+									for _, skill := range p.OfferedSkills {
+										<span class="px-3 py-1 text-sm rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
+											{ skill }
+										</span>
+									}
+								</div>
+							}
+						</div>
+						<!-- Skills They Want -->
+						<div class="glass-card rounded-xl p-6 animate-fade-in-up delay-200">
+							<div class="flex items-center gap-3 mb-4">
+								<div class="w-10 h-10 rounded-full bg-blue-500/10 flex items-center justify-center">
+									<svg class="w-5 h-5 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+										<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path>
+									</svg>
+								</div>
+								<h2 class="text-lg font-semibold text-foreground">Wants to Learn</h2>
+							</div>
+							if len(p.WantedSkills) == 0 {
+								<p class="text-sm text-muted-foreground">No learning goals listed yet</p>
+							} else {
+								<div class="flex flex-wrap gap-2">
+									for _, skill := range p.WantedSkills {
+										<span class="px-3 py-1 text-sm rounded-full bg-blue-500/10 text-blue-600 dark:text-blue-400">
+											{ skill }
+										</span>
+									}
+								</div>
+							}
+						</div>
+					</div>
+					<!-- Back Link -->
+					<div class="mt-8 text-center">
+						<a href="/connections" class="text-sm text-muted-foreground hover:text-primary transition-colors">
+							← Back to Connections
+						</a>
+					</div>
+				</div>
+			</main>
+			@components.Footer()
+		</div>
+	}
+}
+
+func getPublicInitial(name string) string {
+	if len(name) == 0 {
+		return "?"
+	}
+	runes := []rune(name)
+	return string(runes[0])
+}

@@ -161,3 +161,55 @@ func (r *Repository) RecordMatchAction(ctx context.Context, userID, matchedUserI
 	_, err := r.pool.Exec(ctx, query, userID, matchedUserID, accepted)
 	return err
 }
+
+// MutualMatch represents a user with mutual connection
+type MutualMatch struct {
+	UserID      string
+	DisplayName string
+	Username    string
+	AvatarURL   string
+	Bio         string
+}
+
+// GetMutualMatches retrieves users who have mutually accepted each other
+func (r *Repository) GetMutualMatches(ctx context.Context, userID string, limit int) ([]MutualMatch, error) {
+	// Find pairs where both users have accepted each other
+	query := `
+		SELECT DISTINCT
+			u.id,
+			u.display_name,
+			u.username,
+			COALESCE(u.avatar_url, '') as avatar_url,
+			COALESCE(u.bio, '') as bio
+		FROM match_history mh1
+		JOIN match_history mh2 ON mh1.user_id_a = mh2.user_id_b AND mh1.user_id_b = mh2.user_id_a
+		JOIN users u ON (
+			CASE WHEN mh1.user_id_a = $1 THEN mh1.user_id_b ELSE mh1.user_id_a END = u.id
+		)
+		WHERE 
+			(mh1.user_id_a = $1 OR mh1.user_id_b = $1)
+			AND mh1.interaction_initiated = true
+			AND mh2.interaction_initiated = true
+			AND u.is_active = true
+		ORDER BY u.display_name
+		LIMIT $2
+	`
+
+	rows, err := r.pool.Query(ctx, query, userID, limit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var matches []MutualMatch
+	for rows.Next() {
+		var m MutualMatch
+		err := rows.Scan(&m.UserID, &m.DisplayName, &m.Username, &m.AvatarURL, &m.Bio)
+		if err != nil {
+			return nil, err
+		}
+		matches = append(matches, m)
+	}
+
+	return matches, rows.Err()
+}

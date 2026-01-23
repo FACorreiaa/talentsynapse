@@ -1,0 +1,148 @@
+package chat
+
+import (
+	"github.com/FACorreiaa/skillsphere/internal/app/views/components"
+	"github.com/FACorreiaa/skillsphere/internal/app/views/layouts"
+	"strconv"
+	"time"
+)
+
+// ConversationItem represents a conversation for display
+type ConversationItem struct {
+	ID            string
+	PartnerID     string
+	PartnerName   string
+	PartnerAvatar string
+	LastMessage   string
+	LastMessageAt time.Time
+	UnreadCount   int
+}
+
+templ Conversations(conversations []ConversationItem, userName string, userAvatar string) {
+	@layouts.Base("Messages | SkillSphere") {
+		<div class="min-h-screen flex flex-col bg-background">
+			@components.Navbar(true, userName, userAvatar)
+			<main class="flex-1 py-8 px-4">
+				<div class="container mx-auto max-w-3xl">
+					<!-- Page Header -->
+					<div class="mb-8 animate-fade-in-up">
+						<h1 class="text-3xl md:text-4xl font-bold text-foreground mb-2">
+							<span class="text-gradient">Messages</span>
+						</h1>
+						<p class="text-muted-foreground">
+							Chat with your skill exchange partners
+						</p>
+					</div>
+					<!-- Conversation List -->
+					<div class="space-y-3" id="conversation-list">
+						if len(conversations) == 0 {
+							@emptyConversations()
+						} else {
+							for i, conv := range conversations {
+								@conversationCard(conv, i)
+							}
+						}
+					</div>
+				</div>
+			</main>
+			@components.Footer()
+		</div>
+	}
+}
+
+templ conversationCard(conv ConversationItem, index int) {
+	<a
+		href={ templ.SafeURL("/chat/" + conv.ID) }
+		class="glass-card rounded-xl p-4 flex items-center gap-4 hover:ring-2 hover:ring-primary/50 transition-all duration-200 animate-fade-in-up cursor-pointer group"
+		style={ "animation-delay: " + strconv.Itoa(index*50) + "ms" }
+	>
+		<!-- Avatar -->
+		<div class="relative flex-shrink-0">
+			if conv.PartnerAvatar != "" {
+				<img
+					src={ conv.PartnerAvatar }
+					alt={ conv.PartnerName }
+					class="w-14 h-14 rounded-full object-cover ring-2 ring-muted"
+				/>
+			} else {
+				<div class="w-14 h-14 rounded-full bg-gradient-to-br from-primary to-accent flex items-center justify-center text-primary-foreground text-xl font-bold">
+					{ getInitial(conv.PartnerName) }
+				</div>
+			}
+			<!-- Online indicator (placeholder) -->
+			<span class="absolute bottom-0 right-0 w-4 h-4 bg-emerald-500 rounded-full border-2 border-background"></span>
+		</div>
+		<!-- Content -->
+		<div class="flex-1 min-w-0">
+			<div class="flex items-center justify-between mb-1">
+				<h3 class="font-semibold text-foreground group-hover:text-primary transition-colors truncate">
+					{ conv.PartnerName }
+				</h3>
+				<span class="text-xs text-muted-foreground flex-shrink-0 ml-2">
+					{ formatTimeAgo(conv.LastMessageAt) }
+				</span>
+			</div>
+			<p class="text-sm text-muted-foreground truncate">
+				if conv.LastMessage != "" {
+					{ conv.LastMessage }
+				} else {
+					<span class="italic">No messages yet</span>
+				}
+			</p>
+		</div>
+		<!-- Unread Badge -->
+		if conv.UnreadCount > 0 {
+			<div class="flex-shrink-0">
+				<span class="inline-flex items-center justify-center w-6 h-6 text-xs font-bold text-primary-foreground bg-primary rounded-full">
+					{ strconv.Itoa(conv.UnreadCount) }
+				</span>
+			</div>
+		}
+	</a>
+}
+
+templ emptyConversations() {
+	<div class="glass-card rounded-2xl p-12 text-center animate-fade-in-up">
+		<div class="w-20 h-20 mx-auto mb-6 rounded-full bg-muted flex items-center justify-center">
+			<svg class="w-10 h-10 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+				<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path>
+			</svg>
+		</div>
+		<h2 class="text-xl font-bold text-foreground mb-2">No Conversations Yet</h2>
+		<p class="text-muted-foreground mb-6 max-w-md mx-auto">
+			Connect with someone on the Matches page to start chatting about skill exchanges.
+		</p>
+		<a href="/matches" class="btn btn-primary btn-glow">
+			Find Matches
+		</a>
+	</div>
+}
+
+func getInitial(name string) string {
+	if len(name) == 0 {
+		return "?"
+	}
+	runes := []rune(name)
+	return string(runes[0])
+}
+
+func formatTimeAgo(t time.Time) string {
+	now := time.Now()
+	diff := now.Sub(t)
+
+	switch {
+	case diff < time.Minute:
+		return "now"
+	case diff < time.Hour:
+		mins := int(diff.Minutes())
+		return strconv.Itoa(mins) + "m"
+	case diff < 24*time.Hour:
+		hours := int(diff.Hours())
+		return strconv.Itoa(hours) + "h"
+	case diff < 7*24*time.Hour:
+		days := int(diff.Hours() / 24)
+		return strconv.Itoa(days) + "d"
+	default:
+		return t.Format("Jan 2")
+	}
+}

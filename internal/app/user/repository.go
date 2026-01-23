@@ -106,7 +106,7 @@ func (r *Repository) GetByEmail(ctx context.Context, email string) (*User, error
 // GetByID retrieves a user by their ID
 func (r *Repository) GetByID(ctx context.Context, id string) (*User, error) {
 	query := `
-		SELECT id, email, username, hashed_password, display_name, avatar_url, role, is_active, email_verified_at, created_at, updated_at, last_login_at
+		SELECT id, email, username, hashed_password, display_name, avatar_url, bio, role, is_active, email_verified_at, created_at, updated_at, last_login_at
 		FROM users
 		WHERE id = $1 AND is_active = true
 	`
@@ -119,6 +119,7 @@ func (r *Repository) GetByID(ctx context.Context, id string) (*User, error) {
 		&user.HashedPassword,
 		&user.DisplayName,
 		&user.AvatarURL,
+		&user.Bio,
 		&user.Role,
 		&user.IsActive,
 		&user.EmailVerifiedAt,
@@ -199,4 +200,54 @@ func contains(s, substr string) bool {
 		}
 	}
 	return false
+}
+
+// GetUserSkillNames retrieves a user's offered and wanted skill names
+func (r *Repository) GetUserSkillNames(ctx context.Context, userID string) ([]string, []string, error) {
+	query := `
+		SELECT s.name, us.skill_type
+		FROM user_skills us
+		JOIN skills s ON us.skill_id = s.id
+		WHERE us.user_id = $1
+		ORDER BY s.name
+	`
+
+	rows, err := r.pool.Query(ctx, query, userID)
+	if err != nil {
+		return nil, nil, err
+	}
+	defer rows.Close()
+
+	var offered, wanted []string
+	for rows.Next() {
+		var name, skillType string
+		if err := rows.Scan(&name, &skillType); err != nil {
+			return nil, nil, err
+		}
+		if skillType == "offered" {
+			offered = append(offered, name)
+		} else {
+			wanted = append(wanted, name)
+		}
+	}
+
+	return offered, wanted, rows.Err()
+}
+
+// AreConnected checks if two users have mutually accepted each other
+func (r *Repository) AreConnected(ctx context.Context, userA, userB string) (bool, error) {
+	query := `
+		SELECT EXISTS(
+			SELECT 1
+			FROM match_history mh1
+			JOIN match_history mh2 ON mh1.user_id_a = mh2.user_id_b AND mh1.user_id_b = mh2.user_id_a
+			WHERE 
+				mh1.user_id_a = $1 AND mh1.user_id_b = $2
+				AND mh1.interaction_initiated = true
+				AND mh2.interaction_initiated = true
+		)
+	`
+	var exists bool
+	err := r.pool.QueryRow(ctx, query, userA, userB).Scan(&exists)
+	return exists, err
 }

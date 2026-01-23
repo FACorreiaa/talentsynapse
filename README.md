@@ -24,24 +24,26 @@ SkillSphere is built as a **Progressive Web App (PWA)** with server-side renderi
 - Experts monetizing niche skills in the gig economy.
 - Focus on global users, with potential localization (e.g., for Brazil's growing edtech market).
 
-## Technology Stack
+## Technology Stack (GoSHT Stack)
 
-SkillSphere is built as a **Progressive Web App (PWA)** with a focus on simplicity, performance, and modern web standards.
+SkillSphere is built as a **Progressive Web App (PWA)** using the **GoSHT stack** (Go, Surreal, HTMX, Templ) with a focus on simplicity, performance, and modern web standards.
 
 - **Backend**: Go with standard `net/http` for routing and handlers. Authentication via JWT/OAuth (e.g., integrate with Google/Auth0) using middleware.
-- **Database**: PostgreSQL with GORM ORM for data persistence. Add pgvector for vector storage in AI-based matching (e.g., skill embeddings).
+- **Database**:
+  - **PostgreSQL** for relational data, user profiles, and transactional consistency
+  - **SurrealDB** (optional) for flexible, multi-model data storage. Supports graph relations, document storage, and vector embeddings natively for AI-based matching.
 - **Frontend**:
   - **Templ** for type-safe, server-rendered HTML templates
   - **HTMX** for asynchronous updates and dynamic interactions without writing JavaScript
   - **Alpine.js** (optional) for lightweight client-side interactivity (e.g., modals, toggles)
-- **Real-Time Features**: WebSocket for chat and session notifications.
-- **AI Integration**: Optional—use Google Gemini SDK (Go client) to generate skill embeddings for semantic similarity matching.
+- **Real-Time Features**: WebSocket for chat and session notifications. SurrealDB provides live queries for real-time data updates if used.
+- **AI Integration**: Optional—use Google Gemini SDK (Go client) to generate skill embeddings for semantic similarity matching. Store embeddings in PostgreSQL with pgvector extension.
 - **Deployment**: Fly.io for easy, global deployment with low-cost tiers. Alternatives: Hetzner for budget VPS or Google Cloud Platform (GCP).
 - **Other Tools**: Stripe for payments, Prometheus for metrics, Docker for containerization.
 
 ### Why This Stack?
-- **Go + Templ + HTMX**: Delivers fast server-side rendering with minimal JavaScript. HTMX provides modern SPA-like interactions without the complexity of frontend frameworks.
-- **Pros**: Fast development (2-4 weeks MVP), low overhead, highly scalable. Go handles concurrency excellently for real-time features. Server-side focus means less client-side complexity and better SEO.
+- **Go + Surreal + HTMX + Templ (GoSHT)**: Delivers fast server-side rendering with minimal JavaScript. HTMX provides modern SPA-like interactions without the complexity of frontend frameworks. PostgreSQL provides reliable relational data storage while SurrealDB (optional) handles graph relationships and flexible schema evolution.
+- **Pros**: Fast development (2-4 weeks MVP), low overhead, highly scalable. Go handles concurrency excellently for real-time features. PostgreSQL is battle-tested and reliable. Server-side focus means less client-side complexity and better SEO.
 - **Cons**: For complex UIs (e.g., drag-and-drop), you may need additional JavaScript. The PWA approach works great for mobile web; native apps would require a separate build.
 - **AI Decision**: Yes, for better matching—Gemini provides cost-effective embeddings without heavy ML training. Skip for MVP if focusing on basic algorithms.
 
@@ -60,7 +62,8 @@ Middleware handles authentication (JWT validation), logging, rate limiting, and 
 
 ### Prerequisites
 - Go 1.21+
-- PostgreSQL 15+ (with pgvector extension installed via `CREATE EXTENSION vector;`)
+- PostgreSQL 15+ (with pgvector extension for AI features: `CREATE EXTENSION vector;`)
+- SurrealDB 1.0+ (optional, install via `brew install surrealdb/tap/surreal` on macOS or download from surrealdb.com)
 - Templ CLI (`go install github.com/a-h/templ/cmd/templ@latest`)
 
 ### Steps
@@ -80,28 +83,46 @@ Middleware handles authentication (JWT validation), logging, rate limiting, and 
    templ generate
    ```
 
-4. Set up environment variables (`.env` file):
+4. Start databases:
+   ```bash
+   # PostgreSQL (if not already running)
+   # macOS: brew services start postgresql
+   # Create database: createdb skillsphere
+
+   # SurrealDB (optional, for graph features)
+   surreal start --log trace --user root --pass root memory
+   # Or for persistent storage:
+   # surreal start --log trace --user root --pass root file://data/skillsphere.db
+   ```
+
+5. Set up environment variables (`.env` file):
    ```env
    DATABASE_URL=postgres://user:pass@localhost:5432/skillsphere
+   SURREAL_URL=ws://localhost:8000/rpc
+   SURREAL_NS=skillsphere
+   SURREAL_DB=skillsphere
+   SURREAL_USER=root
+   SURREAL_PASS=root
    JWT_SECRET=your-secret-key
    GEMINI_API_KEY=your-gemini-key
    STRIPE_KEY=sk_test_...
    SERVER_PORT=8080
    ```
 
-5. Initialize database:
+6. Initialize PostgreSQL database:
    ```bash
-   go run cmd/migrate/main.go  # Run GORM migrations
+   # Run migrations
+   go run cmd/migrate/main.go
    ```
 
-6. Run the server:
+7. Run the server:
    ```bash
    air  # For hot-reloading (install via go install github.com/air-verse/air@latest)
    # Or: go run cmd/server/main.go
    ```
    Access at `http://localhost:8080`.
 
-7. Deploy to Fly.io:
+8. Deploy to Fly.io:
    ```bash
    # Install Fly CLI
    curl -L https://fly.io/install.sh | sh
@@ -109,8 +130,9 @@ Middleware handles authentication (JWT validation), logging, rate limiting, and 
    # Launch app (follow prompts for Postgres add-on)
    fly launch
 
+   # Add SurrealDB as a separate machine or use external provider (if needed)
    # Add secrets
-   fly secrets set DATABASE_URL=... JWT_SECRET=... GEMINI_API_KEY=... STRIPE_KEY=...
+   fly secrets set DATABASE_URL=... SURREAL_URL=... JWT_SECRET=... GEMINI_API_KEY=... STRIPE_KEY=...
 
    # Deploy
    fly deploy
@@ -126,7 +148,8 @@ skillsphere/
 │   ├── handlers/          # HTTP handlers
 │   ├── service/           # Business logic
 │   ├── matching/          # Matching algorithms
-│   ├── db/                # Database models (GORM)
+│   ├── db/                # PostgreSQL models and queries
+│   ├── surreal/           # SurrealDB client and queries (optional)
 │   └── middleware/        # HTTP middleware
 ├── web/
 │   ├── templates/         # Templ files
@@ -279,11 +302,102 @@ func main() {
 ```
 
 ## Roadmap
-- **MVP (Weeks 1-4)**: User profiles, basic matching (cosine similarity), real-time chat (WebSocket), authentication.
-- **V1 (Months 2-3)**: AI integration (Gemini embeddings), payments (Stripe), enhanced PWA features (offline support, push notifications).
-- **V2 (Months 4-6)**: Mobile PWA improvements, certifications/badges, group sessions, advanced matching algorithms.
-- **Future**: Analytics dashboard, B2B features, microservices architecture if needed.
-- **Post-MVP Goals**: Harden core features (user management, skill matching, sessions), finalize database operations and tests, ensure end-to-end user flows work seamlessly.
+
+### MVP (Weeks 1-4): Core Skill Exchange Platform
+
+#### User Flow
+1. **User A & User B set up profiles**: Create accounts, add bio, avatar, and configure skills (offered/wanted with proficiency levels)
+2. **Skill Discovery**: Users browse/search for potential matches via discover page or recommendations
+3. **Matching**: User A finds User B based on skill overlap (cosine similarity). User A "likes" User B's profile
+4. **Mutual Match**: When both users accept each other, they become **connected**
+5. **Messaging**: Connected users can now message each other in real-time via WebSocket chat
+6. **Learning Profiles**: Users can view each other's complete learning profiles, including skills they teach, want to learn, and their learning history
+7. **Skill Exchange**: Users coordinate 1:1 sessions to exchange knowledge
+
+#### Reviews & Verification System
+- **Peer Reviews**: After each skill exchange session, users can rate and review each other (1-5 stars + written feedback)
+- **Points System**: Good reviews earn points. Points accumulate toward verification thresholds
+- **Verification Tiers**:
+  - 🥉 **Bronze**: 10+ positive reviews → Basic verified badge
+  - 🥈 **Silver**: 50+ points + 90% positive rating → Enhanced visibility in search
+  - 🥇 **Gold**: 100+ points + expert endorsements → Featured in recommendations
+- **Benefits**: Verified users get priority in matching, appear higher in search results, and can charge for premium sessions
+
+#### Gamification & Badges
+| Badge | Criteria | Reward |
+|-------|----------|--------|
+| 🎯 **First Match** | Complete first skill exchange | Profile badge |
+| 🔥 **Hot Streak** | 5 exchanges in one week | 2x points for next week |
+| 📚 **Bookworm** | Learn 10 different skills | Unlock learning stats |
+| 🎓 **Mentor** | Teach 25+ sessions with 4.5+ rating | Mentor badge, priority listing |
+| 🏆 **Top Teacher** | Top 10% in any skill category | Category expert badge |
+| 🌟 **Community Star** | 100+ helpful reviews given | Review badge |
+| 🎖️ **Verified Expert** | Pass skill verification quiz | Expert certification |
+| 📈 **Rising Star** | Fastest growing profile this month | Featured profile |
+
+**Additional Gamification Ideas**:
+- **Daily Challenges**: "Complete 1 session today" → Bonus points
+- **Weekly Leaderboards**: Top learners/teachers by category
+- **Learning Paths**: Complete curated skill tracks for special badges
+- **Referral Rewards**: Invite friends → Both get points
+- **Milestone Celebrations**: Pop-up animations for achievements
+- **Streak System**: Consecutive days of activity → Multiplier bonuses
+
+#### Moderation & Trust System
+- **User Reporting**: Flag users for false content, inappropriate behavior, or spam
+- **Automated Flagging**: System detects suspicious patterns (fake reviews, spam messages)
+- **Moderation Queue**: Reported users go into review queue
+- **Consequences**:
+  - ⚠️ **Warning**: First offense, verbal warning
+  - 🔇 **Shadow Ban**: Content hidden from others, user unaware
+  - 🚫 **Temporary Ban**: 7-30 day suspension
+  - ❌ **Permanent Ban**: Account terminated
+
+#### Admin Panel Features
+- **Super Admin Powers**:
+  - View all users, sessions, and messages
+  - Ban/shadow ban/warn users
+  - Override verification status
+  - View moderation queue and take action
+  - Access platform analytics and metrics
+  - Manage skill categories and badges
+  - Feature/unfeature users and content
+- **Audit Logs**: All admin actions logged for accountability
+
+#### Core MVP Features Summary
+- ✅ User authentication (email + OAuth)
+- ✅ User profiles with skills management
+- ✅ Basic matching with cosine similarity
+- ✅ Real-time chat via WebSocket
+- ✅ Connections (mutual matches)
+- ✅ Public profile viewing
+- 🔲 Review system with ratings
+- 🔲 Points and verification tiers
+- 🔲 Badge system (gamification)
+- 🔲 User reporting and moderation
+- 🔲 Admin panel
+
+---
+
+### V1 (Months 2-3)
+- AI integration (Gemini embeddings for semantic matching)
+- Payments (Stripe for premium subscriptions)
+- Enhanced PWA features (offline support, push notifications)
+- Session scheduling with calendar integration
+- Skill verification quizzes
+
+### V2 (Months 4-6)
+- Mobile PWA improvements
+- Group sessions and workshops
+- Advanced matching algorithms (ML-based)
+- Blockchain certifications/badges (NFTs)
+- B2B/Enterprise features
+
+### Future
+- Analytics dashboard for users
+- API access for third-party integrations
+- Microservices architecture if needed
+- AI coaching and personalized learning paths
 
 For questions, open an issue or contact [your.email@example.com].
 
@@ -296,9 +410,9 @@ MIT License. See [LICENSE](LICENSE) for details.
 ## SkillSphere Business Plan
 
 ### Executive Summary
-SkillSphere is a P2P skill exchange platform launching as an MVP in 2-4 weeks, targeting the intersection of the gig economy and online learning markets. With a freemium model, it connects users for skill trades (e.g., tech, languages) using advanced matching algorithms. Built on modern Connect RPC architecture for type-safe, scalable APIs. Projected revenue from subscriptions, premium chats, and ads/partnerships.
+SkillSphere is a P2P skill exchange platform launching as an MVP in 2-4 weeks, targeting the intersection of the gig economy and online learning markets. With a freemium model, it connects users for skill trades (e.g., tech, languages) using advanced matching algorithms. Built on the modern GoSHT stack (Go, Surreal, HTMX, Templ) for a simple, scalable architecture. Projected revenue from subscriptions, premium chats, and ads/partnerships.
 
-Market opportunity: The global gig economy is valued at ~$582B in 2025, online learning at ~$353B, and sharing economy at ~$246B. SkillSphere differentiates with real-time P2P focus, AI-driven discovery, type-safe RPC APIs, and low-barrier entry.
+Market opportunity: The global gig economy is valued at ~$582B in 2025, online learning at ~$353B, and sharing economy at ~$246B. SkillSphere differentiates with real-time P2P focus, AI-driven discovery, simple GoSHT stack for rapid development, and low-barrier entry.
 
 Goal: Achieve 10K users in Year 1, $500K revenue by Year 2. Solo-founder viable, with scalable tech.
 
@@ -306,13 +420,13 @@ Goal: Achieve 10K users in Year 1, $500K revenue by Year 2. Solo-founder viable,
 - **Size & Growth**: Gig economy: $582.2B by 2025, with 70M+ US workers (36% of workforce). Online learning: $320-353B in 2025, growing 12-14% CAGR to $842B by 2030. P2P/sharing subsets: $194B in 2024 to $246B in 2025.
 - **Trends**: Rise in remote work, skill gaps (e.g., AI/tech demand). In emerging markets like Brazil, edtech booms (~$3B by 2025). Users seek personalized, affordable alternatives to courses.
 - **Target Segments**: 18-45 year-olds in tech, education, creative fields. Initial focus: Global, with SEO for niches like "P2P coding exchange."
-- **Competitive Analysis**: Direct competitors include Preply (language tutoring), Skillshare (class-based, not pure P2P), and alternatives like Udemy, Coursera, LinkedIn Learning, MasterClass. P2P platforms: Teachable/Kajabi for creators, but less exchange-focused. Differentiation: Free basic P2P, AI matching, real-time chat, type-safe APIs for mobile/web. Weaknesses: Established players have scale; SkillSphere starts lean.
+- **Competitive Analysis**: Direct competitors include Preply (language tutoring), Skillshare (class-based, not pure P2P), and alternatives like Udemy, Coursera, LinkedIn Learning, MasterClass. P2P platforms: Teachable/Kajabi for creators, but less exchange-focused. Differentiation: Free basic P2P, AI matching, real-time chat, simple GoSHT stack for rapid development. Weaknesses: Established players have scale; SkillSphere starts lean.
 
 ### Product Description
 - **Core Offering**: P2P exchanges of any skills (e.g., programming, foreign languages, music, cooking, business). Profiles include bio, skill lists with proficiencies, ratings.
 - **User Flow**: Sign up → Build profile → Search/discover (algorithms recommend based on wanted/offered skills) → Match & chat (pay for premium 1:1 with high-demand users) → Exchange session → Rate/certify.
-- **MVP Scope**: Profiles (UserService), basic matching (cosine similarity via MatchingService), chat (ChatService), search. Expand to AI (Gemini for embeddings), categories.
-- **Tech & Operations**: Connect RPC for type-safe APIs; HTMX/Templ for frontend; Go backend. Development: Solo, 2-4 weeks MVP. Hosting: Fly.io (~$5-20/month initially). Support: Community forums, email.
+- **MVP Scope**: Profiles, basic matching (cosine similarity), chat, search. Expand to AI (Gemini for embeddings), categories.
+- **Tech & Operations**: GoSHT stack (Go, Surreal, HTMX, Templ); Go backend with standard HTTP. Development: Solo, 2-4 weeks MVP. Hosting: Fly.io (~$10-30/month initially including databases). Support: Community forums, email.
 
 ### Monetization Strategy
 - **Freemium Model**: Basic free (limited matches/chats). Premium: $5-20/month for unlimited chats, priority matching, certifications.
@@ -320,7 +434,6 @@ Goal: Achieve 10K users in Year 1, $500K revenue by Year 2. Solo-founder viable,
     - Pay-per-chat: Users pay $1-10 for 1:1 access to premium profiles (e.g., verified experts).
     - Ads/Partnerships: Targeted ads from edtech firms; affiliate links (e.g., tools for skills).
     - Certifications: $10-50 for badges post-exchange.
-    - API Access: Sell access to SkillSphere Connect APIs for third-party integrations.
 - **Projections**: Year 1: 10K users, 10% premium conversion → $60K revenue. Scale to $500K by Year 2 via marketing.
 
 ### Marketing & Growth Strategy
@@ -335,8 +448,8 @@ Goal: Achieve 10K users in Year 1, $500K revenue by Year 2. Solo-founder viable,
 - **Legal**: Incorporate as LLC; terms for exchanges (no liability).
 
 ### Financial Projections
-- **Startup Costs**: $1-5K (domain, hosting, API keys, Buf licenses if needed).
-- **Revenue Model**: Subscriptions (70%), pay-per-chat (20%), ads/API (10%).
+- **Startup Costs**: $500-2K (domain, hosting ~$15-30/month, Gemini API credits, Stripe fees).
+- **Revenue Model**: Subscriptions (70%), pay-per-chat (20%), ads (10%).
 - **Break-Even**: Month 6 at 1K premium users.
 - **3-Year Forecast**:
     - Year 1: Revenue $100K, Expenses $50K (Profit $50K).
@@ -350,7 +463,7 @@ This plan is adaptable—validate MVP feedback for pivots. For refinements, cons
 
 ## Overview of Skill Matching Algorithms
 
-Skill matching algorithms are computational methods used to pair individuals, jobs, or resources based on skills, proficiencies, or requirements. In SkillSphere, matching algorithms run server-side, with results returned as HTML fragments via HTMX or JSON for API consumers. They range from simple rule-based systems to advanced AI-driven ones, balancing factors like accuracy, scalability, and computational cost.
+Skill matching algorithms are computational methods used to pair individuals, jobs, or resources based on skills, proficiencies, or requirements. In SkillSphere, matching algorithms run server-side, with results returned as HTML fragments via HTMX. They range from simple rule-based systems to advanced AI-driven ones, balancing factors like accuracy, scalability, and computational cost.
 
 Key considerations in design:
 - **Input Representation**: Skills as vectors (e.g., proficiency levels from 1-10) or embeddings (semantic vectors from NLP models).
@@ -358,7 +471,7 @@ Key considerations in design:
 - **Additional Factors**: Incorporate location, availability, or user ratings for refined matches.
 - **Challenges**: Handling synonyms (e.g., "ML" vs. "machine learning"), sparse data (missing skills), and scalability for large user bases.
 
-Below, I'll detail common algorithms, with examples of how they work and implementations in Go (using libraries like gonum for vector math) within Connect RPC services.
+Below, I'll detail common algorithms, with examples of how they work and implementations in Go (using libraries like gonum for vector math) within HTTP handlers.
 
 ### 1. Distance-Based Algorithms (e.g., Euclidean/Cartesian Distance)
 These treat skills as points in multi-dimensional space, where each skill is a dimension and proficiency is a coordinate. The "closeness" of two profiles is the geometric distance—smaller distances indicate better matches.
@@ -372,7 +485,7 @@ These treat skills as points in multi-dimensional space, where each skill is a d
 
 - **Pros**: Simple, fast for databases; no training data needed.
 - **Cons**: Doesn't handle semantic similarities (e.g., "Java" and "C#" as related).
-- **Implementation Example**: In Go HTTP handlers, compute distances after fetching profiles via GORM. Use gonum/floats for vector operations.
+- **Implementation Example**: In Go HTTP handlers, compute distances after fetching profiles from PostgreSQL. Use gonum/floats for vector operations.
   ```go
   package matching
 
@@ -421,7 +534,7 @@ These treat skills as points in multi-dimensional space, where each skill is a d
       return result
   }
   ```
-- **Use in SkillSphere**: Ideal for MVP with fixed skill lists; integrate into matching HTTP handlers. Fetch users from DB via GORM, compute distances, return as HTML via Templ or JSON for API.
+- **Use in SkillSphere**: Ideal for MVP with fixed skill lists; integrate into matching HTTP handlers. Fetch users from PostgreSQL, compute distances, return as HTML via Templ.
 
 ### 2. Similarity-Based Algorithms (e.g., Cosine Similarity)
 These measure the angle between vectors, focusing on direction rather than magnitude—useful for sparse or varying-length profiles.
@@ -481,7 +594,7 @@ These measure the angle between vectors, focusing on direction rather than magni
       return result
   }
   ```
-- **Use in SkillSphere**: For fuzzy matching; combine with full-text search for skill keywords. Add to matching HTTP handlers with configurable threshold.
+- **Use in SkillSphere**: For fuzzy matching; combine with PostgreSQL's full-text search or SurrealDB's search capabilities for skill keywords. Add to matching HTTP handlers with configurable threshold.
 
 ### 3. Machine Learning/Embedding-Based Algorithms (e.g., Word2Vec, Gemini Embeddings)
 These use NLP to create dense vector representations (embeddings) of skills, capturing semantic relationships (e.g., "Python" close to "programming").
@@ -494,7 +607,7 @@ These use NLP to create dense vector representations (embeddings) of skills, cap
     - **Step 5: Threshold & Rank**: Return matches above similarity threshold (e.g., >0.62), sorted by score.
 
 - **Pros**: Semantic understanding; handles variations like abbreviations, synonyms ("ML" = "machine learning").
-- **Cons**: Requires API calls (latency, cost); cache embeddings in DB for performance.
+- **Cons**: Requires API calls (latency, cost); cache embeddings in PostgreSQL (pgvector) or SurrealDB for performance.
 - **Implementation Example**: Go with Gemini SDK for embeddings, gonum for similarity.
   ```go
   package matching
@@ -603,18 +716,18 @@ These use NLP to create dense vector representations (embeddings) of skills, cap
       return result, nil
   }
   ```
-- **Use in SkillSphere**: Integrate into matching HTTP handlers. Pre-compute and cache embeddings in PostgreSQL (use pgvector for efficient similarity queries). Return semantic matches as HTML via Templ or JSON for API.
+- **Use in SkillSphere**: Integrate into matching HTTP handlers. Pre-compute and cache embeddings in PostgreSQL with pgvector extension or SurrealDB (both support vector storage natively). Return semantic matches as HTML via Templ.
 
 ### 4. Other Advanced Algorithms
-- **Ontology-Based**: Use knowledge graphs (e.g., skill hierarchies like "programming > Python") for semantic matching. Metric: Graph distance or custom similarity. Store in Neo4j or PostgreSQL with pg_graph extension.
+- **Ontology-Based**: Use knowledge graphs (e.g., skill hierarchies like "programming > Python") for semantic matching. Metric: Graph distance or custom similarity. SurrealDB's graph capabilities make this native and efficient, or use PostgreSQL with pg_graph extension.
 - **Clustering (e.g., k-Means)**: Group users into skill clusters, then match queries to nearest clusters. Useful for discovery at scale. Implement with gonum/cluster.
 - **Rule-Based/Hybrid**: Simple thresholds (e.g., match if >70% skills overlap) combined with ML for ties. Implement as middleware or service layer logic that applies business rules before calling embedding matcher.
-- **AI-Enhanced with LLMs**: Use Gemini to build dynamic skill ontologies, improving accuracy over time. Background job updates ontology weekly.
+- **AI-Enhanced with LLMs**: Use Gemini to build dynamic skill ontologies, improving accuracy over time. Background job updates ontology weekly. Store in SurrealDB's graph model or PostgreSQL.
 
 ### Recommendations for SkillSphere
-1. **MVP**: Start with **Cosine Similarity** on vectorized profiles—it's balanced for your Go backend (use gonum). Implement in matching service layer.
-2. **V1**: Add **Gemini Embeddings** for semantic matching. Cache embeddings in PostgreSQL with pgvector extension; query via SQL for performance.
-3. **Scaling**: Use WebSocket for real-time match updates. Split matching into separate microservice if needed.
+1. **MVP**: Start with **Cosine Similarity** on vectorized profiles—it's balanced for your Go backend (use gonum). Implement in matching service layer. Store core user data in PostgreSQL.
+2. **V1**: Add **Gemini Embeddings** for semantic matching. Cache embeddings in PostgreSQL with pgvector extension or SurrealDB with native vector support.
+3. **Scaling**: Use WebSocket for real-time match updates. Leverage SurrealDB's live queries for real-time data and graph relationships (if using). Keep transactional data in PostgreSQL. Split matching into separate microservice if needed.
 4. **Testing**: Create synthetic data (100-1000 users); measure precision/recall. Use `httptest` for handler testing.
 
 Install gonum: `go get gonum.org/v1/gonum`
@@ -658,8 +771,7 @@ Here are targeted extensions, prioritized for monetization and feasibility:
 ### 6. Tech/Infra Extensions
 - **Microservices**: Split matching into a separate service for scalability if needed. Use standard HTTP APIs between services.
 - **Enhanced PWA**: Offline matching (cache data in IndexedDB), background sync, native push notifications via Firebase.
-- **Analytics**: User heatmaps for trending skills; sell insights to edtech firms. Implement analytics endpoints: `/analytics/trends`, `/analytics/metrics`.
-- **API Access**: Offer REST API access for third-party integrations (e.g., LMS platforms). Use API keys via middleware.
+- **Analytics**: User heatmaps for trending skills; sell insights to edtech firms. Implement analytics endpoints: `/analytics/trends`, `/analytics/metrics`. Use PostgreSQL for structured analytics or SurrealDB for aggregations.
 
 These build on your freemium model, targeting $500K+ revenue by Year 2 via 20% MoM growth. Validate with beta users for pivots. The simple HTTP/HTML architecture makes it easy to iterate and add features quickly.
 
@@ -670,11 +782,11 @@ These build on your freemium model, targeting $500K+ revenue by Year 2 via 20% M
 1. **Templating**: Use Templ for type-safe HTML generation. Keep templates focused and composable.
 2. **Middleware**: Chain middleware for auth (JWT validation), logging, rate limiting, and error handling.
 3. **Error Handling**: Return appropriate HTTP status codes and user-friendly error messages. Use Templ to render error pages.
-4. **Real-Time Features**: Use WebSocket for chat and live updates. Consider Server-Sent Events (SSE) for one-way streaming.
-5. **Testing**: Write unit tests for handlers and services. Use `httptest` for HTTP handler testing. Mock dependencies (e.g., GORM DB, Gemini client).
+4. **Real-Time Features**: Use WebSocket for chat and live updates. SurrealDB provides native live query support for real-time data (if using). Consider Server-Sent Events (SSE) for one-way streaming.
+5. **Testing**: Write unit tests for handlers and services. Use `httptest` for HTTP handler testing. Mock dependencies (e.g., PostgreSQL, SurrealDB client, Gemini client).
 6. **PWA Features**: Add service worker for offline support, manifest.json for installability, and web push for notifications.
 7. **Observability**: Add Prometheus metrics via middleware. Track request counts, latency, error rates per endpoint.
-8. **Performance**: Use HTMX for partial page updates to reduce bandwidth. Cache database queries where appropriate. Use PostgreSQL indexes for common queries.
+8. **Performance**: Use HTMX for partial page updates to reduce bandwidth. Cache database queries where appropriate. Use PostgreSQL and SurrealDB indexes for common queries.
 
 For implementations, see the `internal/handlers/` and `internal/service/` directories.
 # skillsphere
