@@ -371,6 +371,8 @@ func main() {
 - ✅ Real-time chat via WebSocket
 - ✅ Connections (mutual matches)
 - ✅ Public profile viewing
+- ✅ Dedicated error pages (404, 500, 403)
+- ✅ Skill-based search with exchange-aware results
 - 🔲 Review system with ratings
 - 🔲 Points and verification tiers
 - 🔲 Badge system (gamification)
