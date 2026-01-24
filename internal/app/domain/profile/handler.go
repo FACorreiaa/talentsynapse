@@ -4,19 +4,25 @@ import (
 	"net/http"
 
 	"github.com/FACorreiaa/skillsphere/internal/app/domain/auth"
+	"github.com/FACorreiaa/skillsphere/internal/app/domain/badges"
 	"github.com/FACorreiaa/skillsphere/internal/app/domain/user"
 	profilepages "github.com/FACorreiaa/skillsphere/internal/app/views/pages/profile"
 	"github.com/go-chi/chi/v5"
+	"github.com/google/uuid"
 )
 
 // Handler handles profile HTTP requests
 type Handler struct {
-	userRepo *user.Repository
+	userRepo   *user.Repository
+	badgesRepo *badges.Repository
 }
 
 // NewHandler creates a new profile handler
-func NewHandler(userRepo *user.Repository) *Handler {
-	return &Handler{userRepo: userRepo}
+func NewHandler(userRepo *user.Repository, badgesRepo *badges.Repository) *Handler {
+	return &Handler{
+		userRepo:   userRepo,
+		badgesRepo: badgesRepo,
+	}
 }
 
 // Show renders the user profile page
@@ -139,6 +145,20 @@ func (h *Handler) ShowPublic(w http.ResponseWriter, r *http.Request) {
 		OfferedSkills: offeredSkills,
 		WantedSkills:  wantedSkills,
 		IsConnected:   isConnected,
+		Badges:        []profilepages.BadgeData{}, // Initial empty
+	}
+
+	// Fetch badges
+	userBadges, err := h.badgesRepo.GetUserBadges(r.Context(), uuid.MustParse(profileUserID))
+	if err == nil {
+		for _, b := range userBadges {
+			profile.Badges = append(profile.Badges, profilepages.BadgeData{
+				Name:    b.BadgeName,
+				Icon:    b.BadgeIcon,
+				Code:    b.BadgeCode,
+				Awarded: true,
+			})
+		}
 	}
 
 	component := profilepages.PublicProfile(profile, sessionData.UserName, sessionData.UserAvatar)

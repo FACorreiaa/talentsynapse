@@ -58,6 +58,7 @@ type SessionData struct {
 	UserName        string
 	UserEmail       string
 	UserAvatar      string
+	Role            string
 }
 
 // PublicProfile represents a user's public-facing profile

@@ -56,3 +56,28 @@ func GetSessionDataFromContext(ctx context.Context) user.SessionData {
 	}
 	return user.SessionData{}
 }
+
+// RequireAdmin middleware allows access only to admin users
+func RequireAdmin(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// First ensure user is authenticated
+		if !IsAuthenticated(r) {
+			session, _ := GetSession(r)
+			session.Values["redirect_after_login"] = r.URL.Path
+			_ = session.Save(r, w)
+			http.Redirect(w, r, "/login", http.StatusSeeOther)
+			return
+		}
+
+		sessionData := GetSessionData(r)
+		if sessionData.Role != "admin" {
+			// Render 403 Forbidden page or redirect
+			// For now, redirect to dashboard with error flash
+			_ = SetFlash(w, r, "Access denied. Admin privileges required.", FlashError)
+			http.Redirect(w, r, "/dashboard", http.StatusSeeOther)
+			return
+		}
+
+		next.ServeHTTP(w, r)
+	})
+}

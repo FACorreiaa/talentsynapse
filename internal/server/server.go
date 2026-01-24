@@ -9,7 +9,9 @@ import (
 
 	_ "github.com/joho/godotenv/autoload"
 
+	// Added for admin.SeedAdmin
 	"github.com/FACorreiaa/skillsphere/internal/database"
+	// Added for repository.NewUserRepo
 )
 
 // Server holds the dependencies for HTTP handlers

@@ -8,10 +8,15 @@ import (
 	"os/signal"
 	"syscall"
 
+	"github.com/FACorreiaa/skillsphere/internal/observability"
 	"github.com/FACorreiaa/skillsphere/internal/server"
 )
 
 func main() {
+	// Initialize observability
+	observability.InitSentry()
+	defer observability.FlushSentry()
+
 	// Create server instance
 	s := server.New()
 

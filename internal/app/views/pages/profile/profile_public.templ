@@ -1,6 +1,7 @@
 package profile
 
 import (
+	"fmt"
 	"github.com/FACorreiaa/skillsphere/internal/app/views/components"
 	"github.com/FACorreiaa/skillsphere/internal/app/views/layouts"
 )
@@ -15,6 +16,14 @@ type PublicProfileData struct {
 	OfferedSkills []string
 	WantedSkills  []string
 	IsConnected   bool
+	Badges        []BadgeData
+}
+
+type BadgeData struct {
+	Name    string
+	Icon    string
+	Code    string
+	Awarded bool
 }
 
 templ PublicProfile(p PublicProfileData, userName string, userAvatar string) {
@@ -62,9 +71,75 @@ templ PublicProfile(p PublicProfileData, userName string, userAvatar string) {
 										Connect via Matches to chat
 									</span>
 								}
+								<!-- Report Button -->
+								<button
+									class="mt-4 block text-xs text-red-500 hover:text-red-700 underline"
+									_={ fmt.Sprintf("on click me('#report-modal-%s').showModal()", p.ID) }
+								>
+									Report User
+								</button>
+								<!-- Report Modal -->
+								<dialog id={ fmt.Sprintf("report-modal-%s", p.ID) } class="modal">
+									<div class="modal-box bg-white dark:bg-gray-800">
+										<h3 class="font-bold text-lg text-gray-900 dark:text-gray-100">Report { p.DisplayName }</h3>
+										<p class="py-4 text-gray-500 dark:text-gray-400">Please describe the issue. This will be reviewed by our moderation team.</p>
+										<form action="/report" method="POST">
+											<input type="hidden" name="reported_user_id" value={ p.ID }/>
+											<input type="hidden" name="content_id" value={ p.ID }/>
+											<input type="hidden" name="content_type" value="profile"/>
+											<div class="form-control mb-4">
+												<label class="label">
+													<span class="label-text">Reason</span>
+												</label>
+												<select name="report_type" class="select select-bordered w-full dark:bg-gray-700 dark:text-white" required>
+													<option value="spam">Spam</option>
+													<option value="harassment">Harassment</option>
+													<option value="inappropriate_content">Inappropriate Content</option>
+													<option value="fraud">Fraud</option>
+													<option value="other">Other</option>
+												</select>
+											</div>
+											<div class="form-control mb-4">
+												<label class="label">
+													<span class="label-text">Description</span>
+												</label>
+												<textarea name="description" class="textarea textarea-bordered h-24 dark:bg-gray-700 dark:text-white" placeholder="Provide more details..." required></textarea>
+											</div>
+											<div class="modal-action">
+												<button
+													type="button"
+													class="btn btn-ghost"
+													_={ fmt.Sprintf("on click me('#report-modal-%s').close()", p.ID) }
+												>
+													Cancel
+												</button>
+												<button type="submit" class="btn btn-error">Submit Report</button>
+											</div>
+										</form>
+									</div>
+									<form method="dialog" class="modal-backdrop">
+										<button>close</button>
+									</form>
+								</dialog>
 							</div>
 						</div>
 					</div>
+					<!-- Badges Section -->
+					if len(p.Badges) > 0 {
+						<div class="glass-card rounded-2xl p-6 mb-6 animate-fade-in-up delay-75">
+							<h3 class="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
+								<span class="text-xl">🏆</span> Achievements
+							</h3>
+							<div class="flex flex-wrap gap-4">
+								for _, badge := range p.Badges {
+									<div class="group relative flex flex-col items-center p-3 rounded-lg bg-secondary/30 hover:bg-secondary/50 transition-colors cursor-help" title={ badge.Name }>
+										<div class="text-3xl mb-1 filter drop-shadow-md transform group-hover:scale-110 transition-transform">{ badge.Icon }</div>
+										<span class="text-xs font-medium text-center max-w-[80px] leading-tight">{ badge.Name }</span>
+									</div>
+								}
+							</div>
+						</div>
+					}
 					<!-- Skills Sections -->
 					<div class="grid md:grid-cols-2 gap-6">
 						<!-- Skills They Teach -->

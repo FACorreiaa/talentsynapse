@@ -223,3 +223,41 @@ size-report: ## Show size breakdown of build artifacts
 
 build-prod: ## Build production binary with optimization report
 	@./scripts/build-prod.sh
+
+# =========================================================================
+# CI/CD Deployment
+# =========================================================================
+
+.PHONY: ci-migrate deploy-prod
+
+ci-migrate: ## Run database migrations (CI/CD)
+	@echo "🔄 Running database migrations..."
+	goose -dir $(GOOSE_MIGRATION_DIR) $(GOOSE_DRIVER) "$(DB_DSN)" up
+	@echo "✅ Migrations complete"
+	@goose -dir $(GOOSE_MIGRATION_DIR) $(GOOSE_DRIVER) "$(DB_DSN)" status
+
+deploy-prod: build-prod ## Build and deploy to production
+	@echo "🚀 Starting production deployment..."
+	@echo ""
+	@echo "Binary built successfully!"
+	@echo ""
+	@echo "📋 Next steps - Run these commands on your VPS:"
+	@echo ""
+	@echo "  # 1. Stop service"
+	@echo "  sudo systemctl stop skillsphere"
+	@echo ""
+	@echo "  # 2. Run migrations"
+	@echo "  /var/www/skillsphere/migrate.sh"
+	@echo ""
+	@echo "  # 3. Deploy new binary"
+	@echo "  cp /var/www/skillsphere/server.new /var/www/skillsphere/server"
+	@echo ""
+	@echo "  # 4. Start service"
+	@echo "  sudo systemctl start skillsphere"
+	@echo ""
+	@echo "  # 5. Check status"
+	@echo "  sudo systemctl status skillsphere"
+	@echo ""
+	@echo "  # 6. Health check"
+	@echo "  curl -I https://yourdomain.com/health"
+	@echo ""

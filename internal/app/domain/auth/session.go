@@ -18,6 +18,7 @@ const (
 	UserNameKey   = "user_name"
 	UserEmailKey  = "user_email"
 	UserAvatarKey = "user_avatar"
+	UserRoleKey   = "user_role"
 	FlashKey      = "flash"
 	FlashTypeKey  = "flash_type"
 )
@@ -93,6 +94,7 @@ func CreateSession(w http.ResponseWriter, r *http.Request, u *user.User) error {
 	} else {
 		session.Values[UserAvatarKey] = ""
 	}
+	session.Values[UserRoleKey] = u.Role
 
 	return session.Save(r, w)
 }
@@ -156,6 +158,9 @@ func GetSessionData(r *http.Request) user.SessionData {
 	}
 	if userAvatar, ok := session.Values[UserAvatarKey].(string); ok {
 		data.UserAvatar = userAvatar
+	}
+	if userRole, ok := session.Values[UserRoleKey].(string); ok {
+		data.Role = userRole
 	}
 
 	return data

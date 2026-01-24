@@ -3,9 +3,11 @@ package server
 import (
 	"encoding/json"
 	"net/http"
+	"net/http/pprof"
 	"os"
 	"time"
 
+	sentryhttp "github.com/getsentry/sentry-go/http"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/cors"
@@ -27,6 +29,17 @@ func (s *Server) RegisterRoutes() http.Handler {
 	// ──────────────────────────────────────────────────────────────────
 	// Core Middleware
 	// ──────────────────────────────────────────────────────────────────
+
+	// Sentry middleware (should be early in the chain to catch all errors)
+	sentryHandler := sentryhttp.New(sentryhttp.Options{
+		Repanic:         true,
+		WaitForDelivery: false,
+		Timeout:         2 * time.Second,
+	})
+	r.Use(func(next http.Handler) http.Handler {
+		return sentryHandler.Handle(next)
+	})
+
 	r.Use(middleware.RequestID)
 	r.Use(middleware.RealIP)
 	r.Use(middleware.Logger)
@@ -157,6 +170,19 @@ func (s *Server) RegisterRoutes() http.Handler {
 
 		// Settings routes
 		r.Get("/settings", c.SettingsHandler.Show)
+
+		// Report routes
+		r.Post("/report", c.ReportHandler.SubmitReport)
+
+		// Admin routes
+		r.Group(func(r chi.Router) {
+			r.Use(auth.RequireAdmin)
+			r.Get("/admin", c.AdminHandler.Dashboard)
+			r.Post("/admin/users/{userID}/ban", c.AdminHandler.ToggleBan)
+			r.Post("/admin/users/{userID}/verify", c.AdminHandler.ToggleVerify)
+			r.Get("/admin/moderation", c.AdminHandler.ModerationQueue)
+			r.Post("/admin/reports/{reportID}/resolve", c.AdminHandler.ResolveReport)
+		})
 	})
 
 	// Public discover page (works for both auth and non-auth)
@@ -167,6 +193,25 @@ func (s *Server) RegisterRoutes() http.Handler {
 	// ──────────────────────────────────────────────────────────────────
 	r.Route("/api", func(r chi.Router) {
 		r.Get("/hello", s.handleAPIHello)
+	})
+
+	// ──────────────────────────────────────────────────────────────────
+	// Debug/Profiling Routes (pprof)
+	// ──────────────────────────────────────────────────────────────────
+	// Production-safe: requires authentication and can be restricted to localhost
+	r.Route("/debug/pprof", func(r chi.Router) {
+		r.Use(pprofAuthMiddleware)
+		r.HandleFunc("/", pprof.Index)
+		r.HandleFunc("/cmdline", pprof.Cmdline)
+		r.HandleFunc("/profile", pprof.Profile)
+		r.HandleFunc("/symbol", pprof.Symbol)
+		r.HandleFunc("/trace", pprof.Trace)
+		r.Handle("/goroutine", pprof.Handler("goroutine"))
+		r.Handle("/heap", pprof.Handler("heap"))
+		r.Handle("/threadcreate", pprof.Handler("threadcreate"))
+		r.Handle("/block", pprof.Handler("block"))
+		r.Handle("/mutex", pprof.Handler("mutex"))
+		r.Handle("/allocs", pprof.Handler("allocs"))
 	})
 
 	// ──────────────────────────────────────────────────────────────────
