@@ -1,0 +1,146 @@
+package sessions
+
+import (
+	"fmt"
+	"github.com/FACorreiaa/skillsphere/internal/app/views/components"
+	"github.com/FACorreiaa/skillsphere/internal/app/views/layouts"
+	"time"
+)
+
+type SessionItem struct {
+	ID             string
+	PartnerID      string
+	PartnerName    string
+	PartnerAvatar  string
+	Status         string
+	ScheduledStart time.Time
+	IsReviewed     bool
+}
+
+templ List(sessions []SessionItem, userName, userAvatar string) {
+	@layouts.Base("My Sessions | SkillSphere") {
+		<div class="min-h-screen flex flex-col bg-background">
+			@components.Navbar(true, userName, userAvatar)
+			<main class="flex-1 py-8 px-4">
+				<div class="container mx-auto max-w-4xl">
+					<h1 class="text-3xl font-bold mb-6 text-foreground">My Sessions</h1>
+					if len(sessions) == 0 {
+						<div class="glass-card p-12 text-center rounded-xl">
+							<p class="text-xl text-muted-foreground mb-4">No sessions scheduled yet.</p>
+							<a href="/connections" class="btn btn-primary">Find Matches</a>
+						</div>
+					} else {
+						<div class="space-y-4">
+							for _, s := range sessions {
+								@SessionCard(s)
+							}
+						</div>
+					}
+				</div>
+			</main>
+			@components.Footer()
+		</div>
+	}
+}
+
+templ SessionCard(s SessionItem) {
+	<div class="glass-card p-4 rounded-xl flex items-center justify-between">
+		<div class="flex items-center gap-4">
+			<div class="text-center w-16">
+				<div class="text-lg font-bold text-foreground">{ s.ScheduledStart.Format("02") }</div>
+				<div class="text-xs text-muted-foreground uppercase">{ s.ScheduledStart.Format("Jan") }</div>
+			</div>
+			<div class="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center text-primary font-bold">
+				{ string([]rune(s.PartnerName)[0]) }
+			</div>
+			<div>
+				<h3 class="font-semibold text-foreground">Session with { s.PartnerName }</h3>
+				<span
+					class={ "text-xs px-2 py-0.5 rounded-full",
+					templ.KV("bg-yellow-100 text-yellow-800", s.Status == "pending"),
+					templ.KV("bg-green-100 text-green-800", s.Status == "completed"),
+					templ.KV("bg-blue-100 text-blue-800", s.Status == "confirmed") }
+				>
+					{ s.Status }
+				</span>
+			</div>
+		</div>
+		<div class="flex items-center gap-2">
+			if s.Status == "confirmed" || s.Status == "pending" {
+				<a href={ templ.SafeURL("/chat") } class="btn btn-sm btn-ghost">Chat</a>
+				if s.Status == "confirmed" {
+					<button
+						class="btn btn-sm btn-success"
+						hx-post={ "/sessions/" + s.ID + "/complete" }
+					>
+						Mark Complete
+					</button>
+				}
+				<!-- For MVP, treat pending as confirmable/completeable immediately for speed -->
+				if s.Status == "pending" {
+					<button
+						class="btn btn-sm btn-success"
+						hx-post={ "/sessions/" + s.ID + "/complete" }
+					>
+						Complete
+					</button>
+				}
+			}
+			if s.Status == "completed" {
+				if !s.IsReviewed {
+					<button
+						class="btn btn-sm btn-primary"
+						_={ fmt.Sprintf("on click me('#review-modal-%s').showModal()", s.ID) }
+					>
+						Leave Review
+					</button>
+					@ReviewModal(s)
+				} else {
+					<span class="text-sm text-green-500">Reviewed ✓</span>
+				}
+			}
+		</div>
+	</div>
+}
+
+templ ReviewModal(s SessionItem) {
+	<dialog id={ fmt.Sprintf("review-modal-%s", s.ID) } class="modal">
+		<div class="modal-box bg-background border border-border">
+			<h3 class="font-bold text-lg mb-4">Review { s.PartnerName }</h3>
+			<form action="/review" method="POST">
+				<input type="hidden" name="session_id" value={ s.ID }/>
+				<input type="hidden" name="target_user_id" value={ s.PartnerID }/>
+				<!-- We need user ID... assume handle via backend or injected?
+                     ReviewHandler requires `target_user_id`.
+                     Wait, `SessionItem` doesn't have PartnerID in view model yet.
+                     Let's verify `SessionItem`. Yes, it's missing PartnerID.
+                     For now, we can try to guess or fetch? NO.
+                     Must update SessionItem to include PartnerID.
+                -->
+				<!-- Assuming PartnerID injection in next step -->
+				<!-- Temporarily disabled TargetID hidden input -->
+				<div class="form-control mb-4">
+					<label class="label">Rating</label>
+					<div class="rating rating-lg">
+						<input type="radio" name="rating" value="1" class="mask mask-star-2 bg-orange-400"/>
+						<input type="radio" name="rating" value="2" class="mask mask-star-2 bg-orange-400"/>
+						<input type="radio" name="rating" value="3" class="mask mask-star-2 bg-orange-400"/>
+						<input type="radio" name="rating" value="4" class="mask mask-star-2 bg-orange-400"/>
+						<input type="radio" name="rating" value="5" class="mask mask-star-2 bg-orange-400" checked/>
+					</div>
+				</div>
+				<div class="form-control mb-4">
+					<label class="label">Comment</label>
+					<textarea name="comment" class="textarea textarea-bordered h-24" placeholder="How was the session?"></textarea>
+				</div>
+				<div class="modal-action">
+					<button type="button" class="btn btn-ghost" _={ fmt.Sprintf("on click me('#review-modal-%s').close()", s.ID) }>Cancel</button>
+					<button type="submit" class="btn btn-primary">Submit Review</button>
+				</div>
+			</form>
+		</div>
+		<form method="dialog" class="modal-backdrop">
+			<button>close</button>
+		</form>
+	</dialog>
+}

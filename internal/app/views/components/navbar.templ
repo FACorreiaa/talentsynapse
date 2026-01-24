@@ -16,6 +16,8 @@ templ Navbar(isAuthenticated bool, userName string, userAvatar string) {
 					if isAuthenticated {
 						<a href="/dashboard" class="nav-link hidden md:inline-flex">Dashboard</a>
 						<a href="/skills" class="nav-link hidden md:inline-flex">Skills</a>
+						<a href="/calendar" class="nav-link hidden md:inline-flex">Calendar</a>
+						<a href="/sessions" class="nav-link hidden md:inline-flex">Sessions</a>
 						<!-- User Dropdown (Hyperscript) -->
 						<div class="relative ml-2" id="user-dropdown">
 							<button

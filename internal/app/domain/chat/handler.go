@@ -1,24 +1,31 @@
 package chat
 
 import (
+	"bytes"
 	"net/http"
 	"strings"
 
 	"github.com/go-chi/chi/v5"
 
 	"github.com/FACorreiaa/skillsphere/internal/app/domain/auth"
+	"github.com/FACorreiaa/skillsphere/internal/app/domain/matches"
 	chatpages "github.com/FACorreiaa/skillsphere/internal/app/views/pages/chat"
 )
 
 // Handler handles chat HTTP requests
 type Handler struct {
-	repo *Repository
-	hub  *Hub
+	repo        *Repository
+	matchesRepo *matches.Repository
+	hub         *Hub
 }
 
 // NewHandler creates a new chat handler
-func NewHandler(repo *Repository, hub *Hub) *Handler {
-	return &Handler{repo: repo, hub: hub}
+func NewHandler(repo *Repository, matchesRepo *matches.Repository, hub *Hub) *Handler {
+	return &Handler{
+		repo:        repo,
+		matchesRepo: matchesRepo,
+		hub:         hub,
+	}
 }
 
 // ListConversations renders the conversation list page
@@ -167,21 +174,38 @@ func (h *Handler) SendMessage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Broadcast via WebSocket if hub is available
-	if h.hub != nil {
-		h.hub.Broadcast(conversationID, msg)
-	}
-
-	// Return the message bubble for HTMX swap
-	component := chatpages.MessageBubble(chatpages.MessageItem{
+	// 1. Prepare View Model
+	viewMsg := chatpages.MessageItem{
 		ID:           msg.ID,
 		SenderID:     msg.SenderID,
 		SenderName:   msg.SenderName,
 		SenderAvatar: msg.SenderAvatar,
 		Content:      msg.Content,
 		SentAt:       msg.SentAt,
-		IsOwn:        true,
-	})
+		IsOwn:        false, // For receiver, it's NOT own
+	}
+
+	// 2. Broadcast via WebSocket (OOB Swap for receiver)
+	if h.hub != nil {
+		var buf bytes.Buffer
+		// We render with IsOwn=false for the receiver
+		// We wrap in OOB swap div
+		// <div id="messages-list" hx-swap-oob="beforeend">...bubble...</div>
+		// Note: templ doesn't natively support easy string concatenation for this without a component
+		// Let's create a wrapper component or just write string manually.
+		// Manual string wrapper is risky if ids change.
+		// Let's render the bubble first.
+		if err := chatpages.MessageBubble(viewMsg).Render(r.Context(), &buf); err == nil {
+			oobHTML := `<div id="messages-list" hx-swap-oob="beforeend">` + buf.String() + `</div>`
+			h.hub.Broadcast(conversationID, []byte(oobHTML), sessionData.UserID)
+		}
+	}
+
+	// 3. Return response to Sender (IsOwn=true)
+	// Sender gets the bubble directly appended via hx-target logic on the form
+	senderViewMsg := viewMsg
+	senderViewMsg.IsOwn = true
+	component := chatpages.MessageBubble(senderViewMsg)
 	if err := component.Render(r.Context(), w); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
@@ -198,6 +222,18 @@ func (h *Handler) StartConversation(w http.ResponseWriter, r *http.Request) {
 	partnerID := chi.URLParam(r, "userID")
 	if partnerID == "" {
 		http.Error(w, "Missing user ID", http.StatusBadRequest)
+		return
+	}
+
+	// Check if connected
+	connected, err := h.matchesRepo.AreConnected(r.Context(), sessionData.UserID, partnerID)
+	if err != nil {
+		http.Error(w, "Failed to check connection", http.StatusInternalServerError)
+		return
+	}
+	if !connected {
+		_ = auth.SetFlash(w, r, "You must be connected with this user to chat.", auth.FlashError)
+		http.Redirect(w, r, "/users/"+partnerID, http.StatusSeeOther)
 		return
 	}
 

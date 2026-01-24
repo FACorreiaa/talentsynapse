@@ -5,6 +5,7 @@ import (
 
 	"github.com/FACorreiaa/skillsphere/internal/app/domain/auth"
 	"github.com/FACorreiaa/skillsphere/internal/app/domain/badges"
+	"github.com/FACorreiaa/skillsphere/internal/app/domain/portfolio"
 	"github.com/FACorreiaa/skillsphere/internal/app/domain/review"
 	"github.com/FACorreiaa/skillsphere/internal/app/domain/user"
 	profilepages "github.com/FACorreiaa/skillsphere/internal/app/views/pages/profile"
@@ -13,18 +14,21 @@ import (
 )
 
 // Handler handles profile HTTP requests
+// Handler handles profile HTTP requests
 type Handler struct {
-	userRepo   *user.Repository
-	badgesRepo *badges.Repository
-	reviewRepo *review.Repository
+	userRepo      *user.Repository
+	badgesRepo    *badges.Repository
+	reviewRepo    *review.Repository
+	portfolioRepo *portfolio.Repository
 }
 
 // NewHandler creates a new profile handler
-func NewHandler(userRepo *user.Repository, badgesRepo *badges.Repository, reviewRepo *review.Repository) *Handler {
+func NewHandler(userRepo *user.Repository, badgesRepo *badges.Repository, reviewRepo *review.Repository, portfolioRepo *portfolio.Repository) *Handler {
 	return &Handler{
-		userRepo:   userRepo,
-		badgesRepo: badgesRepo,
-		reviewRepo: reviewRepo,
+		userRepo:      userRepo,
+		badgesRepo:    badgesRepo,
+		reviewRepo:    reviewRepo,
+		portfolioRepo: portfolioRepo,
 	}
 }
 
@@ -44,13 +48,37 @@ func (h *Handler) Show(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Build profile view model
+	// Fetch portfolio items
+	portfolioItems, _ := h.portfolioRepo.GetUserItems(r.Context(), sessionData.UserID)
+
+	// Map items to view model
+	var viewPortfolio []profilepages.PortfolioItem
+	for _, item := range portfolioItems {
+		viewPortfolio = append(viewPortfolio, profilepages.PortfolioItem{
+			ID:          item.ID,
+			Title:       item.Title,
+			Description: item.Description,
+			LinkURL:     item.LinkURL,
+			ImageURL:    item.ImageURL,
+		})
+	}
+
+	// Build profile view model
 	profile := profilepages.ProfileData{
 		ID:          userData.ID,
 		Username:    userData.Username,
 		DisplayName: userData.DisplayName,
 		Email:       userData.Email,
 		AvatarURL:   getStringPtr(userData.AvatarURL),
+		Bio:         getStringPtr(userData.Bio),
 		CreatedAt:   userData.CreatedAt,
+		SocialLinks: profilepages.SocialLinksData{
+			GitHub:   userData.SocialLinks.GitHub,
+			LinkedIn: userData.SocialLinks.LinkedIn,
+			Twitter:  userData.SocialLinks.Twitter,
+			Website:  userData.SocialLinks.Website,
+		},
+		Portfolio: viewPortfolio,
 	}
 
 	flashes := auth.GetFlash(w, r)
@@ -84,7 +112,14 @@ func (h *Handler) Update(w http.ResponseWriter, r *http.Request) {
 	displayName := r.FormValue("display_name")
 	bio := r.FormValue("bio")
 
-	err := h.userRepo.UpdateProfile(r.Context(), sessionData.UserID, displayName, bio)
+	links := user.SocialLinks{
+		GitHub:   r.FormValue("github"),
+		LinkedIn: r.FormValue("linkedin"),
+		Twitter:  r.FormValue("twitter"),
+		Website:  r.FormValue("website"),
+	}
+
+	err := h.userRepo.UpdateProfile(r.Context(), sessionData.UserID, displayName, bio, links)
 	if err != nil {
 		http.Error(w, "Failed to update profile", http.StatusInternalServerError)
 		return
@@ -139,16 +174,39 @@ func (h *Handler) ShowPublic(w http.ResponseWriter, r *http.Request) {
 	// Check if users are connected (mutual match)
 	isConnected, _ := h.userRepo.AreConnected(r.Context(), sessionData.UserID, profileUserID)
 
+	// Fetch portfolio items
+	portfolioItems, _ := h.portfolioRepo.GetUserItems(r.Context(), profileUserID)
+
+	// Map items to view model
+	var viewPortfolio []profilepages.PortfolioItem
+	for _, item := range portfolioItems {
+		viewPortfolio = append(viewPortfolio, profilepages.PortfolioItem{
+			ID:          item.ID,
+			Title:       item.Title,
+			Description: item.Description,
+			LinkURL:     item.LinkURL,
+			ImageURL:    item.ImageURL,
+		})
+	}
+
 	profile := profilepages.PublicProfileData{
 		ID:            targetUser.ID,
 		Username:      targetUser.Username,
 		DisplayName:   targetUser.DisplayName,
 		AvatarURL:     getStringPtr(targetUser.AvatarURL),
 		Bio:           getStringPtr(targetUser.Bio),
+		Tier:          targetUser.Tier,
 		OfferedSkills: offeredSkills,
 		WantedSkills:  wantedSkills,
 		IsConnected:   isConnected,
 		Badges:        []profilepages.BadgeData{}, // Initial empty
+		SocialLinks: profilepages.SocialLinksData{
+			GitHub:   targetUser.SocialLinks.GitHub,
+			LinkedIn: targetUser.SocialLinks.LinkedIn,
+			Twitter:  targetUser.SocialLinks.Twitter,
+			Website:  targetUser.SocialLinks.Website,
+		},
+		Portfolio: viewPortfolio,
 	}
 
 	// Fetch badges

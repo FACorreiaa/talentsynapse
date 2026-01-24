@@ -39,8 +39,12 @@ func (r *Repository) Create(ctx context.Context, email, username, hashedPassword
 	query := `
 		INSERT INTO users (email, username, hashed_password, display_name)
 		VALUES ($1, $2, $3, $4)
-		RETURNING id, email, username, hashed_password, display_name, avatar_url, role, is_active, email_verified_at, created_at, updated_at, last_login_at
+		RETURNING id, email, username, hashed_password, display_name, avatar_url, role, is_active, email_verified_at, created_at, updated_at, last_login_at, social_links
 	`
+	// Note: Newly created user has no stats entry yet, so Tier is default (handled by app or we insert stat row).
+	// For now, leave Tier empty in return or default to "Bronze" in struct?
+	// Let's just scan standard fields and set default Tier manually in struct if needed, or query stats (which don't exist yet).
+	// Better: insert into user_stats immediately? Or just handle NULL tier as Bronze.
 
 	user := &User{}
 	err := r.pool.QueryRow(ctx, query, email, username, hashedPassword, displayName).Scan(
@@ -56,6 +60,7 @@ func (r *Repository) Create(ctx context.Context, email, username, hashedPassword
 		&user.CreatedAt,
 		&user.UpdatedAt,
 		&user.LastLoginAt,
+		&user.SocialLinks,
 	)
 	if err != nil {
 		if isUniqueViolation(err, "users_email_key") {
@@ -73,9 +78,11 @@ func (r *Repository) Create(ctx context.Context, email, username, hashedPassword
 // GetByEmail retrieves a user by their email address
 func (r *Repository) GetByEmail(ctx context.Context, email string) (*User, error) {
 	query := `
-		SELECT id, email, username, hashed_password, display_name, avatar_url, role, is_active, email_verified_at, created_at, updated_at, last_login_at
-		FROM users
-		WHERE email = $1 AND is_active = true
+		SELECT u.id, u.email, u.username, u.hashed_password, u.display_name, u.avatar_url, u.role, u.is_active, u.email_verified_at, u.created_at, u.updated_at, u.last_login_at, u.social_links,
+               COALESCE(us.tier, 'Bronze') as tier
+		FROM users u
+        LEFT JOIN user_stats us ON u.id = us.user_id
+		WHERE u.email = $1 AND u.is_active = true
 	`
 
 	user := &User{}
@@ -92,6 +99,7 @@ func (r *Repository) GetByEmail(ctx context.Context, email string) (*User, error
 		&user.CreatedAt,
 		&user.UpdatedAt,
 		&user.LastLoginAt,
+		&user.SocialLinks,
 	)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
@@ -106,9 +114,11 @@ func (r *Repository) GetByEmail(ctx context.Context, email string) (*User, error
 // GetByID retrieves a user by their ID
 func (r *Repository) GetByID(ctx context.Context, id string) (*User, error) {
 	query := `
-		SELECT id, email, username, hashed_password, display_name, avatar_url, bio, role, is_active, email_verified_at, created_at, updated_at, last_login_at
-		FROM users
-		WHERE id = $1 AND is_active = true
+		SELECT u.id, u.email, u.username, u.hashed_password, u.display_name, u.avatar_url, u.bio, u.role, u.is_active, u.email_verified_at, u.created_at, u.updated_at, u.last_login_at, u.social_links,
+               COALESCE(us.tier, 'Bronze') as tier
+		FROM users u
+        LEFT JOIN user_stats us ON u.id = us.user_id
+		WHERE u.id = $1 AND u.is_active = true
 	`
 
 	user := &User{}
@@ -126,6 +136,7 @@ func (r *Repository) GetByID(ctx context.Context, id string) (*User, error) {
 		&user.CreatedAt,
 		&user.UpdatedAt,
 		&user.LastLoginAt,
+		&user.SocialLinks,
 	)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
@@ -140,9 +151,11 @@ func (r *Repository) GetByID(ctx context.Context, id string) (*User, error) {
 // GetByUsername retrieves a user by their username
 func (r *Repository) GetByUsername(ctx context.Context, username string) (*User, error) {
 	query := `
-		SELECT id, email, username, hashed_password, display_name, avatar_url, role, is_active, email_verified_at, created_at, updated_at, last_login_at
-		FROM users
-		WHERE username = $1 AND is_active = true
+		SELECT u.id, u.email, u.username, u.hashed_password, u.display_name, u.avatar_url, u.role, u.is_active, u.email_verified_at, u.created_at, u.updated_at, u.last_login_at, u.social_links,
+               COALESCE(us.tier, 'Bronze') as tier
+		FROM users u
+        LEFT JOIN user_stats us ON u.id = us.user_id
+		WHERE u.username = $1 AND u.is_active = true
 	`
 
 	user := &User{}
@@ -159,6 +172,7 @@ func (r *Repository) GetByUsername(ctx context.Context, username string) (*User,
 		&user.CreatedAt,
 		&user.UpdatedAt,
 		&user.LastLoginAt,
+		&user.SocialLinks,
 	)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
@@ -177,10 +191,10 @@ func (r *Repository) UpdateLastLogin(ctx context.Context, userID string) error {
 	return err
 }
 
-// UpdateProfile updates user's display name and bio
-func (r *Repository) UpdateProfile(ctx context.Context, userID, displayName, bio string) error {
-	query := `UPDATE users SET display_name = $2, bio = $3, updated_at = NOW() WHERE id = $1`
-	_, err := r.pool.Exec(ctx, query, userID, displayName, bio)
+// UpdateProfile updates user's display name, bio, and social links
+func (r *Repository) UpdateProfile(ctx context.Context, userID, displayName, bio string, links SocialLinks) error {
+	query := `UPDATE users SET display_name = $2, bio = $3, social_links = $4, updated_at = NOW() WHERE id = $1`
+	_, err := r.pool.Exec(ctx, query, userID, displayName, bio, links)
 	return err
 }
 

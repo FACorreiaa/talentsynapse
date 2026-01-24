@@ -213,3 +213,21 @@ func (r *Repository) GetMutualMatches(ctx context.Context, userID string, limit 
 
 	return matches, rows.Err()
 }
+
+// AreConnected checks if two users have mutually accepted each other
+func (r *Repository) AreConnected(ctx context.Context, userA, userB string) (bool, error) {
+	query := `
+		SELECT EXISTS(
+			SELECT 1
+			FROM match_history mh1
+			JOIN match_history mh2 ON mh1.user_id_a = mh2.user_id_b AND mh1.user_id_b = mh2.user_id_a
+			WHERE 
+				mh1.user_id_a = $1 AND mh1.user_id_b = $2
+				AND mh1.interaction_initiated = true
+				AND mh2.interaction_initiated = true
+		)
+	`
+	var exists bool
+	err := r.pool.QueryRow(ctx, query, userA, userB).Scan(&exists)
+	return exists, err
+}

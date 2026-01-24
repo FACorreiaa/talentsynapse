@@ -52,3 +52,8 @@ __debug_bin
 build-errors.log
 tailwindcss
 main
+server
+
+# Documentation (keep out of git history for cleaner repo)
+# Uncomment the line below if you want to exclude docs from version control
+docs/

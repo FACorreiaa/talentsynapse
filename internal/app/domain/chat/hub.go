@@ -1,7 +1,6 @@
 package chat
 
 import (
-	"encoding/json"
 	"log"
 	"net/http"
 	"sync"
@@ -46,7 +45,8 @@ type Hub struct {
 // BroadcastMessage wraps a message with its target conversation
 type BroadcastMessage struct {
 	ConversationID string
-	Message        *Message
+	Message        []byte
+	SenderID       string
 }
 
 // NewHub creates a new WebSocket hub
@@ -89,15 +89,12 @@ func (h *Hub) Run() {
 			clients := h.conversations[message.ConversationID]
 			h.mu.RUnlock()
 
-			data, err := json.Marshal(message.Message)
-			if err != nil {
-				log.Printf("Failed to marshal message: %v", err)
-				continue
-			}
+			data := message.Message
 
 			for client := range clients {
 				// Don't send to the sender
-				if client.userID == message.Message.SenderID {
+				// Don't send to the sender
+				if client.userID == message.SenderID {
 					continue
 				}
 				select {
@@ -114,10 +111,11 @@ func (h *Hub) Run() {
 }
 
 // Broadcast sends a message to all clients in a conversation
-func (h *Hub) Broadcast(conversationID string, msg *Message) {
+func (h *Hub) Broadcast(conversationID string, msg []byte, senderID string) {
 	h.broadcast <- &BroadcastMessage{
 		ConversationID: conversationID,
 		Message:        msg,
+		SenderID:       senderID,
 	}
 }
 

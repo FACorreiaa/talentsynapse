@@ -16,9 +16,12 @@ import (
 	"github.com/FACorreiaa/skillsphere/internal/app/domain/errors"
 	"github.com/FACorreiaa/skillsphere/internal/app/domain/home"
 	"github.com/FACorreiaa/skillsphere/internal/app/domain/matches"
+	"github.com/FACorreiaa/skillsphere/internal/app/domain/portfolio"
 	"github.com/FACorreiaa/skillsphere/internal/app/domain/profile"
 	"github.com/FACorreiaa/skillsphere/internal/app/domain/report"
 	"github.com/FACorreiaa/skillsphere/internal/app/domain/review"
+	"github.com/FACorreiaa/skillsphere/internal/app/domain/scheduling"
+	"github.com/FACorreiaa/skillsphere/internal/app/domain/session"
 	"github.com/FACorreiaa/skillsphere/internal/app/domain/settings"
 	"github.com/FACorreiaa/skillsphere/internal/app/domain/skills"
 	"github.com/FACorreiaa/skillsphere/internal/app/domain/user"
@@ -27,19 +30,25 @@ import (
 // Container holds all application dependencies
 type Container struct {
 	// Repositories
-	UserRepo    *user.Repository
-	SkillsRepo  *skills.Repository
-	MatchesRepo *matches.Repository
-	ChatRepo    *chat.Repository
-	ReportRepo  *report.Repository
-	BadgesRepo  *badges.Repository
-	ReviewRepo  *review.Repository
+	UserRepo      *user.Repository
+	SkillsRepo    *skills.Repository
+	MatchesRepo   *matches.Repository
+	ChatRepo      *chat.Repository
+	ReportRepo    *report.Repository
+	BadgesRepo    *badges.Repository
+	ReviewRepo    *review.Repository
+	PortfolioRepo *portfolio.Repository
+	SessionRepo   *session.Repository
 
 	// Services
 	AuthService *auth.Service
 
 	// WebSocket
-	ChatHub *chat.Hub
+	ChatHub       *chat.Hub
+	SchedulingHub *scheduling.Hub
+
+	// Background Services
+	SchedulingNotifier *scheduling.Notifier
 
 	// Handlers
 	AuthHandler        *auth.Handler
@@ -56,6 +65,9 @@ type Container struct {
 	AdminHandler       *admin.Handler
 	ReportHandler      *report.Handler
 	ReviewHandler      *review.Handler
+	PortfolioHandler   *portfolio.Handler
+	SessionHandler     *session.Handler
+	SchedulingHandler  *scheduling.Handler
 }
 
 // New creates a new dependency injection container
@@ -71,6 +83,8 @@ func New(pool *pgxpool.Pool) *Container {
 	reportRepo := report.NewRepository(pool)
 	badgesRepo := badges.NewRepository(pool)
 	reviewRepo := review.NewRepository(pool)
+	portfolioRepo := portfolio.NewRepository(pool)
+	sessionRepo := session.NewRepository(pool)
 
 	// Seed admin user from environment variables
 	if err := admin.SeedAdmin(context.Background(), userRepo); err != nil {
@@ -80,41 +94,59 @@ func New(pool *pgxpool.Pool) *Container {
 	// Create services
 	authService := auth.NewService(userRepo)
 
-	// Create WebSocket hub and start it
+	// Create WebSocket hubs and start them
 	chatHub := chat.NewHub()
 	go chatHub.Run()
+
+	schedulingRepo := scheduling.NewRepository(pool)
+	schedulingService := scheduling.NewService(schedulingRepo)
+	schedulingHub := scheduling.NewHub()
+	go schedulingHub.Run()
+
+	// Create background services
+	schedulingNotifier := scheduling.NewNotifier(schedulingRepo, schedulingHub)
+	schedulingNotifier.Start()
 
 	// Create handlers
 	authHandler := auth.NewHandler(authService)
 	homeHandler := home.NewHandler()
 	dashboardHandler := dashboard.NewHandler()
-	profileHandler := profile.NewHandler(userRepo, badgesRepo, reviewRepo)
+	profileHandler := profile.NewHandler(userRepo, badgesRepo, reviewRepo, portfolioRepo)
 	skillsHandler := skills.NewHandler(skillsRepo)
-	matchesHandler := matches.NewHandler(matchesRepo)
+	matchesHandler := matches.NewHandler(matchesRepo, badgesRepo)
 	discoverHandler := discover.NewHandler(skillsRepo)
 	settingsHandler := settings.NewHandler()
-	chatHandler := chat.NewHandler(chatRepo, chatHub)
+	chatHandler := chat.NewHandler(chatRepo, matchesRepo, chatHub)
 	connectionsHandler := connections.NewHandler(matchesRepo)
 	errorHandler := errors.NewHandler()
 	adminHandler := admin.NewHandler(userRepo, reportRepo)
 	reportHandler := report.NewHandler(reportRepo)
-	reviewHandler := review.NewHandler(reviewRepo)
+	reviewHandler := review.NewHandler(reviewRepo, badgesRepo)
+	portfolioHandler := portfolio.NewHandler(portfolioRepo)
+	sessionHandler := session.NewHandler(sessionRepo)
+	schedulingHandler := scheduling.NewHandler(schedulingService, schedulingHub)
 
 	return &Container{
 		// Repositories
-		UserRepo:    userRepo,
-		SkillsRepo:  skillsRepo,
-		MatchesRepo: matchesRepo,
-		ChatRepo:    chatRepo,
-		ReportRepo:  reportRepo,
-		BadgesRepo:  badgesRepo,
-		ReviewRepo:  reviewRepo,
+		UserRepo:      userRepo,
+		SkillsRepo:    skillsRepo,
+		MatchesRepo:   matchesRepo,
+		ChatRepo:      chatRepo,
+		ReportRepo:    reportRepo,
+		BadgesRepo:    badgesRepo,
+		ReviewRepo:    reviewRepo,
+		PortfolioRepo: portfolioRepo,
+		SessionRepo:   sessionRepo,
 
 		// Services
 		AuthService: authService,
 
 		// WebSocket
-		ChatHub: chatHub,
+		ChatHub:       chatHub,
+		SchedulingHub: schedulingHub,
+
+		// Background Services
+		SchedulingNotifier: schedulingNotifier,
 
 		// Handlers
 		AuthHandler:        authHandler,
@@ -131,5 +163,8 @@ func New(pool *pgxpool.Pool) *Container {
 		AdminHandler:       adminHandler,
 		ReportHandler:      reportHandler,
 		ReviewHandler:      reviewHandler,
+		PortfolioHandler:   portfolioHandler,
+		SessionHandler:     sessionHandler,
+		SchedulingHandler:  schedulingHandler,
 	}
 }

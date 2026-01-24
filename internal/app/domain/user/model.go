@@ -2,6 +2,8 @@ package user
 
 import (
 	"time"
+
+	"github.com/FACorreiaa/skillsphere/internal/app/types"
 )
 
 // User represents a user entity in the system
@@ -14,11 +16,20 @@ type User struct {
 	AvatarURL       *string
 	Bio             *string
 	Role            string
+	Tier            string // From user_stats
 	IsActive        bool
 	EmailVerifiedAt *time.Time
 	CreatedAt       time.Time
 	UpdatedAt       time.Time
 	LastLoginAt     *time.Time
+	SocialLinks     SocialLinks
+}
+
+type SocialLinks struct {
+	GitHub   string `json:"github,omitempty"`
+	LinkedIn string `json:"linkedin,omitempty"`
+	Twitter  string `json:"twitter,omitempty"`
+	Website  string `json:"website,omitempty"`
 }
 
 // CreateUserInput represents input for creating a new user
@@ -51,15 +62,9 @@ type RegisterInput struct {
 	DisplayName     string
 }
 
-// SessionData represents user session data for templates
-type SessionData struct {
-	IsAuthenticated bool
-	UserID          string
-	UserName        string
-	UserEmail       string
-	UserAvatar      string
-	Role            string
-}
+// SessionData is an alias to the shared types.SessionData
+// Kept for backward compatibility
+type SessionData = types.SessionData
 
 // PublicProfile represents a user's public-facing profile
 type PublicProfile struct {

@@ -5,15 +5,20 @@ import (
 	"strconv"
 
 	"github.com/FACorreiaa/skillsphere/internal/app/domain/auth"
+	"github.com/FACorreiaa/skillsphere/internal/app/domain/badges"
 	"github.com/google/uuid"
 )
 
 type Handler struct {
-	repo *Repository
+	repo       *Repository
+	badgesRepo *badges.Repository
 }
 
-func NewHandler(repo *Repository) *Handler {
-	return &Handler{repo: repo}
+func NewHandler(repo *Repository, badgesRepo *badges.Repository) *Handler {
+	return &Handler{
+		repo:       repo,
+		badgesRepo: badgesRepo,
+	}
 }
 
 func (h *Handler) Submit(w http.ResponseWriter, r *http.Request) {
@@ -46,12 +51,19 @@ func (h *Handler) Submit(w http.ResponseWriter, r *http.Request) {
 	}
 
 	comment := r.FormValue("comment")
+	sessionID := r.FormValue("session_id")
 
-	// Create review
-	if err := h.repo.CreateSimpleReview(r.Context(), fromUserID, toUserID, rating, comment); err != nil {
+	if err := h.repo.CreateSessionReview(r.Context(), fromUserID.String(), toUserID.String(), sessionID, rating, comment); err != nil {
 		_ = auth.SetFlash(w, r, "Failed to submit review", auth.FlashError)
 	} else {
 		_ = auth.SetFlash(w, r, "Review submitted matched!", auth.FlashSuccess)
+
+		// Gamification Check: Top Teacher
+		// 5+ reviews, 4.5+ average
+		total, avg, err := h.repo.GetStats(r.Context(), toUserID)
+		if err == nil && total >= 5 && avg >= 4.5 {
+			_ = h.badgesRepo.AwardBadge(r.Context(), toUserID, "top_teacher")
+		}
 	}
 
 	http.Redirect(w, r, r.Header.Get("Referer"), http.StatusSeeOther)

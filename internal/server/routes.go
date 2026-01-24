@@ -143,6 +143,8 @@ func (s *Server) RegisterRoutes() http.Handler {
 		// Profile routes
 		r.Get("/profile", c.ProfileHandler.Show)
 		r.Post("/profile", c.ProfileHandler.Update)
+		r.Post("/profile/portfolio", c.PortfolioHandler.Create)
+		r.Delete("/profile/portfolio/{id}", c.PortfolioHandler.Delete)
 
 		// Public profile (view other users)
 		r.Get("/users/{id}", c.ProfileHandler.ShowPublic)
@@ -168,6 +170,16 @@ func (s *Server) RegisterRoutes() http.Handler {
 		r.Get("/chat/start/{userID}", c.ChatHandler.StartConversation)
 		r.Get("/chat/ws", c.ChatHub.HandleWebSocket)
 
+		// Calendar & Scheduling routes
+		r.Get("/calendar", c.SchedulingHandler.ShowCalendar)
+		r.Get("/calendar/month", c.SchedulingHandler.GetCalendarMonth)
+		r.Get("/calendar/session/new", c.SchedulingHandler.ProposeSessionForm)
+		r.Post("/calendar/session/create", c.SchedulingHandler.CreateSession)
+		r.Get("/calendar/session/{id}", c.SchedulingHandler.GetSessionDetails)
+		r.Post("/calendar/session/{id}/confirm", c.SchedulingHandler.ConfirmSession)
+		r.Post("/calendar/session/{id}/cancel", c.SchedulingHandler.CancelSession)
+		r.Get("/calendar/ws", c.SchedulingHandler.HandleWebSocket)
+
 		// Settings routes
 		r.Get("/settings", c.SettingsHandler.Show)
 
@@ -176,6 +188,11 @@ func (s *Server) RegisterRoutes() http.Handler {
 
 		// Review routes
 		r.Post("/review", c.ReviewHandler.Submit)
+
+		// Session routes
+		r.Get("/sessions", c.SessionHandler.List)
+		r.Post("/sessions/request", c.SessionHandler.CreateRequest)
+		r.Post("/sessions/{id}/complete", c.SessionHandler.Complete)
 
 		// Admin routes
 		r.Group(func(r chi.Router) {

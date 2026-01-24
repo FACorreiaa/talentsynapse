@@ -6,17 +6,24 @@ import (
 	"github.com/go-chi/chi/v5"
 
 	"github.com/FACorreiaa/skillsphere/internal/app/domain/auth"
+	"github.com/FACorreiaa/skillsphere/internal/app/domain/badges"
 	matchespages "github.com/FACorreiaa/skillsphere/internal/app/views/pages/matches"
+	"github.com/google/uuid"
 )
 
 // Handler handles matches HTTP requests
 type Handler struct {
-	repo *Repository
+	repo       *Repository
+	badgesRepo *badges.Repository
 }
 
 // NewHandler creates a new matches handler
-func NewHandler(repo *Repository) *Handler {
-	return &Handler{repo: repo}
+// NewHandler creates a new matches handler
+func NewHandler(repo *Repository, badgesRepo *badges.Repository) *Handler {
+	return &Handler{
+		repo:       repo,
+		badgesRepo: badgesRepo,
+	}
 }
 
 // List renders the matches page with potential skill exchange partners
@@ -93,6 +100,15 @@ func (h *Handler) Accept(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		http.Error(w, "Failed to record match", http.StatusInternalServerError)
 		return
+	}
+
+	// Check if connected (mutual match)
+	connected, _ := h.repo.AreConnected(r.Context(), sessionData.UserID, matchedUserID)
+	if connected {
+		// Award 'first_match' badge to both users
+		// We ignore errors as this is non-critical gamification
+		_ = h.badgesRepo.AwardBadge(r.Context(), uuid.MustParse(sessionData.UserID), "first_match")
+		_ = h.badgesRepo.AwardBadge(r.Context(), uuid.MustParse(matchedUserID), "first_match")
 	}
 
 	// For HTMX requests, return empty to remove card
