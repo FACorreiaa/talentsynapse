@@ -5,6 +5,7 @@ import (
 
 	"github.com/FACorreiaa/skillsphere/internal/app/domain/auth"
 	"github.com/FACorreiaa/skillsphere/internal/app/domain/badges"
+	"github.com/FACorreiaa/skillsphere/internal/app/domain/review"
 	"github.com/FACorreiaa/skillsphere/internal/app/domain/user"
 	profilepages "github.com/FACorreiaa/skillsphere/internal/app/views/pages/profile"
 	"github.com/go-chi/chi/v5"
@@ -15,13 +16,15 @@ import (
 type Handler struct {
 	userRepo   *user.Repository
 	badgesRepo *badges.Repository
+	reviewRepo *review.Repository
 }
 
 // NewHandler creates a new profile handler
-func NewHandler(userRepo *user.Repository, badgesRepo *badges.Repository) *Handler {
+func NewHandler(userRepo *user.Repository, badgesRepo *badges.Repository, reviewRepo *review.Repository) *Handler {
 	return &Handler{
 		userRepo:   userRepo,
 		badgesRepo: badgesRepo,
+		reviewRepo: reviewRepo,
 	}
 }
 

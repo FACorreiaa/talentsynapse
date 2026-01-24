@@ -174,6 +174,9 @@ func (s *Server) RegisterRoutes() http.Handler {
 		// Report routes
 		r.Post("/report", c.ReportHandler.SubmitReport)
 
+		// Review routes
+		r.Post("/review", c.ReviewHandler.Submit)
+
 		// Admin routes
 		r.Group(func(r chi.Router) {
 			r.Use(auth.RequireAdmin)

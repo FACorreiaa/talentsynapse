@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/FACorreiaa/skillsphere/internal/app/views/components"
 	"github.com/FACorreiaa/skillsphere/internal/app/views/layouts"
+	"time"
 )
 
 // PublicProfileData holds another user's profile info for display
@@ -17,6 +18,16 @@ type PublicProfileData struct {
 	WantedSkills  []string
 	IsConnected   bool
 	Badges        []BadgeData
+	Tier          string // "Bronze", "Silver", "Gold"
+	Reviews       []ReviewData
+}
+
+type ReviewData struct {
+	Rating         int
+	Comment        string
+	ReviewerName   string
+	ReviewerAvatar string
+	CreatedAt      time.Time
 }
 
 type BadgeData struct {
@@ -56,6 +67,17 @@ templ PublicProfile(p PublicProfileData, userName string, userAvatar string) {
 								if p.Bio != "" {
 									<p class="text-foreground/80 max-w-xl">{ p.Bio }</p>
 								}
+								<!-- Tier Badge -->
+								if p.Tier != "" {
+									<div
+										class={ "inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium mt-2",
+										templ.KV("bg-amber-100 text-amber-800", p.Tier == "Bronze"),
+										templ.KV("bg-gray-100 text-gray-800", p.Tier == "Silver"),
+										templ.KV("bg-yellow-100 text-yellow-800", p.Tier == "Gold") }
+									>
+										{ p.Tier } Member
+									</div>
+								}
 							</div>
 							<!-- Action Button -->
 							<div class="flex-shrink-0">
@@ -70,6 +92,15 @@ templ PublicProfile(p PublicProfileData, userName string, userAvatar string) {
 									<span class="text-sm text-muted-foreground bg-muted px-4 py-2 rounded-lg">
 										Connect via Matches to chat
 									</span>
+								}
+								if p.IsConnected {
+									<!-- Review Button (Only if connected) -->
+									<button
+										class="mt-2 btn btn-outline btn-sm w-full"
+										_={ fmt.Sprintf("on click me('#review-modal-%s').showModal()", p.ID) }
+									>
+										Leave Review
+									</button>
 								}
 								<!-- Report Button -->
 								<button
@@ -121,6 +152,46 @@ templ PublicProfile(p PublicProfileData, userName string, userAvatar string) {
 										<button>close</button>
 									</form>
 								</dialog>
+								<!-- Review Modal -->
+								<dialog id={ fmt.Sprintf("review-modal-%s", p.ID) } class="modal">
+									<div class="modal-box bg-white dark:bg-gray-800">
+										<h3 class="font-bold text-lg text-gray-900 dark:text-gray-100">Review { p.DisplayName }</h3>
+										<form action="/review" method="POST">
+											<input type="hidden" name="target_user_id" value={ p.ID }/>
+											<div class="form-control mb-4">
+												<label class="label">
+													<span class="label-text">Rating</span>
+												</label>
+												<div class="rating rating-lg">
+													<input type="radio" name="rating" value="1" class="mask mask-star-2 bg-orange-400"/>
+													<input type="radio" name="rating" value="2" class="mask mask-star-2 bg-orange-400"/>
+													<input type="radio" name="rating" value="3" class="mask mask-star-2 bg-orange-400"/>
+													<input type="radio" name="rating" value="4" class="mask mask-star-2 bg-orange-400"/>
+													<input type="radio" name="rating" value="5" class="mask mask-star-2 bg-orange-400" checked/>
+												</div>
+											</div>
+											<div class="form-control mb-4">
+												<label class="label">
+													<span class="label-text">Comment</span>
+												</label>
+												<textarea name="comment" class="textarea textarea-bordered h-24 dark:bg-gray-700 dark:text-white" placeholder="Share your experience..."></textarea>
+											</div>
+											<div class="modal-action">
+												<button
+													type="button"
+													class="btn btn-ghost"
+													_={ fmt.Sprintf("on click me('#review-modal-%s').close()", p.ID) }
+												>
+													Cancel
+												</button>
+												<button type="submit" class="btn btn-primary">Submit Review</button>
+											</div>
+										</form>
+									</div>
+									<form method="dialog" class="modal-backdrop">
+										<button>close</button>
+									</form>
+								</dialog>
 							</div>
 						</div>
 					</div>
@@ -135,6 +206,43 @@ templ PublicProfile(p PublicProfileData, userName string, userAvatar string) {
 									<div class="group relative flex flex-col items-center p-3 rounded-lg bg-secondary/30 hover:bg-secondary/50 transition-colors cursor-help" title={ badge.Name }>
 										<div class="text-3xl mb-1 filter drop-shadow-md transform group-hover:scale-110 transition-transform">{ badge.Icon }</div>
 										<span class="text-xs font-medium text-center max-w-[80px] leading-tight">{ badge.Name }</span>
+									</div>
+								}
+							</div>
+						</div>
+					}
+					<!-- Reviews Section -->
+					if len(p.Reviews) > 0 {
+						<div class="glass-card rounded-2xl p-6 mb-6 animate-fade-in-up delay-100">
+							<h3 class="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
+								<span class="text-xl">⭐</span> Recent Reviews
+							</h3>
+							<div class="space-y-4">
+								for _, review := range p.Reviews {
+									<div class="p-4 rounded-lg bg-secondary/20">
+										<div class="flex items-start justify-between">
+											<div class="flex items-center gap-3">
+												if review.ReviewerAvatar != "" {
+													<img src={ review.ReviewerAvatar } class="w-8 h-8 rounded-full object-cover"/>
+												} else {
+													<div class="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-primary-foreground text-xs font-bold">
+														{ getPublicInitial(review.ReviewerName) }
+													</div>
+												}
+												<div>
+													<p class="text-sm font-semibold">{ review.ReviewerName }</p>
+													<p class="text-xs text-muted-foreground">{ review.CreatedAt.Format("Jan 02, 2006") }</p>
+												</div>
+											</div>
+											<div class="flex text-yellow-500 text-sm">
+												for i := 0; i < review.Rating; i++ {
+													<span>★</span>
+												}
+											</div>
+										</div>
+										if review.Comment != "" {
+											<p class="mt-2 text-sm text-foreground/90">{ review.Comment }</p>
+										}
 									</div>
 								}
 							</div>

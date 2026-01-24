@@ -18,6 +18,7 @@ import (
 	"github.com/FACorreiaa/skillsphere/internal/app/domain/matches"
 	"github.com/FACorreiaa/skillsphere/internal/app/domain/profile"
 	"github.com/FACorreiaa/skillsphere/internal/app/domain/report"
+	"github.com/FACorreiaa/skillsphere/internal/app/domain/review"
 	"github.com/FACorreiaa/skillsphere/internal/app/domain/settings"
 	"github.com/FACorreiaa/skillsphere/internal/app/domain/skills"
 	"github.com/FACorreiaa/skillsphere/internal/app/domain/user"
@@ -32,6 +33,7 @@ type Container struct {
 	ChatRepo    *chat.Repository
 	ReportRepo  *report.Repository
 	BadgesRepo  *badges.Repository
+	ReviewRepo  *review.Repository
 
 	// Services
 	AuthService *auth.Service
@@ -53,6 +55,7 @@ type Container struct {
 	ErrorHandler       *errors.Handler
 	AdminHandler       *admin.Handler
 	ReportHandler      *report.Handler
+	ReviewHandler      *review.Handler
 }
 
 // New creates a new dependency injection container
@@ -67,6 +70,7 @@ func New(pool *pgxpool.Pool) *Container {
 	chatRepo := chat.NewRepository(pool)
 	reportRepo := report.NewRepository(pool)
 	badgesRepo := badges.NewRepository(pool)
+	reviewRepo := review.NewRepository(pool)
 
 	// Seed admin user from environment variables
 	if err := admin.SeedAdmin(context.Background(), userRepo); err != nil {
@@ -84,7 +88,7 @@ func New(pool *pgxpool.Pool) *Container {
 	authHandler := auth.NewHandler(authService)
 	homeHandler := home.NewHandler()
 	dashboardHandler := dashboard.NewHandler()
-	profileHandler := profile.NewHandler(userRepo, badgesRepo)
+	profileHandler := profile.NewHandler(userRepo, badgesRepo, reviewRepo)
 	skillsHandler := skills.NewHandler(skillsRepo)
 	matchesHandler := matches.NewHandler(matchesRepo)
 	discoverHandler := discover.NewHandler(skillsRepo)
@@ -94,6 +98,7 @@ func New(pool *pgxpool.Pool) *Container {
 	errorHandler := errors.NewHandler()
 	adminHandler := admin.NewHandler(userRepo, reportRepo)
 	reportHandler := report.NewHandler(reportRepo)
+	reviewHandler := review.NewHandler(reviewRepo)
 
 	return &Container{
 		// Repositories
@@ -103,6 +108,7 @@ func New(pool *pgxpool.Pool) *Container {
 		ChatRepo:    chatRepo,
 		ReportRepo:  reportRepo,
 		BadgesRepo:  badgesRepo,
+		ReviewRepo:  reviewRepo,
 
 		// Services
 		AuthService: authService,
@@ -124,5 +130,6 @@ func New(pool *pgxpool.Pool) *Container {
 		ErrorHandler:       errorHandler,
 		AdminHandler:       adminHandler,
 		ReportHandler:      reportHandler,
+		ReviewHandler:      reviewHandler,
 	}
 }
