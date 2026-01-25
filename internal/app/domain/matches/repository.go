@@ -3,7 +3,7 @@ package matches
 import (
 	"context"
 
-	"github.com/FACorreiaa/skillsphere/internal/app/domain/matches/algorithm"
+	"github.com/FACorreiaa/talentsynapse/internal/app/domain/matches/algorithm"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 

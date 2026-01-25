@@ -6,25 +6,25 @@ import (
 
 	"github.com/jackc/pgx/v5/pgxpool"
 
-	"github.com/FACorreiaa/skillsphere/internal/app/domain/admin"
-	"github.com/FACorreiaa/skillsphere/internal/app/domain/auth"
-	"github.com/FACorreiaa/skillsphere/internal/app/domain/badges"
-	"github.com/FACorreiaa/skillsphere/internal/app/domain/chat"
-	"github.com/FACorreiaa/skillsphere/internal/app/domain/connections"
-	"github.com/FACorreiaa/skillsphere/internal/app/domain/dashboard"
-	"github.com/FACorreiaa/skillsphere/internal/app/domain/discover"
-	"github.com/FACorreiaa/skillsphere/internal/app/domain/errors"
-	"github.com/FACorreiaa/skillsphere/internal/app/domain/home"
-	"github.com/FACorreiaa/skillsphere/internal/app/domain/matches"
-	"github.com/FACorreiaa/skillsphere/internal/app/domain/portfolio"
-	"github.com/FACorreiaa/skillsphere/internal/app/domain/profile"
-	"github.com/FACorreiaa/skillsphere/internal/app/domain/report"
-	"github.com/FACorreiaa/skillsphere/internal/app/domain/review"
-	"github.com/FACorreiaa/skillsphere/internal/app/domain/scheduling"
-	"github.com/FACorreiaa/skillsphere/internal/app/domain/session"
-	"github.com/FACorreiaa/skillsphere/internal/app/domain/settings"
-	"github.com/FACorreiaa/skillsphere/internal/app/domain/skills"
-	"github.com/FACorreiaa/skillsphere/internal/app/domain/user"
+	"github.com/FACorreiaa/talentsynapse/internal/app/domain/admin"
+	"github.com/FACorreiaa/talentsynapse/internal/app/domain/auth"
+	"github.com/FACorreiaa/talentsynapse/internal/app/domain/badges"
+	"github.com/FACorreiaa/talentsynapse/internal/app/domain/chat"
+	"github.com/FACorreiaa/talentsynapse/internal/app/domain/connections"
+	"github.com/FACorreiaa/talentsynapse/internal/app/domain/dashboard"
+	"github.com/FACorreiaa/talentsynapse/internal/app/domain/discover"
+	"github.com/FACorreiaa/talentsynapse/internal/app/domain/errors"
+	"github.com/FACorreiaa/talentsynapse/internal/app/domain/home"
+	"github.com/FACorreiaa/talentsynapse/internal/app/domain/matches"
+	"github.com/FACorreiaa/talentsynapse/internal/app/domain/portfolio"
+	"github.com/FACorreiaa/talentsynapse/internal/app/domain/profile"
+	"github.com/FACorreiaa/talentsynapse/internal/app/domain/report"
+	"github.com/FACorreiaa/talentsynapse/internal/app/domain/review"
+	"github.com/FACorreiaa/talentsynapse/internal/app/domain/scheduling"
+	"github.com/FACorreiaa/talentsynapse/internal/app/domain/session"
+	"github.com/FACorreiaa/talentsynapse/internal/app/domain/settings"
+	"github.com/FACorreiaa/talentsynapse/internal/app/domain/skills"
+	"github.com/FACorreiaa/talentsynapse/internal/app/domain/user"
 )
 
 // Container holds all application dependencies
@@ -92,7 +92,10 @@ func New(pool *pgxpool.Pool) *Container {
 	}
 
 	// Create services
-	authService := auth.NewService(userRepo)
+	tokenService := auth.NewTokenService(pool)
+	emailService := auth.NewEmailService()
+	mfaService := auth.NewMFAService(pool, emailService)
+	authService := auth.NewService(userRepo, tokenService, emailService, mfaService)
 
 	// Create WebSocket hubs and start them
 	chatHub := chat.NewHub()

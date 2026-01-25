@@ -3,9 +3,9 @@ package discover
 import (
 	"net/http"
 
-	"github.com/FACorreiaa/skillsphere/internal/app/domain/auth"
-	"github.com/FACorreiaa/skillsphere/internal/app/domain/skills"
-	discoverpages "github.com/FACorreiaa/skillsphere/internal/app/views/pages/discover"
+	"github.com/FACorreiaa/talentsynapse/internal/app/domain/auth"
+	"github.com/FACorreiaa/talentsynapse/internal/app/domain/skills"
+	discoverpages "github.com/FACorreiaa/talentsynapse/internal/app/views/pages/discover"
 )
 
 // Handler handles discover page HTTP requests

@@ -1,7 +1,7 @@
 package profile
 
-import "github.com/FACorreiaa/skillsphere/internal/app/views/layouts"
-import "github.com/FACorreiaa/skillsphere/internal/app/views/components"
+import "github.com/FACorreiaa/talentsynapse/internal/app/views/layouts"
+import "github.com/FACorreiaa/talentsynapse/internal/app/views/components"
 import "time"
 
 // ProfileData holds profile information for display
@@ -33,7 +33,7 @@ type PortfolioItem struct {
 }
 
 templ Profile(p ProfileData, userName string, userAvatar string, successMsg string) {
-	@layouts.Base("Profile | SkillSphere") {
+	@layouts.Base("Profile | TalentSynapse") {
 		<div class="min-h-screen flex flex-col bg-background">
 			@components.Navbar(true, userName, userAvatar)
 			<main class="flex-1 py-8 px-4">

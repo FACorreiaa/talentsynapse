@@ -6,7 +6,7 @@ import (
 	"log"
 	"os"
 
-	"github.com/FACorreiaa/skillsphere/internal/app/domain/user"
+	"github.com/FACorreiaa/talentsynapse/internal/app/domain/user"
 	"golang.org/x/crypto/bcrypt"
 )
 

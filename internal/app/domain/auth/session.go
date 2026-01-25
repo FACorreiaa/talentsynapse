@@ -9,18 +9,19 @@ import (
 
 	"github.com/gorilla/sessions"
 
-	"github.com/FACorreiaa/skillsphere/internal/app/domain/user"
+	"github.com/FACorreiaa/talentsynapse/internal/app/domain/user"
 )
 
 const (
-	SessionName   = "skillsphere_session"
-	UserIDKey     = "user_id"
-	UserNameKey   = "user_name"
-	UserEmailKey  = "user_email"
-	UserAvatarKey = "user_avatar"
-	UserRoleKey   = "user_role"
-	FlashKey      = "flash"
-	FlashTypeKey  = "flash_type"
+	SessionName      = "talentsynapse_session"
+	UserIDKey        = "user_id"
+	UserNameKey      = "user_name"
+	UserEmailKey     = "user_email"
+	UserAvatarKey    = "user_avatar"
+	UserRoleKey      = "user_role"
+	EmailVerifiedKey = "email_verified"
+	FlashKey         = "flash"
+	FlashTypeKey     = "flash_type"
 )
 
 // FlashType represents the type of flash message
@@ -95,6 +96,7 @@ func CreateSession(w http.ResponseWriter, r *http.Request, u *user.User) error {
 		session.Values[UserAvatarKey] = ""
 	}
 	session.Values[UserRoleKey] = u.Role
+	session.Values[EmailVerifiedKey] = u.EmailVerifiedAt != nil
 
 	return session.Save(r, w)
 }
@@ -162,8 +164,22 @@ func GetSessionData(r *http.Request) user.SessionData {
 	if userRole, ok := session.Values[UserRoleKey].(string); ok {
 		data.Role = userRole
 	}
+	if emailVerified, ok := session.Values[EmailVerifiedKey].(bool); ok {
+		data.EmailVerified = emailVerified
+	}
 
 	return data
+}
+
+// UpdateSessionEmailVerified updates the email verification status in the session
+func UpdateSessionEmailVerified(w http.ResponseWriter, r *http.Request, verified bool) error {
+	session, err := GetSession(r)
+	if err != nil {
+		return err
+	}
+
+	session.Values[EmailVerifiedKey] = verified
+	return session.Save(r, w)
 }
 
 // SetFlash sets a flash message

@@ -3,10 +3,10 @@ package admin
 import (
 	"net/http"
 
-	"github.com/FACorreiaa/skillsphere/internal/app/domain/auth"
-	"github.com/FACorreiaa/skillsphere/internal/app/domain/report"
-	"github.com/FACorreiaa/skillsphere/internal/app/domain/user"
-	adminpages "github.com/FACorreiaa/skillsphere/internal/app/views/pages/admin"
+	"github.com/FACorreiaa/talentsynapse/internal/app/domain/auth"
+	"github.com/FACorreiaa/talentsynapse/internal/app/domain/report"
+	"github.com/FACorreiaa/talentsynapse/internal/app/domain/user"
+	adminpages "github.com/FACorreiaa/talentsynapse/internal/app/views/pages/admin"
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
 )

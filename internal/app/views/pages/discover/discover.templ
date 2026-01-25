@@ -1,7 +1,7 @@
 package discover
 
-import "github.com/FACorreiaa/skillsphere/internal/app/views/layouts"
-import "github.com/FACorreiaa/skillsphere/internal/app/views/components"
+import "github.com/FACorreiaa/talentsynapse/internal/app/views/layouts"
+import "github.com/FACorreiaa/talentsynapse/internal/app/views/components"
 
 // SkillCard represents a skill for browsing
 type SkillCard struct {
@@ -19,7 +19,7 @@ type CategoryFilter struct {
 }
 
 templ Discover(skills []SkillCard, categories []CategoryFilter, selectedCategory string, userName string, userAvatar string, isAuthenticated bool) {
-	@layouts.Base("Discover Skills | SkillSphere") {
+	@layouts.Base("Discover Skills | TalentSynapse") {
 		<div class="min-h-screen flex flex-col bg-background">
 			@components.Navbar(isAuthenticated, userName, userAvatar)
 			<main class="flex-1 py-8 px-4">

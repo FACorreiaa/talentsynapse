@@ -4,7 +4,7 @@ import (
 	"context"
 	"net/http"
 
-	"github.com/FACorreiaa/skillsphere/internal/app/domain/user"
+	"github.com/FACorreiaa/talentsynapse/internal/app/domain/user"
 )
 
 // ContextKey is a type for context keys

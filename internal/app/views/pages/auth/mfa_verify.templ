@@ -1,0 +1,146 @@
+package auth
+
+import "github.com/FACorreiaa/talentsynapse/internal/app/views/layouts"
+
+// MFAVerify shows the MFA verification page during login
+templ MFAVerify(email string) {
+	@layouts.Base("Two-Factor Authentication | TalentSynapse") {
+		<div class="min-h-screen bg-gradient-to-br from-purple-50 via-white to-green-50 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
+			<div class="max-w-md w-full">
+				<!-- Header -->
+				<div class="text-center mb-8">
+					<div class="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-r from-purple-500 to-green-500 rounded-full mb-4">
+						<svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
+						</svg>
+					</div>
+					<h1 class="text-3xl font-bold text-gray-900 mb-2">
+						Two-Factor Authentication
+					</h1>
+					<p class="text-gray-600">
+						Enter the code from your authenticator app
+					</p>
+				</div>
+				<!-- Main Card -->
+				<div class="bg-white rounded-lg shadow-lg p-8">
+					<form method="POST" action="/mfa/verify" class="space-y-6">
+						<input type="hidden" name="email" value={ email }/>
+						<!-- Code Input -->
+						<div>
+							<label for="code" class="block text-sm font-medium text-gray-700 mb-2">
+								Authentication Code
+							</label>
+							<input
+								type="text"
+								id="code"
+								name="code"
+								placeholder="000000"
+								maxlength="6"
+								pattern="[0-9]{6}"
+								required
+								class="w-full px-4 py-3 text-center text-2xl font-mono border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+								autofocus
+							/>
+							<p class="mt-2 text-sm text-gray-500">
+								Open your authenticator app to get your code
+							</p>
+						</div>
+						<!-- Submit Button -->
+						<div>
+							<button
+								type="submit"
+								class="w-full flex justify-center items-center px-6 py-3 bg-gradient-to-r from-purple-600 to-green-600 text-white font-semibold rounded-lg shadow-md hover:from-purple-700 hover:to-green-700 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 transition-all"
+							>
+								<svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+									<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+								</svg>
+								Verify
+							</button>
+						</div>
+						<!-- Backup Code Option -->
+						<div class="relative">
+							<div class="absolute inset-0 flex items-center">
+								<div class="w-full border-t border-gray-300"></div>
+							</div>
+							<div class="relative flex justify-center text-sm">
+								<span class="px-2 bg-white text-gray-500">Or</span>
+							</div>
+						</div>
+						<div>
+							<button
+								type="button"
+								onclick="showBackupCodeForm()"
+								class="w-full px-4 py-2 text-sm font-medium text-purple-700 bg-purple-50 hover:bg-purple-100 rounded-lg transition-colors"
+							>
+								Use a backup code instead
+							</button>
+						</div>
+					</form>
+					<!-- Backup Code Form (Hidden by default) -->
+					<form id="backup-code-form" method="POST" action="/mfa/verify-backup" class="hidden space-y-6 mt-6">
+						<input type="hidden" name="email" value={ email }/>
+						<div>
+							<label for="backup-code" class="block text-sm font-medium text-gray-700 mb-2">
+								Backup Code
+							</label>
+							<input
+								type="text"
+								id="backup-code"
+								name="backup_code"
+								placeholder="XXXX-XXXX"
+								pattern="[A-Z0-9]{4}-[A-Z0-9]{4}"
+								class="w-full px-4 py-3 text-center text-xl font-mono uppercase border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+							/>
+							<p class="mt-2 text-sm text-gray-500">
+								Enter one of your backup codes
+							</p>
+						</div>
+						<div class="flex gap-3">
+							<button
+								type="submit"
+								class="flex-1 px-4 py-2 bg-gradient-to-r from-purple-600 to-green-600 text-white font-semibold rounded-lg hover:from-purple-700 hover:to-green-700 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2"
+							>
+								Verify Backup Code
+							</button>
+							<button
+								type="button"
+								onclick="showCodeForm()"
+								class="px-4 py-2 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
+							>
+								Cancel
+							</button>
+						</div>
+					</form>
+					<!-- Help Text -->
+					<div class="mt-6 pt-6 border-t border-gray-200">
+						<p class="text-sm text-gray-600 text-center">
+							Lost access to your authenticator?
+							<a href="/support" class="text-purple-600 hover:text-purple-700 font-medium">
+								Contact support
+							</a>
+						</p>
+					</div>
+				</div>
+				<!-- Back to Login -->
+				<div class="mt-6 text-center">
+					<a href="/login" class="text-sm text-gray-600 hover:text-gray-900">
+						← Back to login
+					</a>
+				</div>
+			</div>
+		</div>
+		<script>
+			function showBackupCodeForm() {
+				document.querySelector('form[action="/mfa/verify"]').classList.add('hidden');
+				document.getElementById('backup-code-form').classList.remove('hidden');
+				document.getElementById('backup-code').focus();
+			}
+
+			function showCodeForm() {
+				document.getElementById('backup-code-form').classList.add('hidden');
+				document.querySelector('form[action="/mfa/verify"]').classList.remove('hidden');
+				document.getElementById('code').focus();
+			}
+		</script>
+	}
+}

@@ -1,10 +1,10 @@
 package pages
 
-import "github.com/FACorreiaa/skillsphere/internal/app/views/layouts"
-import "github.com/FACorreiaa/skillsphere/internal/app/views/components"
+import "github.com/FACorreiaa/talentsynapse/internal/app/views/layouts"
+import "github.com/FACorreiaa/talentsynapse/internal/app/views/components"
 
 templ Index(isAuthenticated bool, userName string) {
-	@layouts.Base("SkillSphere - Exchange Skills, Grow Together") {
+	@layouts.Base("TalentSynapse - Exchange Skills, Grow Together") {
 		<div class="min-h-screen flex flex-col bg-background text-foreground">
 			@components.Navbar(isAuthenticated, userName, "")
 			<main class="flex-1">
@@ -112,7 +112,7 @@ templ Index(isAuthenticated bool, userName string) {
 						</div>
 						<div class="grid md:grid-cols-3 gap-6">
 							@testimonialCard(
-								"SkillSphere helped me learn Python while teaching Spanish. The matching is incredibly accurate!",
+								"TalentSynapse helped me learn Python while teaching Spanish. The matching is incredibly accurate!",
 								"Maria Garcia",
 								"Software Developer",
 								"🇪🇸",
@@ -140,7 +140,7 @@ templ Index(isAuthenticated bool, userName string) {
 							Ready to Start Your Journey?
 						</h2>
 						<p class="text-xl text-primary-foreground/90 mb-10 max-w-2xl mx-auto">
-							Join SkillSphere today and unlock a world of learning and teaching opportunities. It's free to get started!
+							Join TalentSynapse today and unlock a world of learning and teaching opportunities. It's free to get started!
 						</p>
 						if !isAuthenticated {
 							<a href="/register" class="btn btn-lg bg-white text-primary hover:bg-white/90 inline-flex items-center gap-2 px-10 py-4 text-lg font-bold shadow-xl">

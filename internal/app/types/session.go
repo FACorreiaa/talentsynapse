@@ -9,4 +9,5 @@ type SessionData struct {
 	UserEmail       string
 	UserAvatar      string
 	Role            string
+	EmailVerified   bool
 }

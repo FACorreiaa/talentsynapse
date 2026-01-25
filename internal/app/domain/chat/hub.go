@@ -8,7 +8,7 @@ import (
 
 	"github.com/gorilla/websocket"
 
-	"github.com/FACorreiaa/skillsphere/internal/app/domain/auth"
+	"github.com/FACorreiaa/talentsynapse/internal/app/domain/auth"
 )
 
 var upgrader = websocket.Upgrader{

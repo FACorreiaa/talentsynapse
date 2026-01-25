@@ -6,8 +6,8 @@ import (
 
 	"github.com/go-chi/chi/v5"
 
-	"github.com/FACorreiaa/skillsphere/internal/app/domain/auth"
-	skillspages "github.com/FACorreiaa/skillsphere/internal/app/views/pages/skills"
+	"github.com/FACorreiaa/talentsynapse/internal/app/domain/auth"
+	skillspages "github.com/FACorreiaa/talentsynapse/internal/app/views/pages/skills"
 )
 
 // Handler handles skills HTTP requests

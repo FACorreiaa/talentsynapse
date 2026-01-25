@@ -4,8 +4,8 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/FACorreiaa/skillsphere/internal/app/domain/auth"
-	sessionpages "github.com/FACorreiaa/skillsphere/internal/app/views/pages/sessions"
+	"github.com/FACorreiaa/talentsynapse/internal/app/domain/auth"
+	sessionpages "github.com/FACorreiaa/talentsynapse/internal/app/views/pages/sessions"
 	"github.com/go-chi/chi/v5"
 )
 

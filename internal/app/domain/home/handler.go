@@ -3,8 +3,8 @@ package home
 import (
 	"net/http"
 
-	"github.com/FACorreiaa/skillsphere/internal/app/domain/auth"
-	"github.com/FACorreiaa/skillsphere/internal/app/views/pages"
+	"github.com/FACorreiaa/talentsynapse/internal/app/domain/auth"
+	"github.com/FACorreiaa/talentsynapse/internal/app/views/pages"
 )
 
 // Handler handles home page HTTP requests

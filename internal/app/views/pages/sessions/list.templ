@@ -2,8 +2,8 @@ package sessions
 
 import (
 	"fmt"
-	"github.com/FACorreiaa/skillsphere/internal/app/views/components"
-	"github.com/FACorreiaa/skillsphere/internal/app/views/layouts"
+	"github.com/FACorreiaa/talentsynapse/internal/app/views/components"
+	"github.com/FACorreiaa/talentsynapse/internal/app/views/layouts"
 	"time"
 )
 
@@ -18,7 +18,7 @@ type SessionItem struct {
 }
 
 templ List(sessions []SessionItem, userName, userAvatar string) {
-	@layouts.Base("My Sessions | SkillSphere") {
+	@layouts.Base("My Sessions | TalentSynapse") {
 		<div class="min-h-screen flex flex-col bg-background">
 			@components.Navbar(true, userName, userAvatar)
 			<main class="flex-1 py-8 px-4">

@@ -1,0 +1,228 @@
+package auth
+
+import (
+	"github.com/FACorreiaa/talentsynapse/internal/app/types"
+	"github.com/FACorreiaa/talentsynapse/internal/app/views/layouts"
+)
+
+// MFASetupData contains data for MFA setup page
+type MFASetupData struct {
+	QRCodeURL   string
+	Secret      string
+	BackupCodes []string
+}
+
+templ MFASetup(sessionData types.SessionData, data MFASetupData) {
+	@layouts.Base("Enable Two-Factor Authentication | TalentSynapse") {
+		<div class="min-h-screen bg-gradient-to-br from-purple-50 via-white to-green-50 py-12 px-4 sm:px-6 lg:px-8">
+			<div class="max-w-3xl mx-auto">
+				<!-- Header -->
+				<div class="text-center mb-8">
+					<div class="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-r from-purple-500 to-green-500 rounded-full mb-4">
+						<svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
+						</svg>
+					</div>
+					<h1 class="text-3xl font-bold text-gray-900 mb-2">
+						Enable Two-Factor Authentication
+					</h1>
+					<p class="text-gray-600">
+						Add an extra layer of security to your account
+					</p>
+				</div>
+				<!-- Main Card -->
+				<div class="bg-white rounded-lg shadow-lg p-8 space-y-8">
+					<!-- Step 1: Download App -->
+					<div class="border-b border-gray-200 pb-8">
+						<div class="flex items-start">
+							<div class="flex-shrink-0">
+								<div class="flex items-center justify-center w-8 h-8 bg-purple-100 text-purple-600 rounded-full font-semibold">
+									1
+								</div>
+							</div>
+							<div class="ml-4 flex-1">
+								<h3 class="text-lg font-semibold text-gray-900 mb-2">
+									Download an Authenticator App
+								</h3>
+								<p class="text-gray-600 mb-4">
+									Install an authenticator app on your phone if you haven't already:
+								</p>
+								<div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+									<div class="flex items-center p-3 bg-gray-50 rounded-lg">
+										<svg class="w-6 h-6 text-gray-700 mr-3" fill="currentColor" viewBox="0 0 24 24">
+											<path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm0 22C6.486 22 2 17.514 2 12S6.486 2 12 2s10 4.486 10 10-4.486 10-10 10z"></path>
+										</svg>
+										<span class="text-sm font-medium text-gray-900">Google Authenticator</span>
+									</div>
+									<div class="flex items-center p-3 bg-gray-50 rounded-lg">
+										<svg class="w-6 h-6 text-gray-700 mr-3" fill="currentColor" viewBox="0 0 24 24">
+											<path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm0 22C6.486 22 2 17.514 2 12S6.486 2 12 2s10 4.486 10 10-4.486 10-10 10z"></path>
+										</svg>
+										<span class="text-sm font-medium text-gray-900">Microsoft Authenticator</span>
+									</div>
+									<div class="flex items-center p-3 bg-gray-50 rounded-lg">
+										<svg class="w-6 h-6 text-gray-700 mr-3" fill="currentColor" viewBox="0 0 24 24">
+											<path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm0 22C6.486 22 2 17.514 2 12S6.486 2 12 2s10 4.486 10 10-4.486 10-10 10z"></path>
+										</svg>
+										<span class="text-sm font-medium text-gray-900">Authy</span>
+									</div>
+								</div>
+							</div>
+						</div>
+					</div>
+					<!-- Step 2: Scan QR Code -->
+					<div class="border-b border-gray-200 pb-8">
+						<div class="flex items-start">
+							<div class="flex-shrink-0">
+								<div class="flex items-center justify-center w-8 h-8 bg-purple-100 text-purple-600 rounded-full font-semibold">
+									2
+								</div>
+							</div>
+							<div class="ml-4 flex-1">
+								<h3 class="text-lg font-semibold text-gray-900 mb-2">
+									Scan the QR Code
+								</h3>
+								<p class="text-gray-600 mb-4">
+									Open your authenticator app and scan this QR code:
+								</p>
+								<div class="flex flex-col items-center bg-gradient-to-br from-purple-50 to-green-50 p-6 rounded-lg">
+									<img src={ data.QRCodeURL } alt="QR Code" class="w-64 h-64 border-4 border-white rounded-lg shadow-md"/>
+									<div class="mt-4 text-center">
+										<p class="text-sm text-gray-600 mb-2">Or enter this code manually:</p>
+										<code class="px-4 py-2 bg-white border border-gray-300 rounded-md text-sm font-mono text-gray-900 select-all">
+											{ data.Secret }
+										</code>
+									</div>
+								</div>
+							</div>
+						</div>
+					</div>
+					<!-- Step 3: Verify Code -->
+					<div class="border-b border-gray-200 pb-8">
+						<div class="flex items-start">
+							<div class="flex-shrink-0">
+								<div class="flex items-center justify-center w-8 h-8 bg-purple-100 text-purple-600 rounded-full font-semibold">
+									3
+								</div>
+							</div>
+							<div class="ml-4 flex-1">
+								<h3 class="text-lg font-semibold text-gray-900 mb-2">
+									Verify Your Setup
+								</h3>
+								<p class="text-gray-600 mb-4">
+									Enter the 6-digit code from your authenticator app:
+								</p>
+								<form method="POST" action="/mfa/verify-setup" class="space-y-4">
+									<div>
+										<input
+											type="text"
+											name="code"
+											placeholder="000000"
+											maxlength="6"
+											pattern="[0-9]{6}"
+											required
+											class="w-full sm:w-64 px-4 py-3 text-center text-2xl font-mono border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+											autofocus
+										/>
+									</div>
+									<div>
+										<button
+											type="submit"
+											class="inline-flex items-center px-6 py-3 bg-gradient-to-r from-purple-600 to-green-600 text-white font-semibold rounded-lg shadow-md hover:from-purple-700 hover:to-green-700 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 transition-all"
+										>
+											<svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+												<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+											</svg>
+											Verify and Enable
+										</button>
+									</div>
+								</form>
+							</div>
+						</div>
+					</div>
+					<!-- Step 4: Backup Codes -->
+					<div>
+						<div class="flex items-start">
+							<div class="flex-shrink-0">
+								<div class="flex items-center justify-center w-8 h-8 bg-purple-100 text-purple-600 rounded-full font-semibold">
+									4
+								</div>
+							</div>
+							<div class="ml-4 flex-1">
+								<h3 class="text-lg font-semibold text-gray-900 mb-2">
+									Save Your Backup Codes
+								</h3>
+								<p class="text-gray-600 mb-4">
+									Store these backup codes in a safe place. Each code can be used once if you lose access to your authenticator app.
+								</p>
+								<div class="bg-amber-50 border-l-4 border-amber-400 p-4 mb-4">
+									<div class="flex">
+										<svg class="h-5 w-5 text-amber-600 mr-2" fill="currentColor" viewBox="0 0 20 20">
+											<path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"></path>
+										</svg>
+										<p class="text-sm text-amber-800 font-medium">
+											You won't be able to see these codes again after leaving this page!
+										</p>
+									</div>
+								</div>
+								<div class="bg-gray-50 p-4 rounded-lg">
+									<div class="grid grid-cols-2 gap-3">
+										for _, code := range data.BackupCodes {
+											<div class="flex items-center justify-between p-3 bg-white border border-gray-200 rounded-md">
+												<code class="font-mono text-sm text-gray-900">{ code }</code>
+											</div>
+										}
+									</div>
+									<div class="mt-4 flex gap-3">
+										<button
+											onclick="copyBackupCodes()"
+											class="inline-flex items-center px-4 py-2 text-sm font-medium text-purple-700 bg-purple-100 hover:bg-purple-200 rounded-md transition-colors"
+										>
+											<svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+												<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
+											</svg>
+											Copy All
+										</button>
+										<button
+											onclick="printBackupCodes()"
+											class="inline-flex items-center px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-md transition-colors"
+										>
+											<svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+												<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path>
+											</svg>
+											Print
+										</button>
+									</div>
+								</div>
+							</div>
+						</div>
+					</div>
+					<!-- Cancel Button -->
+					<div class="pt-6 border-t border-gray-200">
+						<a
+							href="/settings/security"
+							class="inline-flex items-center px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2"
+						>
+							Cancel Setup
+						</a>
+					</div>
+				</div>
+			</div>
+		</div>
+		<script>
+			function copyBackupCodes() {
+				const codes = Array.from(document.querySelectorAll('code.font-mono.text-sm'))
+					.filter(el => el.textContent.includes('-'))
+					.map(el => el.textContent)
+					.join('\n');
+				navigator.clipboard.writeText(codes).then(() => {
+					alert('Backup codes copied to clipboard!');
+				});
+			}
+
+			function printBackupCodes() {
+				window.print();
+			}
+		</script>
+	}
+}

@@ -11,8 +11,8 @@ import (
 	"github.com/google/uuid"
 	"github.com/gorilla/websocket"
 
-	"github.com/FACorreiaa/skillsphere/internal/app/domain/auth"
-	calendarpages "github.com/FACorreiaa/skillsphere/internal/app/views/pages/calendar"
+	"github.com/FACorreiaa/talentsynapse/internal/app/domain/auth"
+	calendarpages "github.com/FACorreiaa/talentsynapse/internal/app/views/pages/calendar"
 )
 
 var upgrader = websocket.Upgrader{

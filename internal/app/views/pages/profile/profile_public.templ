@@ -2,8 +2,8 @@ package profile
 
 import (
 	"fmt"
-	"github.com/FACorreiaa/skillsphere/internal/app/views/components"
-	"github.com/FACorreiaa/skillsphere/internal/app/views/layouts"
+	"github.com/FACorreiaa/talentsynapse/internal/app/views/components"
+	"github.com/FACorreiaa/talentsynapse/internal/app/views/layouts"
 	"time"
 )
 
@@ -40,7 +40,7 @@ type BadgeData struct {
 }
 
 templ PublicProfile(p PublicProfileData, userName string, userAvatar string) {
-	@layouts.Base(p.DisplayName + " | SkillSphere") {
+	@layouts.Base(p.DisplayName + " | TalentSynapse") {
 		<div class="min-h-screen flex flex-col bg-background">
 			@components.Navbar(true, userName, userAvatar)
 			<main class="flex-1 py-8 px-4">

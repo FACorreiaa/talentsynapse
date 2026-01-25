@@ -1,10 +1,10 @@
 package skills
 
-import "github.com/FACorreiaa/skillsphere/internal/app/views/layouts"
-import "github.com/FACorreiaa/skillsphere/internal/app/views/components"
+import "github.com/FACorreiaa/talentsynapse/internal/app/views/layouts"
+import "github.com/FACorreiaa/talentsynapse/internal/app/views/components"
 
 templ AddSkill(skillType string, catalogSkills []CatalogSkill, userName string, userAvatar string) {
-	@layouts.Base("Add Skill | SkillSphere") {
+	@layouts.Base("Add Skill | TalentSynapse") {
 		<div class="min-h-screen flex flex-col bg-background">
 			@components.Navbar(true, userName, userAvatar)
 			<main class="flex-1 py-8 px-4">
@@ -27,7 +27,7 @@ templ AddSkill(skillType string, catalogSkills []CatalogSkill, userName string, 
 						</h1>
 						<p class="text-muted-foreground">
 							if skillType == "offered" {
-								Share your expertise with others in the SkillSphere community
+								Share your expertise with others in the TalentSynapse community
 							} else {
 								Find people who can help you learn something new
 							}

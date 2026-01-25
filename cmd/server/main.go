@@ -8,8 +8,8 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/FACorreiaa/skillsphere/internal/observability"
-	"github.com/FACorreiaa/skillsphere/internal/server"
+	"github.com/FACorreiaa/talentsynapse/internal/observability"
+	"github.com/FACorreiaa/talentsynapse/internal/server"
 )
 
 func main() {

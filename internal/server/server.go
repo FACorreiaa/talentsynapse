@@ -10,7 +10,7 @@ import (
 	_ "github.com/joho/godotenv/autoload"
 
 	// Added for admin.SeedAdmin
-	"github.com/FACorreiaa/skillsphere/internal/database"
+	"github.com/FACorreiaa/talentsynapse/internal/database"
 	// Added for repository.NewUserRepo
 )
 

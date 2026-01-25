@@ -6,13 +6,13 @@ import (
 
 	"github.com/google/uuid"
 
-	"github.com/FACorreiaa/skillsphere/internal/app/types"
-	"github.com/FACorreiaa/skillsphere/internal/app/views/components"
-	"github.com/FACorreiaa/skillsphere/internal/app/views/layouts"
+	"github.com/FACorreiaa/talentsynapse/internal/app/types"
+	"github.com/FACorreiaa/talentsynapse/internal/app/views/components"
+	"github.com/FACorreiaa/talentsynapse/internal/app/views/layouts"
 )
 
 templ CalendarPage(sessionData types.SessionData, calendarMonth *CalendarMonth, upcomingSessions []SessionView) {
-	@layouts.Base("Calendar | SkillSphere") {
+	@layouts.Base("Calendar | TalentSynapse") {
 		@components.Navbar(true, sessionData.UserName, sessionData.UserAvatar)
 		<div class="container mx-auto px-4 py-8">
 			<div class="flex justify-between items-center mb-6">

@@ -7,8 +7,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 
-	"github.com/FACorreiaa/skillsphere/internal/app/domain/auth"
-	"github.com/FACorreiaa/skillsphere/internal/app/domain/user"
+	"github.com/FACorreiaa/talentsynapse/internal/app/domain/auth"
+	"github.com/FACorreiaa/talentsynapse/internal/app/domain/user"
 )
 
 // MockUserRepository is a mock implementation of user.RepositoryInterface
@@ -53,10 +53,15 @@ func (m *MockUserRepository) UpdateLastLogin(ctx context.Context, userID string)
 	return args.Error(0)
 }
 
+func (m *MockUserRepository) UpdatePassword(ctx context.Context, userID, hashedPassword string) error {
+	args := m.Called(ctx, userID, hashedPassword)
+	return args.Error(0)
+}
+
 func TestAuthService_Login_Success(t *testing.T) {
 	// Arrange
 	mockRepo := new(MockUserRepository)
-	svc := auth.NewService(mockRepo)
+	svc := auth.NewService(mockRepo, nil, nil, nil)
 	ctx := context.Background()
 
 	// Create a test user with hashed password
@@ -90,7 +95,7 @@ func TestAuthService_Login_Success(t *testing.T) {
 func TestAuthService_Login_InvalidCredentials(t *testing.T) {
 	// Arrange
 	mockRepo := new(MockUserRepository)
-	svc := auth.NewService(mockRepo)
+	svc := auth.NewService(mockRepo, nil, nil, nil)
 	ctx := context.Background()
 
 	hashedPwd, _ := auth.HashPassword("correctpassword")
@@ -118,7 +123,7 @@ func TestAuthService_Login_InvalidCredentials(t *testing.T) {
 func TestAuthService_Login_UserNotFound(t *testing.T) {
 	// Arrange
 	mockRepo := new(MockUserRepository)
-	svc := auth.NewService(mockRepo)
+	svc := auth.NewService(mockRepo, nil, nil, nil)
 	ctx := context.Background()
 
 	mockRepo.On("GetByEmail", ctx, "nonexistent@example.com").Return(nil, user.ErrUserNotFound)
@@ -139,7 +144,7 @@ func TestAuthService_Login_UserNotFound(t *testing.T) {
 func TestAuthService_Register_Success(t *testing.T) {
 	// Arrange
 	mockRepo := new(MockUserRepository)
-	svc := auth.NewService(mockRepo)
+	svc := auth.NewService(mockRepo, nil, nil, nil)
 	ctx := context.Background()
 
 	mockRepo.On("Create", ctx, "newuser@example.com", "newuser", mock.Anything, "New User").
@@ -171,7 +176,7 @@ func TestAuthService_Register_Success(t *testing.T) {
 func TestAuthService_Register_PasswordMismatch(t *testing.T) {
 	// Arrange
 	mockRepo := new(MockUserRepository)
-	svc := auth.NewService(mockRepo)
+	svc := auth.NewService(mockRepo, nil, nil, nil)
 	ctx := context.Background()
 
 	// Act
@@ -193,7 +198,7 @@ func TestAuthService_Register_PasswordMismatch(t *testing.T) {
 func TestAuthService_Register_WeakPassword(t *testing.T) {
 	// Arrange
 	mockRepo := new(MockUserRepository)
-	svc := auth.NewService(mockRepo)
+	svc := auth.NewService(mockRepo, nil, nil, nil)
 	ctx := context.Background()
 
 	// Act
@@ -215,7 +220,7 @@ func TestAuthService_Register_WeakPassword(t *testing.T) {
 func TestAuthService_Register_InvalidEmail(t *testing.T) {
 	// Arrange
 	mockRepo := new(MockUserRepository)
-	svc := auth.NewService(mockRepo)
+	svc := auth.NewService(mockRepo, nil, nil, nil)
 	ctx := context.Background()
 
 	// Act
@@ -237,7 +242,7 @@ func TestAuthService_Register_InvalidEmail(t *testing.T) {
 func TestAuthService_Register_EmailAlreadyExists(t *testing.T) {
 	// Arrange
 	mockRepo := new(MockUserRepository)
-	svc := auth.NewService(mockRepo)
+	svc := auth.NewService(mockRepo, nil, nil, nil)
 	ctx := context.Background()
 
 	mockRepo.On("Create", ctx, "existing@example.com", "newuser", mock.Anything, "New User").

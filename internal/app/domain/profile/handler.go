@@ -3,12 +3,12 @@ package profile
 import (
 	"net/http"
 
-	"github.com/FACorreiaa/skillsphere/internal/app/domain/auth"
-	"github.com/FACorreiaa/skillsphere/internal/app/domain/badges"
-	"github.com/FACorreiaa/skillsphere/internal/app/domain/portfolio"
-	"github.com/FACorreiaa/skillsphere/internal/app/domain/review"
-	"github.com/FACorreiaa/skillsphere/internal/app/domain/user"
-	profilepages "github.com/FACorreiaa/skillsphere/internal/app/views/pages/profile"
+	"github.com/FACorreiaa/talentsynapse/internal/app/domain/auth"
+	"github.com/FACorreiaa/talentsynapse/internal/app/domain/badges"
+	"github.com/FACorreiaa/talentsynapse/internal/app/domain/portfolio"
+	"github.com/FACorreiaa/talentsynapse/internal/app/domain/review"
+	"github.com/FACorreiaa/talentsynapse/internal/app/domain/user"
+	profilepages "github.com/FACorreiaa/talentsynapse/internal/app/views/pages/profile"
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
 )

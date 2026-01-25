@@ -3,7 +3,7 @@ package report
 import (
 	"net/http"
 
-	"github.com/FACorreiaa/skillsphere/internal/app/domain/auth"
+	"github.com/FACorreiaa/talentsynapse/internal/app/domain/auth"
 	"github.com/google/uuid"
 )
 

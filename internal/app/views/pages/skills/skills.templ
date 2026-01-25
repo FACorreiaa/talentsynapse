@@ -1,7 +1,7 @@
 package skills
 
-import "github.com/FACorreiaa/skillsphere/internal/app/views/layouts"
-import "github.com/FACorreiaa/skillsphere/internal/app/views/components"
+import "github.com/FACorreiaa/talentsynapse/internal/app/views/layouts"
+import "github.com/FACorreiaa/talentsynapse/internal/app/views/components"
 import "strconv"
 
 // SkillItem represents a user's skill for display
@@ -20,7 +20,7 @@ type CatalogSkill struct {
 }
 
 templ Skills(offeredSkills []SkillItem, wantedSkills []SkillItem, catalogSkills []CatalogSkill, userName string, userAvatar string, successMsg string) {
-	@layouts.Base("Skills | SkillSphere") {
+	@layouts.Base("Skills | TalentSynapse") {
 		<div class="min-h-screen flex flex-col bg-background">
 			@components.Navbar(true, userName, userAvatar)
 			<main class="flex-1 py-8 px-4">

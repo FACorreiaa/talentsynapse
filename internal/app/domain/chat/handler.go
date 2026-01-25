@@ -7,9 +7,9 @@ import (
 
 	"github.com/go-chi/chi/v5"
 
-	"github.com/FACorreiaa/skillsphere/internal/app/domain/auth"
-	"github.com/FACorreiaa/skillsphere/internal/app/domain/matches"
-	chatpages "github.com/FACorreiaa/skillsphere/internal/app/views/pages/chat"
+	"github.com/FACorreiaa/talentsynapse/internal/app/domain/auth"
+	"github.com/FACorreiaa/talentsynapse/internal/app/domain/matches"
+	chatpages "github.com/FACorreiaa/talentsynapse/internal/app/views/pages/chat"
 )
 
 // Handler handles chat HTTP requests

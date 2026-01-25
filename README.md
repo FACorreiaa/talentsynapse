@@ -1,15 +1,15 @@
-# SkillSphere
+# TalentSynapse
 
-![SkillSphere Logo](https://via.placeholder.com/150?text=SkillSphere) <!-- Replace with actual logo URL if available -->
+![TalentSynapse Logo](https://via.placeholder.com/150?text=TalentSynapse) <!-- Replace with actual logo URL if available -->
 
 ## Overview
 
-SkillSphere is a peer-to-peer (P2P) skill exchange platform that connects users to trade skills in real-time. Whether you're teaching Python programming or learning guitar, SkillSphere facilitates 1:1 exchanges through profiles, matching algorithms, and interactive sessions. Built as a lightweight, scalable web app with modern RPC architecture, it emphasizes simplicity for solo developers while supporting growth into a monetized service.
+TalentSynapse is a peer-to-peer (P2P) skill exchange platform that connects users to trade skills in real-time. Whether you're teaching Python programming or learning guitar, TalentSynapse facilitates 1:1 exchanges through profiles, matching algorithms, and interactive sessions. Built as a lightweight, scalable web app with modern RPC architecture, it emphasizes simplicity for solo developers while supporting growth into a monetized service.
 
 The platform uses skill matching algorithms (e.g., cosine similarity on skill vectors or embedding-based semantic matching via AI) to recommend partners. It's designed for the gig economy, where users can discover, exchange, and even certify skills in a freemium model.
 
 ## Architecture & Current Focus
-SkillSphere is built as a **Progressive Web App (PWA)** with server-side rendering and minimal JavaScript. The architecture emphasizes simplicity, performance, and modern web standards without the complexity of API layers or mobile-first design.
+TalentSynapse is built as a **Progressive Web App (PWA)** with server-side rendering and minimal JavaScript. The architecture emphasizes simplicity, performance, and modern web standards without the complexity of API layers or mobile-first design.
 
 ### Key Features
 - **User Profiles**: Create detailed profiles with bio, offered/wanted skills (e.g., programming, languages, arts, cooking, fitness), proficiency levels (1-10 scale), location, and availability.
@@ -26,7 +26,7 @@ SkillSphere is built as a **Progressive Web App (PWA)** with server-side renderi
 
 ## Technology Stack
 
-SkillSphere is built as a **Progressive Web App (PWA)** with a focus on simplicity, performance, and modern web standards.
+TalentSynapse is built as a **Progressive Web App (PWA)** with a focus on simplicity, performance, and modern web standards.
 
 - **Backend**: Go with standard `net/http` for routing and handlers. Authentication via JWT/OAuth (e.g., integrate with Google/Auth0) using middleware.
 - **Database**:
@@ -47,7 +47,7 @@ SkillSphere is built as a **Progressive Web App (PWA)** with a focus on simplici
 - **AI Decision**: Yes, for better matching—Gemini provides cost-effective embeddings without heavy ML training. Skip for MVP if focusing on basic algorithms.
 
 ### Application Architecture
-SkillSphere uses standard HTTP handlers and middleware for a clean, maintainable architecture. Key components:
+TalentSynapse uses standard HTTP handlers and middleware for a clean, maintainable architecture. Key components:
 
 - **User Management**: Registration, authentication, profile management
 - **Skill Matching**: Search and recommendation algorithms (run server-side)
@@ -67,8 +67,8 @@ Middleware handles authentication (JWT validation), logging, rate limiting, and 
 ### Steps
 1. Clone the repo:
    ```bash
-   git clone https://github.com/yourusername/skillsphere.git
-   cd skillsphere
+   git clone https://github.com/yourusername/talentsynapse.git
+   cd talentsynapse
    ```
 
 2. Install Go dependencies:
@@ -85,12 +85,12 @@ Middleware handles authentication (JWT validation), logging, rate limiting, and 
    ```bash
    # PostgreSQL (if not already running)
    # macOS: brew services start postgresql
-   # Create database: createdb skillsphere
+   # Create database: createdb talentsynapse
    ```
 
 5. Set up environment variables (`.env` file):
    ```env
-   DATABASE_URL=postgres://user:pass@localhost:5432/skillsphere
+   DATABASE_URL=postgres://user:pass@localhost:5432/talentsynapse
    JWT_SECRET=your-secret-key
    GEMINI_API_KEY=your-gemini-key
    STRIPE_KEY=sk_test_...
@@ -127,7 +127,7 @@ Middleware handles authentication (JWT validation), logging, rate limiting, and 
 
 ### Project Structure
 ```
-skillsphere/
+talentsynapse/
 ├── cmd/
 │   ├── server/            # Main server entry point
 │   └── migrate/           # Database migrations
@@ -145,7 +145,7 @@ skillsphere/
 ```
 
 ## Skill Taxonomy (Optional Pre-MVP)
-SkillSphere may eventually need a formal skill ontology to keep skill names, proficiency ranges, and category relations consistent as the platform grows. This becomes important when AI matching, analytics, and external partners need a shared vocabulary.
+TalentSynapse may eventually need a formal skill ontology to keep skill names, proficiency ranges, and category relations consistent as the platform grows. This becomes important when AI matching, analytics, and external partners need a shared vocabulary.
 
 - **What it is**: A structured taxonomy of skills, categories, and relationships (e.g., "Python" → "Programming" → "Tech")
 - **When to implement**: When you notice inconsistent skill naming, need explainable AI matches, or begin syncing data with third parties
@@ -201,7 +201,7 @@ For code examples of matching algorithms, see `internal/matching/` directory (e.
 ```templ
 package templates
 
-import "github.com/yourusername/skillsphere/internal/db"
+import "github.com/yourusername/talentsynapse/internal/db"
 
 templ MatchResults(matches []db.UserMatch) {
     <div id="results" class="matches-container">
@@ -226,8 +226,8 @@ package handlers
 
 import (
     "net/http"
-    "github.com/yourusername/skillsphere/internal/service"
-    "github.com/yourusername/skillsphere/web/templates"
+    "github.com/yourusername/talentsynapse/internal/service"
+    "github.com/yourusername/talentsynapse/web/templates"
 )
 
 type MatchingHandler struct {
@@ -262,9 +262,9 @@ package main
 import (
     "log"
     "net/http"
-    "github.com/yourusername/skillsphere/internal/handlers"
-    "github.com/yourusername/skillsphere/internal/service"
-    "github.com/yourusername/skillsphere/internal/middleware"
+    "github.com/yourusername/talentsynapse/internal/handlers"
+    "github.com/yourusername/talentsynapse/internal/service"
+    "github.com/yourusername/talentsynapse/internal/middleware"
 )
 
 func main() {
@@ -396,12 +396,12 @@ MIT License. See [LICENSE](LICENSE) for details.
 
 ---
 
-## SkillSphere Business Plan
+## TalentSynapse Business Plan
 
 ### Executive Summary
-SkillSphere is a P2P skill exchange platform launching as an MVP in 2-4 weeks, targeting the intersection of the gig economy and online learning markets. With a freemium model, it connects users for skill trades (e.g., tech, languages) using advanced matching algorithms. Built with a modern, lightweight stack (Go, HTMX, Templ) for a simple, scalable architecture. Projected revenue from subscriptions, premium chats, and ads/partnerships.
+TalentSynapse is a P2P skill exchange platform launching as an MVP in 2-4 weeks, targeting the intersection of the gig economy and online learning markets. With a freemium model, it connects users for skill trades (e.g., tech, languages) using advanced matching algorithms. Built with a modern, lightweight stack (Go, HTMX, Templ) for a simple, scalable architecture. Projected revenue from subscriptions, premium chats, and ads/partnerships.
 
-Market opportunity: The global gig economy is valued at ~$582B in 2025, online learning at ~$353B, and sharing economy at ~$246B. SkillSphere differentiates with real-time P2P focus, AI-driven discovery, simple GoSHT stack for rapid development, and low-barrier entry.
+Market opportunity: The global gig economy is valued at ~$582B in 2025, online learning at ~$353B, and sharing economy at ~$246B. TalentSynapse differentiates with real-time P2P focus, AI-driven discovery, simple GoSHT stack for rapid development, and low-barrier entry.
 
 Goal: Achieve 10K users in Year 1, $500K revenue by Year 2. Solo-founder viable, with scalable tech.
 
@@ -409,7 +409,7 @@ Goal: Achieve 10K users in Year 1, $500K revenue by Year 2. Solo-founder viable,
 - **Size & Growth**: Gig economy: $582.2B by 2025, with 70M+ US workers (36% of workforce). Online learning: $320-353B in 2025, growing 12-14% CAGR to $842B by 2030. P2P/sharing subsets: $194B in 2024 to $246B in 2025.
 - **Trends**: Rise in remote work, skill gaps (e.g., AI/tech demand). In emerging markets like Brazil, edtech booms (~$3B by 2025). Users seek personalized, affordable alternatives to courses.
 - **Target Segments**: 18-45 year-olds in tech, education, creative fields. Initial focus: Global, with SEO for niches like "P2P coding exchange."
-- **Competitive Analysis**: Direct competitors include Preply (language tutoring), Skillshare (class-based, not pure P2P), and alternatives like Udemy, Coursera, LinkedIn Learning, MasterClass. P2P platforms: Teachable/Kajabi for creators, but less exchange-focused. Differentiation: Free basic P2P, AI matching, real-time chat, simple GoSHT stack for rapid development. Weaknesses: Established players have scale; SkillSphere starts lean.
+- **Competitive Analysis**: Direct competitors include Preply (language tutoring), Skillshare (class-based, not pure P2P), and alternatives like Udemy, Coursera, LinkedIn Learning, MasterClass. P2P platforms: Teachable/Kajabi for creators, but less exchange-focused. Differentiation: Free basic P2P, AI matching, real-time chat, simple GoSHT stack for rapid development. Weaknesses: Established players have scale; TalentSynapse starts lean.
 
 ### Product Description
 - **Core Offering**: P2P exchanges of any skills (e.g., programming, foreign languages, music, cooking, business). Profiles include bio, skill lists with proficiencies, ratings.
@@ -452,7 +452,7 @@ This plan is adaptable—validate MVP feedback for pivots. For refinements, cons
 
 ## Overview of Skill Matching Algorithms
 
-Skill matching algorithms are computational methods used to pair individuals, jobs, or resources based on skills, proficiencies, or requirements. In SkillSphere, matching algorithms run server-side, with results returned as HTML fragments via HTMX. They range from simple rule-based systems to advanced AI-driven ones, balancing factors like accuracy, scalability, and computational cost.
+Skill matching algorithms are computational methods used to pair individuals, jobs, or resources based on skills, proficiencies, or requirements. In TalentSynapse, matching algorithms run server-side, with results returned as HTML fragments via HTMX. They range from simple rule-based systems to advanced AI-driven ones, balancing factors like accuracy, scalability, and computational cost.
 
 Key considerations in design:
 - **Input Representation**: Skills as vectors (e.g., proficiency levels from 1-10) or embeddings (semantic vectors from NLP models).
@@ -523,7 +523,7 @@ These treat skills as points in multi-dimensional space, where each skill is a d
       return result
   }
   ```
-- **Use in SkillSphere**: Ideal for MVP with fixed skill lists; integrate into matching HTTP handlers. Fetch users from PostgreSQL, compute distances, return as HTML via Templ.
+- **Use in TalentSynapse**: Ideal for MVP with fixed skill lists; integrate into matching HTTP handlers. Fetch users from PostgreSQL, compute distances, return as HTML via Templ.
 
 ### 2. Similarity-Based Algorithms (e.g., Cosine Similarity)
 These measure the angle between vectors, focusing on direction rather than magnitude—useful for sparse or varying-length profiles.
@@ -583,7 +583,7 @@ These measure the angle between vectors, focusing on direction rather than magni
       return result
   }
   ```
-- **Use in SkillSphere**: For fuzzy matching; combine with PostgreSQL's full-text search capabilities for skill keywords. Add to matching HTTP handlers with configurable threshold.
+- **Use in TalentSynapse**: For fuzzy matching; combine with PostgreSQL's full-text search capabilities for skill keywords. Add to matching HTTP handlers with configurable threshold.
 
 ### 3. Machine Learning/Embedding-Based Algorithms (e.g., Word2Vec, Gemini Embeddings)
 These use NLP to create dense vector representations (embeddings) of skills, capturing semantic relationships (e.g., "Python" close to "programming").
@@ -705,7 +705,7 @@ These use NLP to create dense vector representations (embeddings) of skills, cap
       return result, nil
   }
   ```
-- **Use in SkillSphere**: Integrate into matching HTTP handlers. Pre-compute and cache embeddings in PostgreSQL with pgvector extension for efficient vector similarity search. Return semantic matches as HTML via Templ.
+- **Use in TalentSynapse**: Integrate into matching HTTP handlers. Pre-compute and cache embeddings in PostgreSQL with pgvector extension for efficient vector similarity search. Return semantic matches as HTML via Templ.
 
 ### 4. Other Advanced Algorithms
 - **Ontology-Based**: Use knowledge graphs (e.g., skill hierarchies like "programming > Python") for semantic matching. Metric: Graph distance or custom similarity. Can be implemented in PostgreSQL with recursive queries or dedicated graph extensions.
@@ -713,7 +713,7 @@ These use NLP to create dense vector representations (embeddings) of skills, cap
 - **Rule-Based/Hybrid**: Simple thresholds (e.g., match if >70% skills overlap) combined with ML for ties. Implement as middleware or service layer logic that applies business rules before calling embedding matcher.
 - **AI-Enhanced with LLMs**: Use Gemini to build dynamic skill ontologies, improving accuracy over time. Background job updates ontology weekly. Store in PostgreSQL with appropriate schema design.
 
-### Recommendations for SkillSphere
+### Recommendations for TalentSynapse
 1. **MVP**: Start with **Cosine Similarity** on vectorized profiles—it's balanced for your Go backend (use gonum). Implement in matching service layer. Store all user data in PostgreSQL.
 2. **V1**: Add **Gemini Embeddings** for semantic matching. Cache embeddings in PostgreSQL with pgvector extension for efficient vector similarity queries.
 3. **Scaling**: Use WebSocket for real-time match updates. Leverage PostgreSQL's LISTEN/NOTIFY for real-time data updates. Split matching into separate microservice if needed.
@@ -724,7 +724,7 @@ Install Templ: `go install github.com/a-h/templ/cmd/templ@latest`
 
 ---
 
-## Extending SkillSphere
+## Extending TalentSynapse
 
 To grow beyond MVP, leverage 2025 edtech/gig trends like AI personalization, microlearning, blockchain creds, and hybrid work demands.
 
@@ -766,7 +766,7 @@ These build on your freemium model, targeting $500K+ revenue by Year 2 via 20% M
 
 ---
 
-## Best Practices for SkillSphere
+## Best Practices for TalentSynapse
 
 1. **Templating**: Use Templ for type-safe HTML generation. Keep templates focused and composable.
 2. **Middleware**: Chain middleware for auth (JWT validation), logging, rate limiting, and error handling.
@@ -778,4 +778,4 @@ These build on your freemium model, targeting $500K+ revenue by Year 2 via 20% M
 8. **Performance**: Use HTMX for partial page updates to reduce bandwidth. Cache database queries where appropriate. Use PostgreSQL indexes for common queries.
 
 For implementations, see the `internal/handlers/` and `internal/service/` directories.
-# skillsphere
+# talentsynapse

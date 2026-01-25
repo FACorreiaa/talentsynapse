@@ -14,9 +14,9 @@ import (
 	"github.com/go-chi/httprate"
 	"github.com/unrolled/secure"
 
-	"github.com/FACorreiaa/skillsphere/assets"
-	"github.com/FACorreiaa/skillsphere/internal/app/domain/auth"
-	"github.com/FACorreiaa/skillsphere/internal/container"
+	"github.com/FACorreiaa/talentsynapse/assets"
+	"github.com/FACorreiaa/talentsynapse/internal/app/domain/auth"
+	"github.com/FACorreiaa/talentsynapse/internal/container"
 )
 
 // RegisterRoutes sets up all routes and middleware
@@ -130,6 +130,19 @@ func (s *Server) RegisterRoutes() http.Handler {
 		r.Post("/forgot-password", c.AuthHandler.HandleForgotPassword)
 	})
 
+	// Email verification (works for both auth and non-auth users)
+	r.Get("/verify-email", c.AuthHandler.HandleEmailVerification)
+	r.Post("/resend-verification", c.AuthHandler.HandleResendVerification)
+
+	// Password reset (public routes)
+	r.Get("/reset-password", c.AuthHandler.ShowResetPassword)
+	r.Post("/reset-password", c.AuthHandler.HandleResetPassword)
+
+	// MFA routes (authentication flow)
+	r.Get("/mfa/verify", c.AuthHandler.HandleMFAVerifyPage)
+	r.Post("/mfa/verify", c.AuthHandler.HandleMFAVerifyCode)
+	r.Post("/mfa/verify-backup", c.AuthHandler.HandleMFAVerifyBackupCode)
+
 	// Logout (needs to work for authenticated users)
 	r.Post("/logout", c.AuthHandler.HandleLogout)
 
@@ -182,6 +195,13 @@ func (s *Server) RegisterRoutes() http.Handler {
 
 		// Settings routes
 		r.Get("/settings", c.SettingsHandler.Show)
+		r.Get("/settings/security", c.AuthHandler.HandleSecuritySettings)
+
+		// MFA management routes (protected)
+		r.Get("/mfa/setup", c.AuthHandler.HandleMFASetup)
+		r.Post("/mfa/verify-setup", c.AuthHandler.HandleMFAVerifySetup)
+		r.Post("/mfa/disable", c.AuthHandler.HandleMFADisable)
+		r.Post("/mfa/regenerate-backup-codes", c.AuthHandler.HandleMFARegenerateBackupCodes)
 
 		// Report routes
 		r.Post("/report", c.ReportHandler.SubmitReport)

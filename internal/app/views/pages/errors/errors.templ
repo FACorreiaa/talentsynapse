@@ -1,9 +1,9 @@
 package errors
 
-import "github.com/FACorreiaa/skillsphere/internal/app/views/layouts"
+import "github.com/FACorreiaa/talentsynapse/internal/app/views/layouts"
 
 templ NotFound() {
-	@layouts.Base("Page Not Found | SkillSphere") {
+	@layouts.Base("Page Not Found | TalentSynapse") {
 		<div class="min-h-screen flex flex-col bg-background">
 			<main class="flex-1 flex items-center justify-center px-4">
 				<div class="text-center animate-fade-in-up">
@@ -49,7 +49,7 @@ templ NotFound() {
 }
 
 templ ServerError(message string) {
-	@layouts.Base("Something Went Wrong | SkillSphere") {
+	@layouts.Base("Something Went Wrong | TalentSynapse") {
 		<div class="min-h-screen flex flex-col bg-background">
 			<main class="flex-1 flex items-center justify-center px-4">
 				<div class="text-center animate-fade-in-up">
@@ -104,7 +104,7 @@ templ ServerError(message string) {
 }
 
 templ Forbidden() {
-	@layouts.Base("Access Denied | SkillSphere") {
+	@layouts.Base("Access Denied | TalentSynapse") {
 		<div class="min-h-screen flex flex-col bg-background">
 			<main class="flex-1 flex items-center justify-center px-4">
 				<div class="text-center animate-fade-in-up">

@@ -1,7 +1,7 @@
 package matches
 
-import "github.com/FACorreiaa/skillsphere/internal/app/views/layouts"
-import "github.com/FACorreiaa/skillsphere/internal/app/views/components"
+import "github.com/FACorreiaa/talentsynapse/internal/app/views/layouts"
+import "github.com/FACorreiaa/talentsynapse/internal/app/views/components"
 import "strconv"
 
 // MatchCard represents a potential match for display
@@ -21,7 +21,7 @@ type SkillOverlap struct {
 }
 
 templ Matches(matches []MatchCard, userName string, userAvatar string, successMsg string) {
-	@layouts.Base("Matches | SkillSphere") {
+	@layouts.Base("Matches | TalentSynapse") {
 		<div class="min-h-screen flex flex-col bg-background">
 			@components.Navbar(true, userName, userAvatar)
 			<main class="flex-1 py-8 px-4">

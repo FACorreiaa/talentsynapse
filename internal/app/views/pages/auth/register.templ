@@ -1,10 +1,10 @@
 package auth
 
-import "github.com/FACorreiaa/skillsphere/internal/app/views/layouts"
-import "github.com/FACorreiaa/skillsphere/internal/app/views/components"
+import "github.com/FACorreiaa/talentsynapse/internal/app/views/layouts"
+import "github.com/FACorreiaa/talentsynapse/internal/app/views/components"
 
 templ Register(errorMsg string) {
-	@layouts.Base("Create Account | SkillSphere") {
+	@layouts.Base("Create Account | TalentSynapse") {
 		<div class="min-h-screen flex flex-col bg-background">
 			@components.Navbar(false, "", "")
 			<main class="flex-1 flex items-center justify-center py-12 px-4">
@@ -172,7 +172,7 @@ templ Register(errorMsg string) {
 							<div class="animate-fade-in-up">
 								<h2 class="text-4xl font-bold mb-4 font-heading">Start Your Journey</h2>
 								<p class="text-lg opacity-90 mb-8">
-									Join SkillSphere and unlock a world of peer-to-peer learning and skill exchange.
+									Join TalentSynapse and unlock a world of peer-to-peer learning and skill exchange.
 								</p>
 								<div class="grid grid-cols-2 gap-4">
 									<div class="bg-white/10 backdrop-blur-sm rounded-xl p-4 text-center">

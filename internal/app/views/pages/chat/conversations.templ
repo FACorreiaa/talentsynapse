@@ -1,8 +1,8 @@
 package chat
 
 import (
-	"github.com/FACorreiaa/skillsphere/internal/app/views/components"
-	"github.com/FACorreiaa/skillsphere/internal/app/views/layouts"
+	"github.com/FACorreiaa/talentsynapse/internal/app/views/components"
+	"github.com/FACorreiaa/talentsynapse/internal/app/views/layouts"
 	"strconv"
 	"time"
 )
@@ -19,7 +19,7 @@ type ConversationItem struct {
 }
 
 templ Conversations(conversations []ConversationItem, userName string, userAvatar string) {
-	@layouts.Base("Messages | SkillSphere") {
+	@layouts.Base("Messages | TalentSynapse") {
 		<div class="min-h-screen flex flex-col bg-background">
 			@components.Navbar(true, userName, userAvatar)
 			<main class="flex-1 py-8 px-4">

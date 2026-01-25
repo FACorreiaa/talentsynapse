@@ -3,9 +3,9 @@ package connections
 import (
 	"net/http"
 
-	"github.com/FACorreiaa/skillsphere/internal/app/domain/auth"
-	"github.com/FACorreiaa/skillsphere/internal/app/domain/matches"
-	connectionspages "github.com/FACorreiaa/skillsphere/internal/app/views/pages/connections"
+	"github.com/FACorreiaa/talentsynapse/internal/app/domain/auth"
+	"github.com/FACorreiaa/talentsynapse/internal/app/domain/matches"
+	connectionspages "github.com/FACorreiaa/talentsynapse/internal/app/views/pages/connections"
 )
 
 // Handler handles connections HTTP requests

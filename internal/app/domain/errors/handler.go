@@ -3,7 +3,7 @@ package errors
 import (
 	"net/http"
 
-	errorpages "github.com/FACorreiaa/skillsphere/internal/app/views/pages/errors"
+	errorpages "github.com/FACorreiaa/talentsynapse/internal/app/views/pages/errors"
 )
 
 // Handler handles error page responses

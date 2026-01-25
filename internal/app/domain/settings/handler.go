@@ -3,8 +3,8 @@ package settings
 import (
 	"net/http"
 
-	"github.com/FACorreiaa/skillsphere/internal/app/domain/auth"
-	settingspages "github.com/FACorreiaa/skillsphere/internal/app/views/pages/settings"
+	"github.com/FACorreiaa/talentsynapse/internal/app/domain/auth"
+	settingspages "github.com/FACorreiaa/talentsynapse/internal/app/views/pages/settings"
 )
 
 // Handler handles settings page HTTP requests

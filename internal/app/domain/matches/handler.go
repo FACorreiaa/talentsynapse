@@ -5,9 +5,9 @@ import (
 
 	"github.com/go-chi/chi/v5"
 
-	"github.com/FACorreiaa/skillsphere/internal/app/domain/auth"
-	"github.com/FACorreiaa/skillsphere/internal/app/domain/badges"
-	matchespages "github.com/FACorreiaa/skillsphere/internal/app/views/pages/matches"
+	"github.com/FACorreiaa/talentsynapse/internal/app/domain/auth"
+	"github.com/FACorreiaa/talentsynapse/internal/app/domain/badges"
+	matchespages "github.com/FACorreiaa/talentsynapse/internal/app/views/pages/matches"
 	"github.com/google/uuid"
 )
 

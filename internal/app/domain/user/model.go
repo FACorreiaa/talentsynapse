@@ -3,7 +3,7 @@ package user
 import (
 	"time"
 
-	"github.com/FACorreiaa/skillsphere/internal/app/types"
+	"github.com/FACorreiaa/talentsynapse/internal/app/types"
 )
 
 // User represents a user entity in the system

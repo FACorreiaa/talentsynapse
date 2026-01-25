@@ -22,6 +22,7 @@ type RepositoryInterface interface {
 	GetByID(ctx context.Context, id string) (*User, error)
 	GetByUsername(ctx context.Context, username string) (*User, error)
 	UpdateLastLogin(ctx context.Context, userID string) error
+	UpdatePassword(ctx context.Context, userID, hashedPassword string) error
 }
 
 // Repository implements user data access
@@ -339,4 +340,23 @@ func (r *Repository) VerifyUser(ctx context.Context, userID string) error {
 // UnverifyUser reverts verification
 func (r *Repository) UnverifyUser(ctx context.Context, userID string) error {
 	return r.UpdateRole(ctx, userID, "member")
+}
+
+// UpdatePassword updates a user's hashed password
+func (r *Repository) UpdatePassword(ctx context.Context, userID, hashedPassword string) error {
+	query := `
+		UPDATE users
+		SET hashed_password = $1, updated_at = NOW()
+		WHERE id = $2
+	`
+	result, err := r.pool.Exec(ctx, query, hashedPassword, userID)
+	if err != nil {
+		return err
+	}
+
+	if result.RowsAffected() == 0 {
+		return ErrUserNotFound
+	}
+
+	return nil
 }

@@ -1,8 +1,8 @@
 package chat
 
 import (
-	"github.com/FACorreiaa/skillsphere/internal/app/views/components"
-	"github.com/FACorreiaa/skillsphere/internal/app/views/layouts"
+	"github.com/FACorreiaa/talentsynapse/internal/app/views/components"
+	"github.com/FACorreiaa/talentsynapse/internal/app/views/layouts"
 	"time"
 )
 
@@ -27,7 +27,7 @@ type ChatRoomData struct {
 }
 
 templ ChatRoom(data ChatRoomData, userName string, userAvatar string, currentUserID string) {
-	@layouts.Base(data.PartnerName + " | SkillSphere") {
+	@layouts.Base(data.PartnerName + " | TalentSynapse") {
 		<div class="min-h-screen flex flex-col bg-background">
 			@components.Navbar(true, userName, userAvatar)
 			<main class="flex-1 flex flex-col">

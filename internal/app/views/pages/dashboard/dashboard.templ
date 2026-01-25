@@ -1,10 +1,10 @@
 package dashboard
 
-import "github.com/FACorreiaa/skillsphere/internal/app/views/layouts"
-import "github.com/FACorreiaa/skillsphere/internal/app/views/components"
+import "github.com/FACorreiaa/talentsynapse/internal/app/views/layouts"
+import "github.com/FACorreiaa/talentsynapse/internal/app/views/components"
 
 templ Dashboard(userName string, userAvatar string, successMsg string) {
-	@layouts.Base("Dashboard | SkillSphere") {
+	@layouts.Base("Dashboard | TalentSynapse") {
 		<div class="min-h-screen flex flex-col bg-background">
 			@components.Navbar(true, userName, userAvatar)
 			<main class="flex-1 py-8 px-4">
