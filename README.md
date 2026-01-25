@@ -24,25 +24,24 @@ SkillSphere is built as a **Progressive Web App (PWA)** with server-side renderi
 - Experts monetizing niche skills in the gig economy.
 - Focus on global users, with potential localization (e.g., for Brazil's growing edtech market).
 
-## Technology Stack (GoSHT Stack)
+## Technology Stack
 
-SkillSphere is built as a **Progressive Web App (PWA)** using the **GoSHT stack** (Go, Surreal, HTMX, Templ) with a focus on simplicity, performance, and modern web standards.
+SkillSphere is built as a **Progressive Web App (PWA)** with a focus on simplicity, performance, and modern web standards.
 
 - **Backend**: Go with standard `net/http` for routing and handlers. Authentication via JWT/OAuth (e.g., integrate with Google/Auth0) using middleware.
 - **Database**:
   - **PostgreSQL** for relational data, user profiles, and transactional consistency
-  - **SurrealDB** (optional) for flexible, multi-model data storage. Supports graph relations, document storage, and vector embeddings natively for AI-based matching.
 - **Frontend**:
   - **Templ** for type-safe, server-rendered HTML templates
   - **HTMX** for asynchronous updates and dynamic interactions without writing JavaScript
   - **Alpine.js** (optional) for lightweight client-side interactivity (e.g., modals, toggles)
-- **Real-Time Features**: WebSocket for chat and session notifications. SurrealDB provides live queries for real-time data updates if used.
+- **Real-Time Features**: WebSocket for chat and session notifications.
 - **AI Integration**: Optional—use Google Gemini SDK (Go client) to generate skill embeddings for semantic similarity matching. Store embeddings in PostgreSQL with pgvector extension.
 - **Deployment**: Fly.io for easy, global deployment with low-cost tiers. Alternatives: Hetzner for budget VPS or Google Cloud Platform (GCP).
 - **Other Tools**: Stripe for payments, Prometheus for metrics, Docker for containerization.
 
 ### Why This Stack?
-- **Go + Surreal + HTMX + Templ (GoSHT)**: Delivers fast server-side rendering with minimal JavaScript. HTMX provides modern SPA-like interactions without the complexity of frontend frameworks. PostgreSQL provides reliable relational data storage while SurrealDB (optional) handles graph relationships and flexible schema evolution.
+- **Go + HTMX + Templ**: Delivers fast server-side rendering with minimal JavaScript. HTMX provides modern SPA-like interactions without the complexity of frontend frameworks. PostgreSQL provides reliable relational data storage with excellent transactional support.
 - **Pros**: Fast development (2-4 weeks MVP), low overhead, highly scalable. Go handles concurrency excellently for real-time features. PostgreSQL is battle-tested and reliable. Server-side focus means less client-side complexity and better SEO.
 - **Cons**: For complex UIs (e.g., drag-and-drop), you may need additional JavaScript. The PWA approach works great for mobile web; native apps would require a separate build.
 - **AI Decision**: Yes, for better matching—Gemini provides cost-effective embeddings without heavy ML training. Skip for MVP if focusing on basic algorithms.
@@ -63,7 +62,6 @@ Middleware handles authentication (JWT validation), logging, rate limiting, and 
 ### Prerequisites
 - Go 1.21+
 - PostgreSQL 15+ (with pgvector extension for AI features: `CREATE EXTENSION vector;`)
-- SurrealDB 1.0+ (optional, install via `brew install surrealdb/tap/surreal` on macOS or download from surrealdb.com)
 - Templ CLI (`go install github.com/a-h/templ/cmd/templ@latest`)
 
 ### Steps
@@ -83,26 +81,16 @@ Middleware handles authentication (JWT validation), logging, rate limiting, and 
    templ generate
    ```
 
-4. Start databases:
+4. Start database:
    ```bash
    # PostgreSQL (if not already running)
    # macOS: brew services start postgresql
    # Create database: createdb skillsphere
-
-   # SurrealDB (optional, for graph features)
-   surreal start --log trace --user root --pass root memory
-   # Or for persistent storage:
-   # surreal start --log trace --user root --pass root file://data/skillsphere.db
    ```
 
 5. Set up environment variables (`.env` file):
    ```env
    DATABASE_URL=postgres://user:pass@localhost:5432/skillsphere
-   SURREAL_URL=ws://localhost:8000/rpc
-   SURREAL_NS=skillsphere
-   SURREAL_DB=skillsphere
-   SURREAL_USER=root
-   SURREAL_PASS=root
    JWT_SECRET=your-secret-key
    GEMINI_API_KEY=your-gemini-key
    STRIPE_KEY=sk_test_...
@@ -130,9 +118,8 @@ Middleware handles authentication (JWT validation), logging, rate limiting, and 
    # Launch app (follow prompts for Postgres add-on)
    fly launch
 
-   # Add SurrealDB as a separate machine or use external provider (if needed)
    # Add secrets
-   fly secrets set DATABASE_URL=... SURREAL_URL=... JWT_SECRET=... GEMINI_API_KEY=... STRIPE_KEY=...
+   fly secrets set DATABASE_URL=... JWT_SECRET=... GEMINI_API_KEY=... STRIPE_KEY=...
 
    # Deploy
    fly deploy
@@ -149,7 +136,6 @@ skillsphere/
 │   ├── service/           # Business logic
 │   ├── matching/          # Matching algorithms
 │   ├── db/                # PostgreSQL models and queries
-│   ├── surreal/           # SurrealDB client and queries (optional)
 │   └── middleware/        # HTTP middleware
 ├── web/
 │   ├── templates/         # Templ files
@@ -324,16 +310,17 @@ func main() {
 - **Benefits**: Verified users get priority in matching, appear higher in search results, and can charge for premium sessions
 
 #### Gamification & Badges
-| Badge | Criteria | Reward |
-|-------|----------|--------|
-| 🎯 **First Match** | Complete first skill exchange | Profile badge |
-| 🔥 **Hot Streak** | 5 exchanges in one week | 2x points for next week |
-| 📚 **Bookworm** | Learn 10 different skills | Unlock learning stats |
-| 🎓 **Mentor** | Teach 25+ sessions with 4.5+ rating | Mentor badge, priority listing |
-| 🏆 **Top Teacher** | Top 10% in any skill category | Category expert badge |
-| 🌟 **Community Star** | 100+ helpful reviews given | Review badge |
-| 🎖️ **Verified Expert** | Pass skill verification quiz | Expert certification |
-| 📈 **Rising Star** | Fastest growing profile this month | Featured profile |
+
+| Badge | Criteria | Reward | Priority |
+|-------|----------|--------|----------|
+| 🎯 **First Match** | Complete first exchange | Profile badge | MVP |
+| 🔥 **Hot Streak** | 5 exchanges/week | 2x points | V1 |
+| 📚 **Bookworm** | Learn 10 skills | Unlock stats | V1 |
+| 🎓 **Mentor** | Teach 25 sessions (4.5+ rating) | Priority listing | V2 |
+| 🏆 **Top Teacher** | Top 10% in category | Expert badge | V2 |
+| 🌟 **Community Star** | 100+ reviews | Review badge | V1 |
+| 🎖️ **Verified Expert** | Pass quiz | Certification | V1 |
+| 📈 **Rising Star** | Fastest growth/month | Featured profile | V2 |
 
 **Additional Gamification Ideas**:
 - **Daily Challenges**: "Complete 1 session today" → Bonus points
@@ -412,7 +399,7 @@ MIT License. See [LICENSE](LICENSE) for details.
 ## SkillSphere Business Plan
 
 ### Executive Summary
-SkillSphere is a P2P skill exchange platform launching as an MVP in 2-4 weeks, targeting the intersection of the gig economy and online learning markets. With a freemium model, it connects users for skill trades (e.g., tech, languages) using advanced matching algorithms. Built on the modern GoSHT stack (Go, Surreal, HTMX, Templ) for a simple, scalable architecture. Projected revenue from subscriptions, premium chats, and ads/partnerships.
+SkillSphere is a P2P skill exchange platform launching as an MVP in 2-4 weeks, targeting the intersection of the gig economy and online learning markets. With a freemium model, it connects users for skill trades (e.g., tech, languages) using advanced matching algorithms. Built with a modern, lightweight stack (Go, HTMX, Templ) for a simple, scalable architecture. Projected revenue from subscriptions, premium chats, and ads/partnerships.
 
 Market opportunity: The global gig economy is valued at ~$582B in 2025, online learning at ~$353B, and sharing economy at ~$246B. SkillSphere differentiates with real-time P2P focus, AI-driven discovery, simple GoSHT stack for rapid development, and low-barrier entry.
 
@@ -428,7 +415,7 @@ Goal: Achieve 10K users in Year 1, $500K revenue by Year 2. Solo-founder viable,
 - **Core Offering**: P2P exchanges of any skills (e.g., programming, foreign languages, music, cooking, business). Profiles include bio, skill lists with proficiencies, ratings.
 - **User Flow**: Sign up → Build profile → Search/discover (algorithms recommend based on wanted/offered skills) → Match & chat (pay for premium 1:1 with high-demand users) → Exchange session → Rate/certify.
 - **MVP Scope**: Profiles, basic matching (cosine similarity), chat, search. Expand to AI (Gemini for embeddings), categories.
-- **Tech & Operations**: GoSHT stack (Go, Surreal, HTMX, Templ); Go backend with standard HTTP. Development: Solo, 2-4 weeks MVP. Hosting: Fly.io (~$10-30/month initially including databases). Support: Community forums, email.
+- **Tech & Operations**: Modern stack (Go, HTMX, Templ); Go backend with standard HTTP. Development: Solo, 2-4 weeks MVP. Hosting: Fly.io (~$10-30/month initially including databases). Support: Community forums, email.
 
 ### Monetization Strategy
 - **Freemium Model**: Basic free (limited matches/chats). Premium: $5-20/month for unlimited chats, priority matching, certifications.
@@ -547,7 +534,7 @@ These measure the angle between vectors, focusing on direction rather than magni
     - Scores range from -1 (opposite) to 1 (identical); threshold e.g., >0.7 for matches.
     - Handles zeros well (e.g., irrelevant skills don't penalize).
 
-- **Pros**: Robust to scale differences; integrates with search engines like Elasticsearch.
+- **Pros**: Robust to scale differences; works well with database vector extensions like pgvector.
 - **Cons**: Ignores absolute proficiency levels if not weighted.
 - **Implementation Example**: In Go with gonum/floats for dot product and norms.
   ```go
@@ -596,7 +583,7 @@ These measure the angle between vectors, focusing on direction rather than magni
       return result
   }
   ```
-- **Use in SkillSphere**: For fuzzy matching; combine with PostgreSQL's full-text search or SurrealDB's search capabilities for skill keywords. Add to matching HTTP handlers with configurable threshold.
+- **Use in SkillSphere**: For fuzzy matching; combine with PostgreSQL's full-text search capabilities for skill keywords. Add to matching HTTP handlers with configurable threshold.
 
 ### 3. Machine Learning/Embedding-Based Algorithms (e.g., Word2Vec, Gemini Embeddings)
 These use NLP to create dense vector representations (embeddings) of skills, capturing semantic relationships (e.g., "Python" close to "programming").
@@ -609,7 +596,7 @@ These use NLP to create dense vector representations (embeddings) of skills, cap
     - **Step 5: Threshold & Rank**: Return matches above similarity threshold (e.g., >0.62), sorted by score.
 
 - **Pros**: Semantic understanding; handles variations like abbreviations, synonyms ("ML" = "machine learning").
-- **Cons**: Requires API calls (latency, cost); cache embeddings in PostgreSQL (pgvector) or SurrealDB for performance.
+- **Cons**: Requires API calls (latency, cost); cache embeddings in PostgreSQL with pgvector extension for performance.
 - **Implementation Example**: Go with Gemini SDK for embeddings, gonum for similarity.
   ```go
   package matching
@@ -718,18 +705,18 @@ These use NLP to create dense vector representations (embeddings) of skills, cap
       return result, nil
   }
   ```
-- **Use in SkillSphere**: Integrate into matching HTTP handlers. Pre-compute and cache embeddings in PostgreSQL with pgvector extension or SurrealDB (both support vector storage natively). Return semantic matches as HTML via Templ.
+- **Use in SkillSphere**: Integrate into matching HTTP handlers. Pre-compute and cache embeddings in PostgreSQL with pgvector extension for efficient vector similarity search. Return semantic matches as HTML via Templ.
 
 ### 4. Other Advanced Algorithms
-- **Ontology-Based**: Use knowledge graphs (e.g., skill hierarchies like "programming > Python") for semantic matching. Metric: Graph distance or custom similarity. SurrealDB's graph capabilities make this native and efficient, or use PostgreSQL with pg_graph extension.
+- **Ontology-Based**: Use knowledge graphs (e.g., skill hierarchies like "programming > Python") for semantic matching. Metric: Graph distance or custom similarity. Can be implemented in PostgreSQL with recursive queries or dedicated graph extensions.
 - **Clustering (e.g., k-Means)**: Group users into skill clusters, then match queries to nearest clusters. Useful for discovery at scale. Implement with gonum/cluster.
 - **Rule-Based/Hybrid**: Simple thresholds (e.g., match if >70% skills overlap) combined with ML for ties. Implement as middleware or service layer logic that applies business rules before calling embedding matcher.
-- **AI-Enhanced with LLMs**: Use Gemini to build dynamic skill ontologies, improving accuracy over time. Background job updates ontology weekly. Store in SurrealDB's graph model or PostgreSQL.
+- **AI-Enhanced with LLMs**: Use Gemini to build dynamic skill ontologies, improving accuracy over time. Background job updates ontology weekly. Store in PostgreSQL with appropriate schema design.
 
 ### Recommendations for SkillSphere
-1. **MVP**: Start with **Cosine Similarity** on vectorized profiles—it's balanced for your Go backend (use gonum). Implement in matching service layer. Store core user data in PostgreSQL.
-2. **V1**: Add **Gemini Embeddings** for semantic matching. Cache embeddings in PostgreSQL with pgvector extension or SurrealDB with native vector support.
-3. **Scaling**: Use WebSocket for real-time match updates. Leverage SurrealDB's live queries for real-time data and graph relationships (if using). Keep transactional data in PostgreSQL. Split matching into separate microservice if needed.
+1. **MVP**: Start with **Cosine Similarity** on vectorized profiles—it's balanced for your Go backend (use gonum). Implement in matching service layer. Store all user data in PostgreSQL.
+2. **V1**: Add **Gemini Embeddings** for semantic matching. Cache embeddings in PostgreSQL with pgvector extension for efficient vector similarity queries.
+3. **Scaling**: Use WebSocket for real-time match updates. Leverage PostgreSQL's LISTEN/NOTIFY for real-time data updates. Split matching into separate microservice if needed.
 4. **Testing**: Create synthetic data (100-1000 users); measure precision/recall. Use `httptest` for handler testing.
 
 Install gonum: `go get gonum.org/v1/gonum`
@@ -773,7 +760,7 @@ Here are targeted extensions, prioritized for monetization and feasibility:
 ### 6. Tech/Infra Extensions
 - **Microservices**: Split matching into a separate service for scalability if needed. Use standard HTTP APIs between services.
 - **Enhanced PWA**: Offline matching (cache data in IndexedDB), background sync, native push notifications via Firebase.
-- **Analytics**: User heatmaps for trending skills; sell insights to edtech firms. Implement analytics endpoints: `/analytics/trends`, `/analytics/metrics`. Use PostgreSQL for structured analytics or SurrealDB for aggregations.
+- **Analytics**: User heatmaps for trending skills; sell insights to edtech firms. Implement analytics endpoints: `/analytics/trends`, `/analytics/metrics`. Use PostgreSQL for structured analytics with appropriate aggregation queries.
 
 These build on your freemium model, targeting $500K+ revenue by Year 2 via 20% MoM growth. Validate with beta users for pivots. The simple HTTP/HTML architecture makes it easy to iterate and add features quickly.
 
@@ -784,11 +771,11 @@ These build on your freemium model, targeting $500K+ revenue by Year 2 via 20% M
 1. **Templating**: Use Templ for type-safe HTML generation. Keep templates focused and composable.
 2. **Middleware**: Chain middleware for auth (JWT validation), logging, rate limiting, and error handling.
 3. **Error Handling**: Return appropriate HTTP status codes and user-friendly error messages. Use Templ to render error pages.
-4. **Real-Time Features**: Use WebSocket for chat and live updates. SurrealDB provides native live query support for real-time data (if using). Consider Server-Sent Events (SSE) for one-way streaming.
-5. **Testing**: Write unit tests for handlers and services. Use `httptest` for HTTP handler testing. Mock dependencies (e.g., PostgreSQL, SurrealDB client, Gemini client).
+4. **Real-Time Features**: Use WebSocket for chat and live updates. PostgreSQL's LISTEN/NOTIFY provides real-time data change notifications. Consider Server-Sent Events (SSE) for one-way streaming.
+5. **Testing**: Write unit tests for handlers and services. Use `httptest` for HTTP handler testing. Mock dependencies (e.g., PostgreSQL client, Gemini client).
 6. **PWA Features**: Add service worker for offline support, manifest.json for installability, and web push for notifications.
 7. **Observability**: Add Prometheus metrics via middleware. Track request counts, latency, error rates per endpoint.
-8. **Performance**: Use HTMX for partial page updates to reduce bandwidth. Cache database queries where appropriate. Use PostgreSQL and SurrealDB indexes for common queries.
+8. **Performance**: Use HTMX for partial page updates to reduce bandwidth. Cache database queries where appropriate. Use PostgreSQL indexes for common queries.
 
 For implementations, see the `internal/handlers/` and `internal/service/` directories.
 # skillsphere

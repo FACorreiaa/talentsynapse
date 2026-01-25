@@ -3,6 +3,7 @@ package matches
 import (
 	"context"
 
+	"github.com/FACorreiaa/skillsphere/internal/app/domain/matches/algorithm"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -32,81 +33,143 @@ func NewRepository(pool *pgxpool.Pool) *Repository {
 	return &Repository{pool: pool}
 }
 
-// GetPendingMatches retrieves potential matches for a user
-// This is a simplified version - a real implementation would use the user_skill_vectors materialized view
+// GetPendingMatches retrieves potential matches for a user using cosine similarity algorithm
+// This implementation uses the user_skill_vectors materialized view for efficient vector-based matching
 func (r *Repository) GetPendingMatches(ctx context.Context, userID string, limit int) ([]Match, error) {
-	// Find users where:
-	// - They offer skills the current user wants
-	// - OR they want skills the current user offers
-	// - Exclude users already in match_history with this user
+	// First, get the current user's skill vectors
+	queryUser, err := r.getUserProfile(ctx, userID)
+	if err != nil {
+		return nil, err
+	}
+
+	// Get all potential candidate users with their skill vectors
+	candidates, err := r.getAllCandidateProfiles(ctx, userID)
+	if err != nil {
+		return nil, err
+	}
+
+	// Use cosine similarity algorithm to find best matches
+	// Threshold of 0.3 means we need at least 30% similarity
+	const similarityThreshold = 0.3
+	matchResults := algorithm.FindBestMatches(queryUser, candidates, similarityThreshold, limit)
+
+	// Convert algorithm results to Match objects with overlap skills
+	var matches []Match
+	for _, result := range matchResults {
+		overlapSkills, err := r.getOverlapSkills(ctx, userID, result.UserID)
+		if err != nil {
+			return nil, err
+		}
+
+		matches = append(matches, Match{
+			UserID:        result.UserID,
+			DisplayName:   result.DisplayName,
+			Username:      result.Username,
+			AvatarURL:     result.AvatarURL,
+			MatchScore:    result.Score,
+			OverlapSkills: overlapSkills,
+		})
+	}
+
+	return matches, nil
+}
+
+// getUserProfile retrieves a user's profile as a vector for matching
+func (r *Repository) getUserProfile(ctx context.Context, userID string) (algorithm.UserProfile, error) {
 	query := `
-		WITH user_offered AS (
-			SELECT skill_id FROM user_skills 
-			WHERE user_id = $1 AND skill_type = 'offered'
-		),
-		user_wanted AS (
-			SELECT skill_id FROM user_skills 
-			WHERE user_id = $1 AND skill_type = 'wanted'
-		),
-		potential_matches AS (
-			SELECT DISTINCT 
-				us.user_id,
-				COUNT(DISTINCT us.skill_id) as skill_overlap
-			FROM user_skills us
-			WHERE us.user_id != $1
-			AND (
-				-- They offer what user wants
-				(us.skill_type = 'offered' AND us.skill_id IN (SELECT skill_id FROM user_wanted))
-				OR
-				-- They want what user offers
-				(us.skill_type = 'wanted' AND us.skill_id IN (SELECT skill_id FROM user_offered))
-			)
-			GROUP BY us.user_id
-		)
-		SELECT 
+		SELECT
 			u.id,
 			u.display_name,
 			u.username,
 			COALESCE(u.avatar_url, '') as avatar_url,
-			CAST(pm.skill_overlap AS FLOAT) / 10.0 as match_score
-		FROM potential_matches pm
-		JOIN users u ON pm.user_id = u.id
-		WHERE u.is_active = true
-		ORDER BY pm.skill_overlap DESC
-		LIMIT $2
+			COALESCE(usv.offered_vector, ARRAY[]::integer[]) as offered_vector,
+			COALESCE(usv.wanted_vector, ARRAY[]::integer[]) as wanted_vector
+		FROM users u
+		LEFT JOIN user_skill_vectors usv ON u.id = usv.user_id
+		WHERE u.id = $1 AND u.is_active = true
 	`
 
-	rows, err := r.pool.Query(ctx, query, userID, limit)
+	var profile algorithm.UserProfile
+	var offeredInts, wantedInts []int
+
+	err := r.pool.QueryRow(ctx, query, userID).Scan(
+		&profile.UserID,
+		&profile.DisplayName,
+		&profile.Username,
+		&profile.AvatarURL,
+		&offeredInts,
+		&wantedInts,
+	)
+	if err != nil {
+		return algorithm.UserProfile{}, err
+	}
+
+	// Convert int arrays to float64 for algorithm
+	profile.OfferedVector = intsToFloats(offeredInts)
+	profile.WantedVector = intsToFloats(wantedInts)
+	profile.SkillCount = len(offeredInts) + len(wantedInts)
+
+	return profile, nil
+}
+
+// getAllCandidateProfiles retrieves all potential candidate users with their skill vectors
+func (r *Repository) getAllCandidateProfiles(ctx context.Context, excludeUserID string) ([]algorithm.UserProfile, error) {
+	query := `
+		SELECT
+			u.id,
+			u.display_name,
+			u.username,
+			COALESCE(u.avatar_url, '') as avatar_url,
+			COALESCE(usv.offered_vector, ARRAY[]::integer[]) as offered_vector,
+			COALESCE(usv.wanted_vector, ARRAY[]::integer[]) as wanted_vector
+		FROM users u
+		LEFT JOIN user_skill_vectors usv ON u.id = usv.user_id
+		WHERE u.id != $1
+		AND u.is_active = true
+		AND (usv.offered_vector IS NOT NULL OR usv.wanted_vector IS NOT NULL)
+	`
+
+	rows, err := r.pool.Query(ctx, query, excludeUserID)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
 
-	var matches []Match
+	var candidates []algorithm.UserProfile
 	for rows.Next() {
-		var m Match
+		var profile algorithm.UserProfile
+		var offeredInts, wantedInts []int
+
 		err := rows.Scan(
-			&m.UserID,
-			&m.DisplayName,
-			&m.Username,
-			&m.AvatarURL,
-			&m.MatchScore,
+			&profile.UserID,
+			&profile.DisplayName,
+			&profile.Username,
+			&profile.AvatarURL,
+			&offeredInts,
+			&wantedInts,
 		)
 		if err != nil {
 			return nil, err
 		}
 
-		// Get overlapping skills for this match
-		overlapSkills, err := r.getOverlapSkills(ctx, userID, m.UserID)
-		if err != nil {
-			return nil, err
-		}
-		m.OverlapSkills = overlapSkills
+		// Convert int arrays to float64 for algorithm
+		profile.OfferedVector = intsToFloats(offeredInts)
+		profile.WantedVector = intsToFloats(wantedInts)
+		profile.SkillCount = len(offeredInts) + len(wantedInts)
 
-		matches = append(matches, m)
+		candidates = append(candidates, profile)
 	}
 
-	return matches, rows.Err()
+	return candidates, rows.Err()
+}
+
+// intsToFloats converts an int slice to float64 slice
+func intsToFloats(ints []int) []float64 {
+	floats := make([]float64, len(ints))
+	for i, v := range ints {
+		floats[i] = float64(v)
+	}
+	return floats
 }
 
 // getOverlapSkills retrieves the skills that overlap between two users
@@ -153,12 +216,25 @@ func (r *Repository) getOverlapSkills(ctx context.Context, userID, matchedUserID
 
 // RecordMatchAction records a user's decision (accept/reject) on a match
 func (r *Repository) RecordMatchAction(ctx context.Context, userID, matchedUserID string, accepted bool) error {
+	// Calculate the actual match score using cosine similarity
+	userProfile, err := r.getUserProfile(ctx, userID)
+	if err != nil {
+		return err
+	}
+
+	matchedProfile, err := r.getUserProfile(ctx, matchedUserID)
+	if err != nil {
+		return err
+	}
+
+	matchScore := algorithm.MatchScore(userProfile, matchedProfile)
+
 	query := `
 		INSERT INTO match_history (user_id_a, user_id_b, algorithm_used, match_score, interaction_initiated)
-		VALUES ($1, $2, 'skill_overlap', 0.5, $3)
+		VALUES ($1, $2, 'cosine_similarity', $3, $4)
 		ON CONFLICT (user_id_a, user_id_b, created_at) DO NOTHING
 	`
-	_, err := r.pool.Exec(ctx, query, userID, matchedUserID, accepted)
+	_, err = r.pool.Exec(ctx, query, userID, matchedUserID, matchScore, accepted)
 	return err
 }
 
