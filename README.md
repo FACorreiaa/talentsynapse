@@ -97,18 +97,14 @@ Middleware handles authentication (JWT validation), logging, rate limiting, and 
    SERVER_PORT=8080
    ```
 
-6. Initialize PostgreSQL database:
-   ```bash
-   # Run migrations
-   go run cmd/migrate/main.go
-   ```
-
-7. Run the server:
+6. Run the server:
    ```bash
    air  # For hot-reloading (install via go install github.com/air-verse/air@latest)
    # Or: go run cmd/server/main.go
    ```
    Access at `http://localhost:8080`.
+
+   **Note**: Database migrations run automatically on startup! No need to run them manually. See [Auto-Migration Documentation](./docs/AUTO_MIGRATIONS.md) for details.
 
 8. Deploy to Fly.io:
    ```bash

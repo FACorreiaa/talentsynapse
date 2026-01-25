@@ -34,6 +34,12 @@ func New() Service {
 		databaseURL = "postgres://localhost:5470/myapp?sslmode=disable"
 	}
 
+	// Run migrations before connecting
+	if err := RunMigrations(databaseURL); err != nil {
+		log.Printf("⚠️  Migration failed: %v", err)
+		log.Println("⚠️  Continuing with connection attempt...")
+	}
+
 	// Parse configuration
 	config, err := pgxpool.ParseConfig(databaseURL)
 	if err != nil {
