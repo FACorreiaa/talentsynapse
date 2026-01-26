@@ -5,16 +5,22 @@ import (
 	"time"
 
 	"github.com/FACorreiaa/talentsynapse/internal/app/domain/auth"
+	"github.com/FACorreiaa/talentsynapse/internal/app/domain/badges"
 	sessionpages "github.com/FACorreiaa/talentsynapse/internal/app/views/pages/sessions"
 	"github.com/go-chi/chi/v5"
+	"github.com/google/uuid"
 )
 
 type Handler struct {
-	repo *Repository
+	repo       *Repository
+	badgesRepo *badges.Repository
 }
 
-func NewHandler(repo *Repository) *Handler {
-	return &Handler{repo: repo}
+func NewHandler(repo *Repository, badgesRepo *badges.Repository) *Handler {
+	return &Handler{
+		repo:       repo,
+		badgesRepo: badgesRepo,
+	}
 }
 
 // List shows the "My Sessions" page
@@ -94,7 +100,13 @@ func (h *Handler) Complete(w http.ResponseWriter, r *http.Request) {
 	if err := h.repo.MarkCompleted(r.Context(), sessionID, sessionData.UserID); err != nil {
 		_ = auth.SetFlash(w, r, "Failed to complete session", auth.FlashError)
 	} else {
-		_ = auth.SetFlash(w, r, "Session completed! Please delete a review.", auth.FlashSuccess)
+		_ = auth.SetFlash(w, r, "Session completed! Please leave a review.", auth.FlashSuccess)
+
+		// Gamification: Check for dedicated_learner badge (5+ completed sessions)
+		count, err := h.repo.CountCompletedSessions(r.Context(), sessionData.UserID)
+		if err == nil && count >= 5 {
+			_ = h.badgesRepo.AwardBadge(r.Context(), uuid.MustParse(sessionData.UserID), "dedicated_learner")
+		}
 	}
 
 	http.Redirect(w, r, "/sessions", http.StatusSeeOther)

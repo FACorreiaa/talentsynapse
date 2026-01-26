@@ -101,3 +101,14 @@ func (r *Repository) GetSessionByID(ctx context.Context, sessionID string) (*Ses
 	}
 	return &s, nil
 }
+
+// CountCompletedSessions returns the number of completed sessions for a user
+func (r *Repository) CountCompletedSessions(ctx context.Context, userID string) (int, error) {
+	query := `
+		SELECT COUNT(*) FROM sessions 
+		WHERE status = 'completed' AND (initiator_id = $1 OR partner_id = $1)
+	`
+	var count int
+	err := r.pool.QueryRow(ctx, query, userID).Scan(&count)
+	return count, err
+}

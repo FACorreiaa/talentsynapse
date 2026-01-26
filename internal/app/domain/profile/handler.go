@@ -3,14 +3,15 @@ package profile
 import (
 	"net/http"
 
+	"github.com/go-chi/chi/v5"
+	"github.com/google/uuid"
+
 	"github.com/FACorreiaa/talentsynapse/internal/app/domain/auth"
 	"github.com/FACorreiaa/talentsynapse/internal/app/domain/badges"
 	"github.com/FACorreiaa/talentsynapse/internal/app/domain/portfolio"
 	"github.com/FACorreiaa/talentsynapse/internal/app/domain/review"
 	"github.com/FACorreiaa/talentsynapse/internal/app/domain/user"
 	profilepages "github.com/FACorreiaa/talentsynapse/internal/app/views/pages/profile"
-	"github.com/go-chi/chi/v5"
-	"github.com/google/uuid"
 )
 
 // Handler handles profile HTTP requests
@@ -218,6 +219,20 @@ func (h *Handler) ShowPublic(w http.ResponseWriter, r *http.Request) {
 				Icon:    b.BadgeIcon,
 				Code:    b.BadgeCode,
 				Awarded: true,
+			})
+		}
+	}
+
+	// Fetch reviews received by this user
+	reviews, err := h.reviewRepo.GetReviewsReceived(r.Context(), uuid.MustParse(profileUserID))
+	if err == nil {
+		for _, rev := range reviews {
+			profile.Reviews = append(profile.Reviews, profilepages.ReviewData{
+				Rating:         rev.Rating,
+				Comment:        rev.Comment,
+				ReviewerName:   rev.ReviewerName,
+				ReviewerAvatar: rev.ReviewerAvatar,
+				CreatedAt:      rev.CreatedAt,
 			})
 		}
 	}

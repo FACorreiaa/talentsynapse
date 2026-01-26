@@ -53,6 +53,11 @@ func (m *MockUserRepository) UpdateLastLogin(ctx context.Context, userID string)
 	return args.Error(0)
 }
 
+func (m *MockUserRepository) GetUserStats(ctx context.Context, userID string) (int, string, error) {
+	args := m.Called(ctx, userID)
+	return args.Int(0), args.String(1), args.Error(2)
+}
+
 func (m *MockUserRepository) UpdatePassword(ctx context.Context, userID, hashedPassword string) error {
 	args := m.Called(ctx, userID, hashedPassword)
 	return args.Error(0)

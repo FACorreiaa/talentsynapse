@@ -21,6 +21,7 @@ type RepositoryInterface interface {
 	GetByEmail(ctx context.Context, email string) (*User, error)
 	GetByID(ctx context.Context, id string) (*User, error)
 	GetByUsername(ctx context.Context, username string) (*User, error)
+	GetUserStats(ctx context.Context, userID string) (int, string, error)
 	UpdateLastLogin(ctx context.Context, userID string) error
 	UpdatePassword(ctx context.Context, userID, hashedPassword string) error
 }
@@ -183,6 +184,21 @@ func (r *Repository) GetByUsername(ctx context.Context, username string) (*User,
 	}
 
 	return user, nil
+}
+
+// GetUserStats retrieves a user's points and tier
+func (r *Repository) GetUserStats(ctx context.Context, userID string) (int, string, error) {
+	query := `SELECT COALESCE(points, 0), COALESCE(tier, 'Bronze') FROM user_stats WHERE user_id = $1`
+	var points int
+	var tier string
+	err := r.pool.QueryRow(ctx, query, userID).Scan(&points, &tier)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return 0, "Bronze", nil
+		}
+		return 0, "Bronze", err
+	}
+	return points, tier, nil
 }
 
 // UpdateLastLogin updates the user's last login timestamp

@@ -113,7 +113,7 @@ func New(pool *pgxpool.Pool) *Container {
 	// Create handlers
 	authHandler := auth.NewHandler(authService)
 	homeHandler := home.NewHandler()
-	dashboardHandler := dashboard.NewHandler()
+	dashboardHandler := dashboard.NewHandler(userRepo)
 	profileHandler := profile.NewHandler(userRepo, badgesRepo, reviewRepo, portfolioRepo)
 	skillsHandler := skills.NewHandler(skillsRepo)
 	matchesHandler := matches.NewHandler(matchesRepo, badgesRepo)
@@ -126,7 +126,7 @@ func New(pool *pgxpool.Pool) *Container {
 	reportHandler := report.NewHandler(reportRepo)
 	reviewHandler := review.NewHandler(reviewRepo, badgesRepo)
 	portfolioHandler := portfolio.NewHandler(portfolioRepo)
-	sessionHandler := session.NewHandler(sessionRepo)
+	sessionHandler := session.NewHandler(sessionRepo, badgesRepo)
 	schedulingHandler := scheduling.NewHandler(schedulingService, schedulingHub)
 
 	return &Container{

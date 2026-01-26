@@ -75,61 +75,113 @@ func (r *Repository) GetPendingMatches(ctx context.Context, userID string, limit
 }
 
 // getUserProfile retrieves a user's profile as a vector for matching
+// This queries user_skills directly to ensure fresh data (not stale materialized view)
 func (r *Repository) getUserProfile(ctx context.Context, userID string) (algorithm.UserProfile, error) {
-	query := `
+	// First get user info
+	userQuery := `
 		SELECT
 			u.id,
 			u.display_name,
 			u.username,
-			COALESCE(u.avatar_url, '') as avatar_url,
-			COALESCE(usv.offered_vector, ARRAY[]::integer[]) as offered_vector,
-			COALESCE(usv.wanted_vector, ARRAY[]::integer[]) as wanted_vector
+			COALESCE(u.avatar_url, '') as avatar_url
 		FROM users u
-		LEFT JOIN user_skill_vectors usv ON u.id = usv.user_id
 		WHERE u.id = $1 AND u.is_active = true
 	`
 
 	var profile algorithm.UserProfile
-	var offeredInts, wantedInts []int
-
-	err := r.pool.QueryRow(ctx, query, userID).Scan(
+	err := r.pool.QueryRow(ctx, userQuery, userID).Scan(
 		&profile.UserID,
 		&profile.DisplayName,
 		&profile.Username,
 		&profile.AvatarURL,
-		&offeredInts,
-		&wantedInts,
 	)
 	if err != nil {
 		return algorithm.UserProfile{}, err
 	}
 
-	// Convert int arrays to float64 for algorithm
-	profile.OfferedVector = intsToFloats(offeredInts)
-	profile.WantedVector = intsToFloats(wantedInts)
-	profile.SkillCount = len(offeredInts) + len(wantedInts)
+	// Get total skill count to determine vector dimension
+	var skillCount int
+	err = r.pool.QueryRow(ctx, "SELECT COUNT(*) FROM skills").Scan(&skillCount)
+	if err != nil {
+		return algorithm.UserProfile{}, err
+	}
 
+	// Initialize zero vectors with proper dimension
+	profile.OfferedVector = make([]float64, skillCount)
+	profile.WantedVector = make([]float64, skillCount)
+
+	// Query user's skills with their position in the global skill list
+	skillsQuery := `
+		WITH ranked_skills AS (
+			SELECT id, ROW_NUMBER() OVER (ORDER BY name) - 1 as skill_index
+			FROM skills
+		)
+		SELECT 
+			rs.skill_index,
+			us.skill_type,
+			COALESCE(us.proficiency, 5) as proficiency
+		FROM user_skills us
+		JOIN ranked_skills rs ON us.skill_id = rs.id
+		WHERE us.user_id = $1
+	`
+
+	rows, err := r.pool.Query(ctx, skillsQuery, userID)
+	if err != nil {
+		return algorithm.UserProfile{}, err
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var skillIndex int
+		var skillType string
+		var proficiency int
+
+		if err := rows.Scan(&skillIndex, &skillType, &proficiency); err != nil {
+			return algorithm.UserProfile{}, err
+		}
+
+		// Place proficiency at the correct index in the vector
+		if skillIndex < skillCount {
+			switch skillType {
+			case "offered":
+				profile.OfferedVector[skillIndex] = float64(proficiency)
+			case "wanted":
+				profile.WantedVector[skillIndex] = float64(proficiency)
+			}
+		}
+	}
+
+	if err := rows.Err(); err != nil {
+		return algorithm.UserProfile{}, err
+	}
+
+	profile.SkillCount = skillCount
 	return profile, nil
 }
 
 // getAllCandidateProfiles retrieves all potential candidate users with their skill vectors
+// This queries user_skills directly to ensure fresh data
 func (r *Repository) getAllCandidateProfiles(ctx context.Context, excludeUserID string) ([]algorithm.UserProfile, error) {
-	query := `
-		SELECT
+	// Get total skill count to determine vector dimension
+	var skillCount int
+	err := r.pool.QueryRow(ctx, "SELECT COUNT(*) FROM skills").Scan(&skillCount)
+	if err != nil {
+		return nil, err
+	}
+
+	// Get all active users except the excluded one who have at least one skill
+	usersQuery := `
+		SELECT DISTINCT
 			u.id,
 			u.display_name,
 			u.username,
-			COALESCE(u.avatar_url, '') as avatar_url,
-			COALESCE(usv.offered_vector, ARRAY[]::integer[]) as offered_vector,
-			COALESCE(usv.wanted_vector, ARRAY[]::integer[]) as wanted_vector
+			COALESCE(u.avatar_url, '') as avatar_url
 		FROM users u
-		LEFT JOIN user_skill_vectors usv ON u.id = usv.user_id
-		WHERE u.id != $1
-		AND u.is_active = true
-		AND (usv.offered_vector IS NOT NULL OR usv.wanted_vector IS NOT NULL)
+		INNER JOIN user_skills us ON u.id = us.user_id
+		WHERE u.id != $1 AND u.is_active = true
 	`
 
-	rows, err := r.pool.Query(ctx, query, excludeUserID)
+	rows, err := r.pool.Query(ctx, usersQuery, excludeUserID)
 	if err != nil {
 		return nil, err
 	}
@@ -138,38 +190,81 @@ func (r *Repository) getAllCandidateProfiles(ctx context.Context, excludeUserID 
 	var candidates []algorithm.UserProfile
 	for rows.Next() {
 		var profile algorithm.UserProfile
-		var offeredInts, wantedInts []int
-
 		err := rows.Scan(
 			&profile.UserID,
 			&profile.DisplayName,
 			&profile.Username,
 			&profile.AvatarURL,
-			&offeredInts,
-			&wantedInts,
 		)
 		if err != nil {
 			return nil, err
 		}
-
-		// Convert int arrays to float64 for algorithm
-		profile.OfferedVector = intsToFloats(offeredInts)
-		profile.WantedVector = intsToFloats(wantedInts)
-		profile.SkillCount = len(offeredInts) + len(wantedInts)
-
+		profile.SkillCount = skillCount
 		candidates = append(candidates, profile)
 	}
 
-	return candidates, rows.Err()
-}
-
-// intsToFloats converts an int slice to float64 slice
-func intsToFloats(ints []int) []float64 {
-	floats := make([]float64, len(ints))
-	for i, v := range ints {
-		floats[i] = float64(v)
+	if err := rows.Err(); err != nil {
+		return nil, err
 	}
-	return floats
+
+	// Now populate skill vectors for each candidate
+	skillsQuery := `
+		WITH ranked_skills AS (
+			SELECT id, ROW_NUMBER() OVER (ORDER BY name) - 1 as skill_index
+			FROM skills
+		)
+		SELECT 
+			us.user_id,
+			rs.skill_index,
+			us.skill_type,
+			COALESCE(us.proficiency, 5) as proficiency
+		FROM user_skills us
+		JOIN ranked_skills rs ON us.skill_id = rs.id
+		WHERE us.user_id = ANY($1)
+	`
+
+	// Collect user IDs
+	userIDs := make([]string, len(candidates))
+	userIndexMap := make(map[string]int)
+	for i, c := range candidates {
+		userIDs[i] = c.UserID
+		userIndexMap[c.UserID] = i
+		// Initialize vectors
+		candidates[i].OfferedVector = make([]float64, skillCount)
+		candidates[i].WantedVector = make([]float64, skillCount)
+	}
+
+	if len(userIDs) == 0 {
+		return candidates, nil
+	}
+
+	skillRows, err := r.pool.Query(ctx, skillsQuery, userIDs)
+	if err != nil {
+		return nil, err
+	}
+	defer skillRows.Close()
+
+	for skillRows.Next() {
+		var userID string
+		var skillIndex int
+		var skillType string
+		var proficiency int
+
+		if err := skillRows.Scan(&userID, &skillIndex, &skillType, &proficiency); err != nil {
+			return nil, err
+		}
+
+		if idx, ok := userIndexMap[userID]; ok && skillIndex < skillCount {
+			switch skillType {
+			case "offered":
+				candidates[idx].OfferedVector[skillIndex] = float64(proficiency)
+			case "wanted":
+				candidates[idx].WantedVector[skillIndex] = float64(proficiency)
+			}
+		}
+	}
+
+	return candidates, skillRows.Err()
 }
 
 // getOverlapSkills retrieves the skills that overlap between two users

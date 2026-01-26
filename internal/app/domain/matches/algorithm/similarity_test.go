@@ -351,3 +351,171 @@ func BenchmarkFindBestMatches(b *testing.B) {
 		FindBestMatches(queryUser, candidates, 0.3, 10)
 	}
 }
+
+// TestComplementarySkillMatch tests the specific scenario where:
+// User A: knows Go, wants Piano
+// User B: knows Piano, wants Go
+// These users should match with a high score
+func TestComplementarySkillMatch(t *testing.T) {
+	// Simulate a skill catalog with 5 skills:
+	// Index 0: Go
+	// Index 1: JavaScript
+	// Index 2: Piano
+	// Index 3: Python
+	// Index 4: Spanish
+
+	// User A: knows Go (index 0), wants Piano (index 2)
+	userA := UserProfile{
+		UserID:        "user-a",
+		DisplayName:   "Alice",
+		Username:      "alice",
+		OfferedVector: []float64{8, 0, 0, 0, 0}, // Offers Go with proficiency 8
+		WantedVector:  []float64{0, 0, 7, 0, 0}, // Wants Piano with proficiency 7
+	}
+
+	// User B: knows Piano (index 2), wants Go (index 0)
+	userB := UserProfile{
+		UserID:        "user-b",
+		DisplayName:   "Bob",
+		Username:      "bob",
+		OfferedVector: []float64{0, 0, 9, 0, 0}, // Offers Piano with proficiency 9
+		WantedVector:  []float64{6, 0, 0, 0, 0}, // Wants Go with proficiency 6
+	}
+
+	t.Run("direct match score calculation", func(t *testing.T) {
+		score := MatchScore(userA, userB)
+
+		// With perfect complementary skills, we expect a high score
+		// B offers Piano (index 2) at position 2, A wants Piano at position 2 -> similarity = 1.0
+		// A offers Go (index 0) at position 0, B wants Go at position 0 -> similarity = 1.0
+		// Average = 1.0
+		if score < 0.9 {
+			t.Errorf("Expected high match score (>0.9) for complementary skills, got %v", score)
+		}
+	})
+
+	t.Run("bidirectional similarity", func(t *testing.T) {
+		// The score should be symmetric
+		scoreAB := MatchScore(userA, userB)
+		scoreBA := MatchScore(userB, userA)
+
+		if math.Abs(scoreAB-scoreBA) > 0.001 {
+			t.Errorf("Match score should be symmetric: A->B = %v, B->A = %v", scoreAB, scoreBA)
+		}
+	})
+
+	t.Run("find matches includes complementary user", func(t *testing.T) {
+		candidates := []UserProfile{userB}
+		results := FindBestMatches(userA, candidates, 0.3, 10)
+
+		if len(results) == 0 {
+			t.Fatal("Expected to find at least one match for complementary skills")
+		}
+
+		if results[0].UserID != "user-b" {
+			t.Errorf("Expected user-b to be the top match, got %s", results[0].UserID)
+		}
+
+		if results[0].Score < 0.9 {
+			t.Errorf("Expected high score for complementary match, got %v", results[0].Score)
+		}
+	})
+}
+
+// TestNoOverlapNoMatch tests that users with no skill overlap don't match
+func TestNoOverlapNoMatch(t *testing.T) {
+	// User A: knows Go, wants Piano
+	userA := UserProfile{
+		UserID:        "user-a",
+		OfferedVector: []float64{8, 0, 0, 0, 0}, // Go
+		WantedVector:  []float64{0, 0, 7, 0, 0}, // Piano
+	}
+
+	// User B: knows Spanish, wants JavaScript (no overlap with A)
+	userB := UserProfile{
+		UserID:        "user-b",
+		OfferedVector: []float64{0, 0, 0, 0, 9}, // Spanish
+		WantedVector:  []float64{0, 8, 0, 0, 0}, // JavaScript
+	}
+
+	score := MatchScore(userA, userB)
+
+	// With zero overlap, score should be very low
+	if score > 0.1 {
+		t.Errorf("Expected low score for no overlap, got %v", score)
+	}
+}
+
+// TestPartialMatch tests users with partial skill overlap
+func TestPartialMatch(t *testing.T) {
+	// User A: knows Go and Python, wants Piano
+	userA := UserProfile{
+		UserID:        "user-a",
+		OfferedVector: []float64{8, 0, 0, 7, 0}, // Go, Python
+		WantedVector:  []float64{0, 0, 7, 0, 0}, // Piano
+	}
+
+	// User B: knows Piano, wants Python (partial overlap - only one direction)
+	userB := UserProfile{
+		UserID:        "user-b",
+		OfferedVector: []float64{0, 0, 9, 0, 0}, // Piano
+		WantedVector:  []float64{0, 0, 0, 6, 0}, // Python
+	}
+
+	score := MatchScore(userA, userB)
+
+	// Partial match should have a moderate score
+	if score < 0.3 || score > 0.99 {
+		t.Errorf("Expected moderate score for partial match (0.3-0.99), got %v", score)
+	}
+
+	t.Logf("Partial match score: %v", score)
+}
+
+// TestEmptyVectors tests handling of users with no skills
+func TestEmptyVectors(t *testing.T) {
+	userA := UserProfile{
+		UserID:        "user-a",
+		OfferedVector: []float64{8, 0, 0, 0, 0},
+		WantedVector:  []float64{0, 0, 7, 0, 0},
+	}
+
+	userEmpty := UserProfile{
+		UserID:        "user-empty",
+		OfferedVector: []float64{0, 0, 0, 0, 0}, // No skills offered
+		WantedVector:  []float64{0, 0, 0, 0, 0}, // No skills wanted
+	}
+
+	score := MatchScore(userA, userEmpty)
+
+	// Empty vectors should result in zero score (handled by CosineSimilarity)
+	if score != 0 {
+		t.Errorf("Expected zero score for empty vectors, got %v", score)
+	}
+}
+
+// TestMultipleSkillsMatch tests matching with multiple offered/wanted skills
+func TestMultipleSkillsMatch(t *testing.T) {
+	// User A: knows Go, Python, JavaScript; wants Piano, Spanish
+	userA := UserProfile{
+		UserID:        "user-a",
+		OfferedVector: []float64{8, 7, 0, 9, 0}, // Go, JS, Python
+		WantedVector:  []float64{0, 0, 6, 0, 5}, // Piano, Spanish
+	}
+
+	// User B: knows Piano, Spanish; wants Go, Python
+	userB := UserProfile{
+		UserID:        "user-b",
+		OfferedVector: []float64{0, 0, 8, 0, 7}, // Piano, Spanish
+		WantedVector:  []float64{6, 0, 0, 5, 0}, // Go, Python
+	}
+
+	score := MatchScore(userA, userB)
+
+	// Should have a high score due to multiple complementary skills
+	if score < 0.7 {
+		t.Errorf("Expected high score for multiple complementary skills, got %v", score)
+	}
+
+	t.Logf("Multiple skills match score: %v", score)
+}
