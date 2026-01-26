@@ -1,7 +1,6 @@
 package dashboard
 
 import (
-	"context"
 	"log"
 	"net/http"
 
@@ -9,19 +8,14 @@ import (
 	dashboardpages "github.com/FACorreiaa/talentsynapse/internal/app/views/pages/dashboard"
 )
 
-// UserStatsRepository provides access to user points/tier.
-type UserStatsRepository interface {
-	GetUserStats(ctx context.Context, userID string) (int, string, error)
-}
-
 // Handler handles dashboard HTTP requests
 type Handler struct {
-	userRepo UserStatsRepository
+	repo *Repository
 }
 
 // NewHandler creates a new dashboard handler
-func NewHandler(userRepo UserStatsRepository) *Handler {
-	return &Handler{userRepo: userRepo}
+func NewHandler(repo *Repository) *Handler {
+	return &Handler{repo: repo}
 }
 
 // Show renders the dashboard page
@@ -37,17 +31,80 @@ func (h *Handler) Show(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	points := 0
-	tier := "Bronze"
-	if sessionData.UserID != "" && h.userRepo != nil {
-		if p, t, err := h.userRepo.GetUserStats(r.Context(), sessionData.UserID); err == nil {
-			points, tier = p, t
+	// Default data
+	data := dashboardpages.DashboardData{
+		UserName:   sessionData.UserName,
+		UserAvatar: sessionData.UserAvatar,
+		SuccessMsg: successMsg,
+		Stats: dashboardpages.DashboardStats{
+			Points:   0,
+			Tier:     "Bronze",
+			Matches:  0,
+			Sessions: 0,
+		},
+		ProfileStrength: dashboardpages.ProfileStrength{
+			Percentage: 0,
+		},
+	}
+
+	if sessionData.UserID != "" && h.repo != nil {
+		// Fetch dashboard stats
+		if stats, err := h.repo.GetDashboardStats(r.Context(), sessionData.UserID); err == nil {
+			data.Stats.Points = stats.Points
+			data.Stats.Tier = stats.Tier
+			data.Stats.Matches = stats.Matches
+			data.Stats.Sessions = stats.Sessions
 		} else {
-			log.Printf("failed to load user stats for %s: %v", sessionData.UserID, err)
+			log.Printf("failed to load dashboard stats for %s: %v", sessionData.UserID, err)
+		}
+
+		// Fetch top matches
+		if matches, err := h.repo.GetTopMatches(r.Context(), sessionData.UserID, 3); err == nil {
+			for _, m := range matches {
+				data.TopMatches = append(data.TopMatches, dashboardpages.TopMatch{
+					UserID:      m.UserID,
+					DisplayName: m.DisplayName,
+					Username:    m.Username,
+					AvatarURL:   m.AvatarURL,
+					Skills:      m.Skills,
+					MatchScore:  m.MatchScore,
+				})
+			}
+		} else {
+			log.Printf("failed to load top matches for %s: %v", sessionData.UserID, err)
+		}
+
+		// Fetch recent activity
+		if activities, err := h.repo.GetRecentActivity(r.Context(), sessionData.UserID, 4); err == nil {
+			for _, a := range activities {
+				data.Activities = append(data.Activities, dashboardpages.ActivityItem{
+					Type:     a.Type,
+					UserName: a.UserName,
+					Action:   a.Action,
+					TimeAgo:  a.TimeAgo,
+				})
+			}
+		} else {
+			log.Printf("failed to load recent activity for %s: %v", sessionData.UserID, err)
+		}
+
+		// Fetch profile strength
+		if ps, err := h.repo.GetProfileStrength(r.Context(), sessionData.UserID); err == nil {
+			data.ProfileStrength = dashboardpages.ProfileStrength{
+				Percentage:       ps.Percentage,
+				HasAvatar:        ps.HasAvatar,
+				HasBio:           ps.HasBio,
+				HasOfferedSkills: ps.HasOfferedSkills,
+				HasWantedSkills:  ps.HasWantedSkills,
+				HasSession:       ps.HasSession,
+				HasSocialLinks:   ps.HasSocialLinks,
+			}
+		} else {
+			log.Printf("failed to load profile strength for %s: %v", sessionData.UserID, err)
 		}
 	}
 
-	component := dashboardpages.Dashboard(sessionData.UserName, sessionData.UserAvatar, successMsg, points, tier)
+	component := dashboardpages.Dashboard(data)
 	if err := component.Render(r.Context(), w); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}

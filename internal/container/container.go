@@ -39,6 +39,7 @@ type Container struct {
 	ReviewRepo    *review.Repository
 	PortfolioRepo *portfolio.Repository
 	SessionRepo   *session.Repository
+	DashboardRepo *dashboard.Repository
 
 	// Services
 	AuthService *auth.Service
@@ -85,6 +86,7 @@ func New(pool *pgxpool.Pool) *Container {
 	reviewRepo := review.NewRepository(pool)
 	portfolioRepo := portfolio.NewRepository(pool)
 	sessionRepo := session.NewRepository(pool)
+	dashboardRepo := dashboard.NewRepository(pool)
 
 	// Seed admin user from environment variables
 	if err := admin.SeedAdmin(context.Background(), userRepo); err != nil {
@@ -113,7 +115,7 @@ func New(pool *pgxpool.Pool) *Container {
 	// Create handlers
 	authHandler := auth.NewHandler(authService)
 	homeHandler := home.NewHandler()
-	dashboardHandler := dashboard.NewHandler(userRepo)
+	dashboardHandler := dashboard.NewHandler(dashboardRepo)
 	profileHandler := profile.NewHandler(userRepo, badgesRepo, reviewRepo, portfolioRepo)
 	skillsHandler := skills.NewHandler(skillsRepo)
 	matchesHandler := matches.NewHandler(matchesRepo, badgesRepo)
@@ -140,6 +142,7 @@ func New(pool *pgxpool.Pool) *Container {
 		ReviewRepo:    reviewRepo,
 		PortfolioRepo: portfolioRepo,
 		SessionRepo:   sessionRepo,
+		DashboardRepo: dashboardRepo,
 
 		// Services
 		AuthService: authService,

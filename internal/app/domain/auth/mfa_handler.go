@@ -223,8 +223,19 @@ func (h *Handler) completeMFALogin(w http.ResponseWriter, r *http.Request, userI
 
 	session, _ := store.Get(r, SessionName)
 
+	// Get remember me preference from pending session
+	rememberMe, _ := session.Values["pending_mfa_remember"].(bool)
+
 	delete(session.Values, "pending_mfa_user_id")
 	delete(session.Values, "pending_mfa_email")
+	delete(session.Values, "pending_mfa_remember")
+
+	// Set session max age based on remember me preference
+	if rememberMe {
+		session.Options.MaxAge = RememberMeSessionMaxAge
+	} else {
+		session.Options.MaxAge = DefaultSessionMaxAge
+	}
 
 	session.Values[UserIDKey] = user.ID
 	session.Values[UserNameKey] = user.DisplayName

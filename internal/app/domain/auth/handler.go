@@ -53,6 +53,9 @@ func (h *Handler) HandleLogin(w http.ResponseWriter, r *http.Request) {
 		Password: r.FormValue("password"),
 	}
 
+	// Check if "Remember me" checkbox is checked
+	rememberMe := r.FormValue("remember") == "on"
+
 	if input.Email == "" || input.Password == "" {
 		_ = SetFlash(w, r, "Email and password are required", FlashError)
 		http.Redirect(w, r, "/login", http.StatusSeeOther)
@@ -80,6 +83,7 @@ func (h *Handler) HandleLogin(w http.ResponseWriter, r *http.Request) {
 				session, _ := store.Get(r, SessionName)
 				session.Values["pending_mfa_user_id"] = u.ID
 				session.Values["pending_mfa_email"] = u.Email
+				session.Values["pending_mfa_remember"] = rememberMe
 				_ = session.Save(r, w)
 
 				// Redirect to MFA verification
@@ -90,7 +94,7 @@ func (h *Handler) HandleLogin(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// No MFA or not enabled - complete login normally
-	if err := CreateSession(w, r, u); err != nil {
+	if err := CreateSessionWithRemember(w, r, u, rememberMe); err != nil {
 		_ = SetFlash(w, r, "Failed to create session", FlashError)
 		http.Redirect(w, r, "/login", http.StatusSeeOther)
 		return

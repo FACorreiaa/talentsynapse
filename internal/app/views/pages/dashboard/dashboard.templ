@@ -3,21 +3,70 @@ package dashboard
 import "github.com/FACorreiaa/talentsynapse/internal/app/views/layouts"
 import "github.com/FACorreiaa/talentsynapse/internal/app/views/components"
 import "strconv"
+import "fmt"
 
-templ Dashboard(userName string, userAvatar string, successMsg string, points int, tier string) {
+// DashboardStats contains the main stats cards data
+type DashboardStats struct {
+	Points   int
+	Tier     string
+	Matches  int
+	Sessions int
+}
+
+// TopMatch represents a potential match to display
+type TopMatch struct {
+	UserID      string
+	DisplayName string
+	Username    string
+	AvatarURL   string
+	Skills      string
+	MatchScore  int
+}
+
+// ActivityItem represents a recent activity entry
+type ActivityItem struct {
+	Type     string
+	UserName string
+	Action   string
+	TimeAgo  string
+}
+
+// ProfileStrength contains profile completion data
+type ProfileStrength struct {
+	Percentage       int
+	HasAvatar        bool
+	HasBio           bool
+	HasOfferedSkills bool
+	HasWantedSkills  bool
+	HasSession       bool
+	HasSocialLinks   bool
+}
+
+// DashboardData contains all data needed for the dashboard
+type DashboardData struct {
+	UserName        string
+	UserAvatar      string
+	SuccessMsg      string
+	Stats           DashboardStats
+	TopMatches      []TopMatch
+	Activities      []ActivityItem
+	ProfileStrength ProfileStrength
+}
+
+templ Dashboard(data DashboardData) {
 	@layouts.Base("Dashboard | TalentSynapse") {
 		<div class="min-h-screen flex flex-col bg-background">
-			@components.Navbar(true, userName, userAvatar)
+			@components.Navbar(true, data.UserName, data.UserAvatar)
 			<main class="flex-1 py-8 px-4">
 				<div class="container mx-auto max-w-7xl">
 					<!-- Flash Messages -->
-					if successMsg != "" {
-						@components.FlashMessage(successMsg, "success")
+					if data.SuccessMsg != "" {
+						@components.FlashMessage(data.SuccessMsg, "success")
 					}
 					<!-- Welcome Header -->
 					<div class="mb-8 animate-fade-in-up">
 						<h1 class="text-3xl md:text-4xl font-bold text-foreground mb-2">
-							Welcome back, <span class="text-gradient">{ userName }</span>! 👋
+							Welcome back, <span class="text-gradient">{ data.UserName }</span>! 👋
 						</h1>
 						<p class="text-muted-foreground">
 							Here's what's happening with your skill exchange journey.
@@ -25,10 +74,10 @@ templ Dashboard(userName string, userAvatar string, successMsg string, points in
 					</div>
 					<!-- Stats Cards -->
 					<div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-						@statCard("Points", strconv.Itoa(points), "text-amber-500", matchesIcon())
-						@statCard("Tier", tier, "text-purple-500", sessionsIcon())
-						@statCard("Matches", "24", "text-amber-500", matchesIcon())
-						@statCard("Sessions", "7", "text-purple-500", sessionsIcon())
+						@statCard("Points", strconv.Itoa(data.Stats.Points), "text-amber-500", pointsIcon())
+						@statCard("Tier", data.Stats.Tier, "text-purple-500", tierIcon())
+						@statCard("Matches", strconv.Itoa(data.Stats.Matches), "text-emerald-500", matchesIcon())
+						@statCard("Sessions", strconv.Itoa(data.Stats.Sessions), "text-blue-500", sessionsIcon())
 					</div>
 					<!-- Main Content Grid -->
 					<div class="grid lg:grid-cols-3 gap-6">
@@ -68,13 +117,16 @@ templ Dashboard(userName string, userAvatar string, successMsg string, points in
 							<div class="glass-card rounded-xl p-6 animate-fade-in-up delay-200">
 								<div class="flex items-center justify-between mb-4">
 									<h2 class="text-lg font-semibold text-foreground">Recent Activity</h2>
-									<a href="/activity" class="text-sm text-primary hover:underline">View all</a>
+									<a href="/matches" class="text-sm text-primary hover:underline">View all</a>
 								</div>
 								<div class="space-y-4">
-									@activityItem("Sarah M.", "wants to learn Python from you", "2 hours ago", "match")
-									@activityItem("Alex K.", "completed a session with you", "Yesterday", "session")
-									@activityItem("Maria G.", "sent you a message", "2 days ago", "message")
-									@activityItem("System", "Your profile was viewed 15 times this week", "3 days ago", "info")
+									if len(data.Activities) > 0 {
+										for _, activity := range data.Activities {
+											@activityItem(activity.UserName, activity.Action, activity.TimeAgo, activity.Type)
+										}
+									} else {
+										@activityItem("Welcome", "Start by adding skills you can teach and want to learn!", "Just now", "info")
+									}
 								</div>
 							</div>
 						</div>
@@ -87,9 +139,15 @@ templ Dashboard(userName string, userAvatar string, successMsg string, points in
 									<a href="/matches" class="text-sm text-primary hover:underline">See all</a>
 								</div>
 								<div class="space-y-3">
-									@matchCard("Emily Chen", "Python, Data Science", "98%", "/avatars/1.jpg")
-									@matchCard("Marcus Johnson", "Guitar, Music Theory", "94%", "/avatars/2.jpg")
-									@matchCard("Sofia Rodriguez", "Spanish, Portuguese", "91%", "/avatars/3.jpg")
+									if len(data.TopMatches) > 0 {
+										for _, match := range data.TopMatches {
+											@matchCard(match.DisplayName, match.Skills, fmt.Sprintf("%d%%", match.MatchScore), match.AvatarURL, match.UserID)
+										}
+									} else {
+										<p class="text-sm text-muted-foreground text-center py-4">
+											Add skills to find matches!
+										</p>
+									}
 								</div>
 							</div>
 							<!-- Profile Completion -->
@@ -97,38 +155,22 @@ templ Dashboard(userName string, userAvatar string, successMsg string, points in
 								<h2 class="text-lg font-semibold text-foreground mb-4">Profile Strength</h2>
 								<div class="relative pt-1">
 									<div class="flex items-center justify-between mb-2">
-										<span class="text-sm font-medium text-foreground">65% Complete</span>
-										<span class="text-xs text-muted-foreground">+35% to unlock all features</span>
+										<span class="text-sm font-medium text-foreground">{ strconv.Itoa(data.ProfileStrength.Percentage) }% Complete</span>
+										if data.ProfileStrength.Percentage < 100 {
+											<span class="text-xs text-muted-foreground">+{ strconv.Itoa(100 - data.ProfileStrength.Percentage) }% to unlock all features</span>
+										}
 									</div>
 									<div class="overflow-hidden h-2 rounded-full bg-muted">
-										<div class="h-full rounded-full bg-gradient-to-r from-primary to-accent" style="width: 65%"></div>
+										<div class="h-full rounded-full bg-gradient-to-r from-primary to-accent" style={ fmt.Sprintf("width: %d%%", data.ProfileStrength.Percentage) }></div>
 									</div>
 								</div>
 								<div class="mt-4 space-y-2">
-									<div class="flex items-center gap-2 text-sm text-muted-foreground">
-										<svg class="w-4 h-4 text-emerald-500" fill="currentColor" viewBox="0 0 20 20">
-											<path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
-										</svg>
-										Add profile photo
-									</div>
-									<div class="flex items-center gap-2 text-sm text-muted-foreground">
-										<svg class="w-4 h-4 text-emerald-500" fill="currentColor" viewBox="0 0 20 20">
-											<path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
-										</svg>
-										Add bio
-									</div>
-									<div class="flex items-center gap-2 text-sm text-foreground">
-										<svg class="w-4 h-4 text-border" fill="currentColor" viewBox="0 0 20 20">
-											<path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-11a1 1 0 10-2 0v2H7a1 1 0 100 2h2v2a1 1 0 102 0v-2h2a1 1 0 100-2h-2V7z" clip-rule="evenodd"></path>
-										</svg>
-										Add 3+ skills you can teach
-									</div>
-									<div class="flex items-center gap-2 text-sm text-foreground">
-										<svg class="w-4 h-4 text-border" fill="currentColor" viewBox="0 0 20 20">
-											<path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-11a1 1 0 10-2 0v2H7a1 1 0 100 2h2v2a1 1 0 102 0v-2h2a1 1 0 100-2h-2V7z" clip-rule="evenodd"></path>
-										</svg>
-										Complete your first exchange
-									</div>
+									@profileCheckItem("Add profile photo", data.ProfileStrength.HasAvatar)
+									@profileCheckItem("Add bio", data.ProfileStrength.HasBio)
+									@profileCheckItem("Add 3+ skills you can teach", data.ProfileStrength.HasOfferedSkills)
+									@profileCheckItem("Add 3+ skills you want to learn", data.ProfileStrength.HasWantedSkills)
+									@profileCheckItem("Complete your first session", data.ProfileStrength.HasSession)
+									@profileCheckItem("Add social links", data.ProfileStrength.HasSocialLinks)
 								</div>
 								<a href="/profile" class="btn btn-outline w-full mt-4">
 									Complete Profile
@@ -222,10 +264,12 @@ templ activityIcon(activityType string) {
 	}
 }
 
-templ matchCard(name string, skills string, matchPercent string, avatar string) {
-	<a href="#" class="flex items-center gap-3 p-3 rounded-lg hover:bg-muted/50 transition-colors group">
+templ matchCard(name string, skills string, matchPercent string, avatar string, userID string) {
+	<a href={ templ.SafeURL("/users/" + userID) } class="flex items-center gap-3 p-3 rounded-lg hover:bg-muted/50 transition-colors group">
 		<div class="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center text-primary font-semibold text-sm flex-shrink-0">
-			{ string([]rune(name)[0]) }
+			if len(name) > 0 {
+				{ string([]rune(name)[0]) }
+			}
 		</div>
 		<div class="flex-1 min-w-0">
 			<p class="text-sm font-medium text-foreground truncate group-hover:text-primary transition-colors">{ name }</p>
@@ -235,4 +279,32 @@ templ matchCard(name string, skills string, matchPercent string, avatar string) 
 			{ matchPercent }
 		</div>
 	</a>
+}
+
+templ profileCheckItem(label string, completed bool) {
+	<div class="flex items-center gap-2 text-sm">
+		if completed {
+			<svg class="w-4 h-4 text-emerald-500" fill="currentColor" viewBox="0 0 20 20">
+				<path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
+			</svg>
+			<span class="text-muted-foreground">{ label }</span>
+		} else {
+			<svg class="w-4 h-4 text-border" fill="currentColor" viewBox="0 0 20 20">
+				<path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-11a1 1 0 10-2 0v2H7a1 1 0 100 2h2v2a1 1 0 102 0v-2h2a1 1 0 100-2h-2V7z" clip-rule="evenodd"></path>
+			</svg>
+			<span class="text-foreground">{ label }</span>
+		}
+	</div>
+}
+
+templ pointsIcon() {
+	<svg class="w-6 h-6 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+		<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+	</svg>
+}
+
+templ tierIcon() {
+	<svg class="w-6 h-6 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+		<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z"></path>
+	</svg>
 }

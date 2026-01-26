@@ -80,11 +80,29 @@ func GetSession(r *http.Request) (*sessions.Session, error) {
 	return GetStore().Get(r, SessionName)
 }
 
+// Session duration constants
+const (
+	DefaultSessionMaxAge    = 86400          // 1 day in seconds
+	RememberMeSessionMaxAge = 30 * 24 * 3600 // 30 days in seconds
+)
+
 // CreateSession creates a new authenticated session
 func CreateSession(w http.ResponseWriter, r *http.Request, u *user.User) error {
+	return CreateSessionWithRemember(w, r, u, false)
+}
+
+// CreateSessionWithRemember creates a new authenticated session with optional extended duration
+func CreateSessionWithRemember(w http.ResponseWriter, r *http.Request, u *user.User, rememberMe bool) error {
 	session, err := GetSession(r)
 	if err != nil {
 		return err
+	}
+
+	// Set session max age based on remember me preference
+	if rememberMe {
+		session.Options.MaxAge = RememberMeSessionMaxAge
+	} else {
+		session.Options.MaxAge = DefaultSessionMaxAge
 	}
 
 	session.Values[UserIDKey] = u.ID

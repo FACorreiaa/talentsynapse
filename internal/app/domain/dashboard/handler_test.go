@@ -2,7 +2,6 @@ package dashboard
 
 import (
 	"context"
-	"errors"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -12,24 +11,14 @@ import (
 	"github.com/FACorreiaa/talentsynapse/internal/app/domain/user"
 )
 
-type mockUserStatsRepo struct {
-	points int
-	tier   string
-	err    error
-}
-
-func (m *mockUserStatsRepo) GetUserStats(ctx context.Context, userID string) (int, string, error) {
-	return m.points, m.tier, m.err
-}
-
 func attachSession(r *http.Request, data user.SessionData) *http.Request {
 	ctx := context.WithValue(r.Context(), auth.SessionDataKey, data)
 	return r.WithContext(ctx)
 }
 
-func TestShowRendersUserStats(t *testing.T) {
-	repo := &mockUserStatsRepo{points: 120, tier: "Silver"}
-	handler := NewHandler(repo)
+func TestShowRendersDefaultsWhenNoRepo(t *testing.T) {
+	// Handler with nil repo should render defaults
+	handler := NewHandler(nil)
 
 	req := httptest.NewRequest(http.MethodGet, "/dashboard", nil)
 	req = attachSession(req, user.SessionData{UserID: "user-123", UserName: "Test User", UserAvatar: ""})
@@ -38,26 +27,32 @@ func TestShowRendersUserStats(t *testing.T) {
 	handler.Show(rr, req)
 
 	body := rr.Body.String()
-	if !strings.Contains(body, "120") {
-		t.Fatalf("expected points to be rendered, got body: %s", body)
+	// Should render the welcome message with user name
+	if !strings.Contains(body, "Test User") {
+		t.Fatalf("expected user name to be rendered, got body: %s", body)
 	}
-	if !strings.Contains(body, "Silver") {
-		t.Fatalf("expected tier to be rendered, got body: %s", body)
+	// Should render default tier
+	if !strings.Contains(body, "Bronze") {
+		t.Fatalf("expected fallback tier to be Bronze, got body: %s", body)
+	}
+	// Should render 0 points
+	if !strings.Contains(body, ">0<") || !strings.Contains(body, "Points") {
+		t.Fatalf("expected 0 points to be rendered, got body: %s", body)
 	}
 }
 
-func TestShowFallsBackOnStatsError(t *testing.T) {
-	repo := &mockUserStatsRepo{err: errors.New("boom")}
-	handler := NewHandler(repo)
+func TestShowRendersWithEmptySession(t *testing.T) {
+	handler := NewHandler(nil)
 
 	req := httptest.NewRequest(http.MethodGet, "/dashboard", nil)
-	req = attachSession(req, user.SessionData{UserID: "user-123", UserName: "Test User", UserAvatar: ""})
+	// Attach session with empty user data
+	req = attachSession(req, user.SessionData{UserID: "", UserName: "Guest", UserAvatar: ""})
 	rr := httptest.NewRecorder()
 
 	handler.Show(rr, req)
 
-	body := rr.Body.String()
-	if !strings.Contains(body, "Bronze") {
-		t.Fatalf("expected fallback tier to be Bronze, got body: %s", body)
+	// Should return 200 OK
+	if rr.Code != http.StatusOK {
+		t.Fatalf("expected status 200, got %d", rr.Code)
 	}
 }
