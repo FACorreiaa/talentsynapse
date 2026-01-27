@@ -87,8 +87,14 @@ func (s *Server) RegisterRoutes() http.Handler {
 	}
 	secureMiddleware := secure.New(secureOpts)
 	r.Use(func(next http.Handler) http.Handler {
-		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			secureMiddleware.Handler(next).ServeHTTP(w, r)
+		return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+			// Skip SSL redirect for health check and metrics endpoints
+			// These are called internally and don't need HTTPS
+			if req.URL.Path == "/health" || req.URL.Path == "/metrics" {
+				next.ServeHTTP(w, req)
+				return
+			}
+			secureMiddleware.Handler(next).ServeHTTP(w, req)
 		})
 	})
 
