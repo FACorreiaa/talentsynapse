@@ -12,11 +12,13 @@ import (
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/cors"
 	"github.com/go-chi/httprate"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/unrolled/secure"
 
 	"github.com/FACorreiaa/talentsynapse/assets"
 	"github.com/FACorreiaa/talentsynapse/internal/app/domain/auth"
 	"github.com/FACorreiaa/talentsynapse/internal/container"
+	customMiddleware "github.com/FACorreiaa/talentsynapse/internal/middleware"
 )
 
 // RegisterRoutes sets up all routes and middleware
@@ -39,6 +41,12 @@ func (s *Server) RegisterRoutes() http.Handler {
 	r.Use(func(next http.Handler) http.Handler {
 		return sentryHandler.Handle(next)
 	})
+
+	// Prometheus metrics middleware (detailed HTTP metrics)
+	r.Use(customMiddleware.PrometheusMiddleware)
+
+	// Sentry metrics middleware (breadcrumbs for context)
+	r.Use(customMiddleware.MetricsMiddleware)
 
 	r.Use(middleware.RequestID)
 	r.Use(middleware.RealIP)
@@ -110,9 +118,12 @@ func (s *Server) RegisterRoutes() http.Handler {
 	}
 
 	// ──────────────────────────────────────────────────────────────────
-	// Health Check
+	// Health Check & Metrics
 	// ──────────────────────────────────────────────────────────────────
 	r.Get("/health", s.handleHealth)
+
+	// Prometheus metrics endpoint
+	r.Handle("/metrics", promhttp.Handler())
 
 	// ──────────────────────────────────────────────────────────────────
 	// Public Routes

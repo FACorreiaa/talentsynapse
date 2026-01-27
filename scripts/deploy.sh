@@ -3,8 +3,8 @@
 # This script is executed on the VPS by GitHub Actions
 set -e
 
-APP_DIR="/var/www/TalentSynapse"
-SERVICE_NAME="TalentSynapse"
+APP_DIR="/var/www/myapp"
+SERVICE_NAME="myapp"
 BINARY_NAME="server"
 
 cd "$APP_DIR"
@@ -32,7 +32,7 @@ mv server.new "$BINARY_NAME"
 
 # Run database migrations (optional - uncomment if needed)
 # echo "🗃️ Running database migrations..."
-# /var/www/TalentSynapse/goose -dir ./migrations postgres "$DATABASE_URL" up
+# /var/www/myapp/goose -dir ./migrations postgres "$DATABASE_URL" up
 
 # Restart service
 echo "🔄 Restarting service..."

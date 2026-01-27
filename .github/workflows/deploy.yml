@@ -94,12 +94,12 @@ jobs:
           # Upload new binary with temporary name
           scp -o StrictHostKeyChecking=no \
             bin/${{ env.BINARY_NAME }} \
-            ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}:/var/www/TalentSynapse/server.new
+            ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}:/var/www/myapp/server.new
 
           # Run deployment script on VPS
           ssh -o StrictHostKeyChecking=no \
             ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} \
-            'bash /var/www/TalentSynapse/deploy.sh'
+            'bash /var/www/myapp/deploy.sh'
 
       - name: Health check
         run: |

@@ -26,7 +26,8 @@ TalentSynapse is built as a **Progressive Web App (PWA)** with server-side rende
 - **Sessions and Chat**: Schedule 1:1 exchanges with real-time chat via WebSockets. Basic exchanges are free; premium users get priority scheduling and unlimited chats.
 - **Monetization Features**: Freemium—free basic access; premium subscriptions for advanced matching, certifications (e.g., badges for completed exchanges), and ad-free experience. Users pay for access to high-demand 1:1 chats with verified experts.
 - **Admin Tools**: Moderation for profiles, dispute resolution, and analytics.
-
+- **Gamification**: Badges, points, and leaderboards to encourage engagement and skill-building.
+- 
 ### Target Audience
 - Learners seeking affordable, personalized skill-building (e.g., students, career changers).
 - Experts monetizing niche skills in the gig economy.
