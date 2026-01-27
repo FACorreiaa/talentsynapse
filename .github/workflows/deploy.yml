@@ -21,6 +21,12 @@ jobs:
         with:
           go-version: ${{ env.GO_VERSION }}
 
+      - name: Install Templ
+        run: go install github.com/a-h/templ/cmd/templ@latest
+
+      - name: Generate Templ templates
+        run: templ generate
+
       - name: Run tests
         run: go test -v ./...
 
