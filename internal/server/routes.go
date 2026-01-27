@@ -277,6 +277,12 @@ func (s *Server) RegisterRoutes() http.Handler {
 func (s *Server) handleHealth(w http.ResponseWriter, r *http.Request) {
 	health := s.db.Health()
 	w.Header().Set("Content-Type", "application/json")
+
+	// Return 503 if unhealthy
+	if health["status"] == "unhealthy" {
+		w.WriteHeader(http.StatusServiceUnavailable)
+	}
+
 	_ = json.NewEncoder(w).Encode(health)
 }
 

@@ -87,17 +87,27 @@ func (s *service) Close() error {
 
 // Health checks database connection health
 func (s *service) Health() map[string]string {
+	// Check if database pool is initialized
+	if s.db == nil {
+		return map[string]string{
+			"status":  "unhealthy",
+			"message": "database connection not initialized",
+		}
+	}
+
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 	defer cancel()
 
-	stats := s.db.Stat()
-
+	// Ping database first
 	if err := s.db.Ping(ctx); err != nil {
 		return map[string]string{
 			"status":  "unhealthy",
 			"message": err.Error(),
 		}
 	}
+
+	// Get stats (may panic if connection is invalid)
+	stats := s.db.Stat()
 
 	return map[string]string{
 		"status":         "healthy",
