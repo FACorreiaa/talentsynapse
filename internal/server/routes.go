@@ -124,6 +124,14 @@ func (s *Server) RegisterRoutes() http.Handler {
 		r.Handle("/assets/*", http.StripPrefix("/assets", fs))
 	}
 
+	// Favicon - serve SVG icon (browsers support SVG favicons)
+	r.Get("/favicon.ico", func(w http.ResponseWriter, req *http.Request) {
+		http.Redirect(w, req, "/assets/static/icon.svg", http.StatusMovedPermanently)
+	})
+	r.Get("/favicon.svg", func(w http.ResponseWriter, req *http.Request) {
+		http.Redirect(w, req, "/assets/static/icon.svg", http.StatusMovedPermanently)
+	})
+
 	// ──────────────────────────────────────────────────────────────────
 	// Health Check & Metrics
 	// ──────────────────────────────────────────────────────────────────
