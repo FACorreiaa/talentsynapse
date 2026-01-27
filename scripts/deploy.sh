@@ -36,13 +36,16 @@ mv server.new "$BINARY_NAME"
 
 # Restart service
 echo "🔄 Restarting service..."
-systemctl restart "$SERVICE_NAME"
+systemctl --no-ask-password restart "$SERVICE_NAME" 2>/dev/null || {
+    echo "⚠️  Using sudo for systemctl..."
+    echo "" | sudo -S systemctl restart "$SERVICE_NAME"
+}
 
 # Wait for service to start
 sleep 3
 
 # Check if service is running
-if systemctl is-active --quiet "$SERVICE_NAME"; then
+if systemctl is-active --quiet "$SERVICE_NAME" 2>/dev/null || sudo systemctl is-active --quiet "$SERVICE_NAME"; then
     echo "✅ Service restarted successfully!"
 
     # Clean up old backup (keep only 1)
@@ -56,7 +59,7 @@ else
     # Rollback
     if [ -f "${BINARY_NAME}.backup" ]; then
         mv "${BINARY_NAME}.backup" "$BINARY_NAME"
-        systemctl restart "$SERVICE_NAME"
+        systemctl --no-ask-password restart "$SERVICE_NAME" 2>/dev/null || sudo -S systemctl restart "$SERVICE_NAME" <<< ""
         echo "🔙 Rolled back to previous version"
     fi
 
