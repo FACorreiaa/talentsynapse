@@ -77,7 +77,8 @@ func (s *Server) RegisterRoutes() http.Handler {
 	}
 	if !isDev {
 		// Production-only strict settings
-		secureOpts.AllowedHosts = []string{"talentsynapse.org", "www.talentsynapse.org"}
+		// Allow localhost for health checks
+		secureOpts.AllowedHosts = []string{"talentsynapse.org", "www.talentsynapse.org", "localhost:8080", "localhost"}
 		secureOpts.SSLRedirect = true
 		secureOpts.STSSeconds = 31536000
 		secureOpts.STSIncludeSubdomains = true
