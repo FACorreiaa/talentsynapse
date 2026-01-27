@@ -25,7 +25,7 @@ func main() {
 	signal.Notify(done, os.Interrupt, syscall.SIGINT, syscall.SIGTERM)
 
 	// Determine deployment mode
-	domain := os.Getenv("DOMAIN")  // e.g., "skillsphere.com"
+	domain := os.Getenv("DOMAIN")  // e.g., "TalentSynapse.com"
 	useTLS := os.Getenv("USE_TLS") // "true" for built-in TLS
 	goEnv := os.Getenv("GO_ENV")   // "production" or "development"
 

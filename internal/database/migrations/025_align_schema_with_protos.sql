@@ -1,7 +1,7 @@
 -- +goose Up
 -- Align enums and add tables so the schema matches the proto contracts and README features.
 
--- Normalize session_status values to match skillsphere.common.v1.SessionStatus
+-- Normalize session_status values to match TalentSynapse.common.v1.SessionStatus
 ALTER TYPE session_status RENAME TO session_status_old;
 CREATE TYPE session_status AS ENUM ('scheduled', 'in_progress', 'completed', 'cancelled', 'no_show');
 ALTER TABLE sessions
@@ -16,7 +16,7 @@ ALTER TABLE sessions
   ALTER COLUMN status SET DEFAULT 'scheduled';
 DROP TYPE session_status_old;
 
--- Make proficiency_level consistent with skillsphere.common.v1.ProficiencyLevel
+-- Make proficiency_level consistent with TalentSynapse.common.v1.ProficiencyLevel
 ALTER TYPE proficiency_level RENAME TO proficiency_level_old;
 CREATE TYPE proficiency_level AS ENUM ('beginner', 'intermediate', 'expert');
 ALTER TABLE gigs
@@ -44,7 +44,7 @@ BEGIN
 END $$;
 -- +goose StatementEnd
 
--- Align payment_status enum with skillsphere.common.v1.PaymentStatus
+-- Align payment_status enum with TalentSynapse.common.v1.PaymentStatus
 ALTER TYPE payment_status RENAME TO payment_status_old;
 CREATE TYPE payment_status AS ENUM ('pending', 'completed', 'failed', 'refunded', 'held_in_escrow');
 ALTER TABLE payments
@@ -71,7 +71,7 @@ ALTER TABLE subscriptions
 ALTER TABLE escrow_payments
   ADD COLUMN IF NOT EXISTS release_condition VARCHAR(100);
 
--- Payment method metadata backing skillsphere.payment.v1.PaymentMethodInfo
+-- Payment method metadata backing TalentSynapse.payment.v1.PaymentMethodInfo
 CREATE TYPE payment_method_type AS ENUM ('card', 'paypal', 'bank_transfer', 'crypto');
 
 CREATE TABLE payment_methods (
@@ -137,7 +137,7 @@ CREATE TABLE search_queries (
 CREATE INDEX idx_search_queries_user_id ON search_queries (user_id);
 CREATE INDEX idx_search_queries_created_at ON search_queries (created_at);
 
--- Workshop tables (skillsphere.workshop.v1)
+-- Workshop tables (TalentSynapse.workshop.v1)
 CREATE TYPE workshop_status AS ENUM ('draft', 'published', 'scheduled', 'live', 'completed', 'cancelled');
 CREATE TYPE workshop_format AS ENUM ('lecture', 'interactive', 'hands_on', 'q_and_a');
 CREATE TYPE workshop_difficulty AS ENUM ('beginner', 'intermediate', 'advanced');
@@ -198,7 +198,7 @@ CREATE TABLE workshop_registrations (
   PRIMARY KEY (workshop_id, user_id)
 );
 
--- Certifications (skillsphere.certification.v1)
+-- Certifications (TalentSynapse.certification.v1)
 CREATE TYPE certification_type AS ENUM ('skill_completion', 'expert_verified', 'milestone', 'achievement');
 CREATE TYPE certification_status AS ENUM ('pending', 'issued', 'revoked');
 CREATE TYPE blockchain_network AS ENUM ('polygon', 'ethereum', 'solana');
@@ -235,7 +235,7 @@ CREATE TRIGGER update_certifications_updated_at
   FOR EACH ROW
   EXECUTE FUNCTION set_updated_at();
 
--- Challenges (skillsphere.challenge.v1)
+-- Challenges (TalentSynapse.challenge.v1)
 CREATE TYPE challenge_status AS ENUM ('upcoming', 'active', 'voting', 'completed', 'cancelled');
 CREATE TYPE challenge_type AS ENUM ('weekly', 'monthly', 'special_event', 'sponsored');
 CREATE TYPE challenge_entry_status AS ENUM ('draft', 'submitted', 'disqualified', 'winner');
@@ -302,7 +302,7 @@ CREATE TABLE challenge_votes (
   PRIMARY KEY (challenge_id, voter_id)
 );
 
--- Analytics storage for skillsphere.analytics.v1
+-- Analytics storage for TalentSynapse.analytics.v1
 CREATE TYPE metric_granularity AS ENUM ('hourly', 'daily', 'weekly', 'monthly');
 
 CREATE TABLE platform_metrics (

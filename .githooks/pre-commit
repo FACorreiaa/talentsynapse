@@ -1,5 +1,5 @@
 #!/bin/bash
-# Pre-commit hook for SkillSphere
+# Pre-commit hook for TalentSynapse
 # Runs: gofumpt, templ fmt, golangci-lint
 
 set -e

@@ -96,6 +96,14 @@ build: templ ## Build production binary
 	@CGO_ENABLED=0 go build -ldflags="-s -w" -o ./bin/$(BINARY_NAME) ./cmd/server
 	@echo "✅ Build complete: ./bin/$(BINARY_NAME)"
 
+build-linux: templ ## Build production binary for Linux x86_64
+	@echo "🔨 Building CSS..."
+	@tailwindcss -i ./assets/css/input.css -o ./assets/css/output.css --minify
+	@echo "🔨 Building binary for Linux..."
+	@CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags="-s -w" -o ./bin/$(BINARY_NAME) ./cmd/server
+	@file ./bin/$(BINARY_NAME)
+	@echo "✅ Build complete: ./bin/$(BINARY_NAME)"
+
 run: build ## Build and run the application
 	./bin/$(BINARY_NAME)
 
@@ -244,19 +252,19 @@ deploy-prod: build-prod ## Build and deploy to production
 	@echo "📋 Next steps - Run these commands on your VPS:"
 	@echo ""
 	@echo "  # 1. Stop service"
-	@echo "  sudo systemctl stop skillsphere"
+	@echo "  sudo systemctl stop TalentSynapse"
 	@echo ""
 	@echo "  # 2. Run migrations"
-	@echo "  /var/www/skillsphere/migrate.sh"
+	@echo "  /var/www/TalentSynapse/migrate.sh"
 	@echo ""
 	@echo "  # 3. Deploy new binary"
-	@echo "  cp /var/www/skillsphere/server.new /var/www/skillsphere/server"
+	@echo "  cp /var/www/TalentSynapse/server.new /var/www/TalentSynapse/server"
 	@echo ""
 	@echo "  # 4. Start service"
-	@echo "  sudo systemctl start skillsphere"
+	@echo "  sudo systemctl start TalentSynapse"
 	@echo ""
 	@echo "  # 5. Check status"
-	@echo "  sudo systemctl status skillsphere"
+	@echo "  sudo systemctl status TalentSynapse"
 	@echo ""
 	@echo "  # 6. Health check"
 	@echo "  curl -I https://yourdomain.com/health"

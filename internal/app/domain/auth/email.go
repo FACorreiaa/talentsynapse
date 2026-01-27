@@ -24,7 +24,7 @@ func NewEmailService() *EmailService {
 
 	from := os.Getenv("EMAIL_FROM")
 	if from == "" {
-		from = "TalentSynapse <noreply@skillsphere.com>"
+		from = "TalentSynapse <noreply@TalentSynapse.com>"
 	}
 
 	appURL := os.Getenv("APP_URL")

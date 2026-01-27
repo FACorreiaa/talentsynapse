@@ -27,7 +27,7 @@ INSERT INTO
 VALUES (
         'early_adopter',
         'Early Adopter',
-        'Joined SkillSphere in the early days.',
+        'Joined TalentSynapse in the early days.',
         '🚀'
     ),
     (

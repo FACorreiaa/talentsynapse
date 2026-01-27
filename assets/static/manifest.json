@@ -1,6 +1,6 @@
 {
-  "name": "SkillSphere",
-  "short_name": "SkillSphere",
+  "name": "TalentSynapse",
+  "short_name": "TalentSynapse",
   "description": "Professional skill tracking and exchange platform",
   "start_url": "/",
   "display": "standalone",

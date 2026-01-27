@@ -2,6 +2,14 @@
 
 ![TalentSynapse Logo](https://via.placeholder.com/150?text=TalentSynapse) <!-- Replace with actual logo URL if available -->
 
+---
+
+**Copyright © 2026 TalentSynapse/TalentSynapse. All Rights Reserved.**
+
+This repository contains proprietary software. Unauthorized use, copying, modification, or distribution is strictly prohibited. See [LICENSE](LICENSE) and [COPYRIGHT](COPYRIGHT) for details.
+
+---
+
 ## Overview
 
 TalentSynapse is a peer-to-peer (P2P) skill exchange platform that connects users to trade skills in real-time. Whether you're teaching Python programming or learning guitar, TalentSynapse facilitates 1:1 exchanges through profiles, matching algorithms, and interactive sessions. Built as a lightweight, scalable web app with modern RPC architecture, it emphasizes simplicity for solo developers while supporting growth into a monetized service.

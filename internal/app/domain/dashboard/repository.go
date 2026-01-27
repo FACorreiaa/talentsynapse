@@ -263,14 +263,16 @@ func (r *Repository) GetRecentActivity(ctx context.Context, userID string, limit
 
 	// Get recent messages received
 	messageQuery := `
-		SELECT 
+		SELECT
 			u.display_name,
 			'sent you a message',
-			m.created_at
+			m.sent_at
 		FROM messages m
 		JOIN users u ON m.sender_id = u.id
-		WHERE m.receiver_id = $1
-		ORDER BY m.created_at DESC
+		JOIN conversations c ON m.conversation_id = c.id
+		WHERE (c.user_a_id = $1 OR c.user_b_id = $1)
+		AND m.sender_id != $1
+		ORDER BY m.sent_at DESC
 		LIMIT 2
 	`
 	rows3, err := r.pool.Query(ctx, messageQuery, userID)

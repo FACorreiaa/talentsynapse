@@ -1,6 +1,6 @@
-// Service Worker for Skillsphere PWA
+// Service Worker for TalentSynapse PWA
 // Version: 3.0 - Migrated from Hyperscript to Surreal
-const CACHE_NAME = 'skillsphere-v3';
+const CACHE_NAME = 'TalentSynapse-v3';
 const urlsToCache = [
   '/',
   '/assets/css/output.css',

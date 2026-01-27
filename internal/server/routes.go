@@ -69,7 +69,7 @@ func (s *Server) RegisterRoutes() http.Handler {
 	}
 	if !isDev {
 		// Production-only strict settings
-		secureOpts.AllowedHosts = []string{"yourdomain.com"}
+		secureOpts.AllowedHosts = []string{"talentsynapse.org", "www.talentsynapse.org"}
 		secureOpts.SSLRedirect = true
 		secureOpts.STSSeconds = 31536000
 		secureOpts.STSIncludeSubdomains = true
@@ -273,6 +273,6 @@ func (s *Server) handleHealth(w http.ResponseWriter, r *http.Request) {
 func (s *Server) handleAPIHello(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	_ = json.NewEncoder(w).Encode(map[string]string{
-		"message": "Hello from SkillSphere!",
+		"message": "Hello from TalentSynapse!",
 	})
 }
