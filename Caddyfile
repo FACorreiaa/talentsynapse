@@ -6,7 +6,7 @@
 
 {
     # Global options
-    email admin@your-domain.com  # ⚠️ CHANGE THIS to your email!
+    email admin@talentsynapse.org
 }
 
 # Development (optional - if you want local HTTPS testing)
@@ -16,7 +16,7 @@
 # }
 
 # Production
-your-domain.com {  # ⚠️ CHANGE THIS to your actual domain!
+talentsynapse.org {
     # Automatic HTTPS via Let's Encrypt
     # No configuration needed!
 
@@ -68,6 +68,6 @@ your-domain.com {  # ⚠️ CHANGE THIS to your actual domain!
 }
 
 # Optional: Redirect www to non-www
-www.your-domain.com {  # ⚠️ CHANGE THIS to your actual domain!
-    redir https://your-domain.com{uri} permanent
+www.talentsynapse.org {
+    redir https://talentsynapse.org{uri} permanent
 }
