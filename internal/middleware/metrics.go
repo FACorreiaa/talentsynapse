@@ -13,10 +13,13 @@ func MetricsMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		start := time.Now()
 
+		// Sanitize path for consistent metrics
+		sanitizedPath := sanitizePathForMetrics(r.URL.Path)
+
 		// Track request count
 		observability.IncrementCounter("http.requests", map[string]string{
 			"method": r.Method,
-			"path":   r.URL.Path,
+			"path":   sanitizedPath,
 		})
 
 		// Wrap ResponseWriter to capture status code
@@ -28,7 +31,7 @@ func MetricsMiddleware(next http.Handler) http.Handler {
 		duration := time.Since(start).Milliseconds()
 		observability.TrackMetric("http.response_time", float64(duration), map[string]string{
 			"method": r.Method,
-			"path":   r.URL.Path,
+			"path":   sanitizedPath,
 			"status": http.StatusText(ww.statusCode),
 		})
 
@@ -36,7 +39,7 @@ func MetricsMiddleware(next http.Handler) http.Handler {
 		if r.ContentLength > 0 {
 			observability.TrackMetric("http.request_size", float64(r.ContentLength), map[string]string{
 				"method": r.Method,
-				"path":   r.URL.Path,
+				"path":   sanitizedPath,
 			})
 		}
 
@@ -44,9 +47,25 @@ func MetricsMiddleware(next http.Handler) http.Handler {
 		observability.IncrementCounter("http.status", map[string]string{
 			"code":   http.StatusText(ww.statusCode),
 			"method": r.Method,
-			"path":   r.URL.Path,
+			"path":   sanitizedPath,
 		})
 	})
+}
+
+// sanitizePathForMetrics sanitizes URL paths for use in metrics
+// Less strict than Prometheus version since Sentry is more forgiving
+func sanitizePathForMetrics(path string) string {
+	if path == "" {
+		return "/"
+	}
+
+	// Limit length to prevent excessive data
+	const maxPathLength = 200
+	if len(path) > maxPathLength {
+		path = path[:maxPathLength] + "..."
+	}
+
+	return path
 }
 
 // responseWriter wraps http.ResponseWriter to capture status code
