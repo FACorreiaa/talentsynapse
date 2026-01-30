@@ -13,16 +13,62 @@ type TabItem struct {
 // The tabs are server-rendered and state is managed via hypermedia
 templ Tabs(tabs []TabItem, targetID string) {
 	<div class="tabs-container w-full" role="tablist" aria-label="Content tabs">
-		<!-- Mobile-friendly horizontal scrolling tabs -->
-		<div class="relative">
+		<!-- Mobile: Dropdown for tabs -->
+		<div class="md:hidden relative mb-4">
+			<button
+				type="button"
+				class="w-full flex items-center justify-between gap-2 px-4 py-3 bg-muted border border-border rounded-lg text-sm font-medium text-foreground"
+				onclick="toggleTabsDropdown(this)"
+				aria-expanded="false"
+				aria-haspopup="true"
+			>
+				<span class="flex items-center gap-2">
+					for _, tab := range tabs {
+						if tab.Selected {
+							if tab.Icon != "" {
+								@TabIcon(tab.Icon)
+							}
+							<span>{ tab.Label }</span>
+						}
+					}
+				</span>
+				<svg class="w-5 h-5 transition-transform duration-200 tabs-dropdown-chevron" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+					<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+				</svg>
+			</button>
+			<!-- Dropdown menu -->
+			<div class="tabs-dropdown-menu hidden absolute left-0 right-0 mt-1 bg-card border border-border rounded-lg shadow-lg z-50 overflow-hidden">
+				for _, tab := range tabs {
+					<button
+						hx-get={ tab.URL }
+						hx-target={ "#" + targetID }
+						hx-swap="innerHTML"
+						hx-push-url="true"
+						class={ "w-full flex items-center gap-3 px-4 py-3 text-sm font-medium transition-colors",
+							templ.KV("bg-primary/10 text-primary", tab.Selected),
+							templ.KV("text-foreground hover:bg-muted", !tab.Selected) }
+						role="tab"
+						aria-selected={ boolToString(tab.Selected) }
+						onclick="closeTabsDropdown(this)"
+					>
+						if tab.Icon != "" {
+							@TabIcon(tab.Icon)
+						}
+						{ tab.Label }
+					</button>
+				}
+			</div>
+		</div>
+		<!-- Desktop: Horizontal scrolling tabs -->
+		<div class="hidden md:block relative">
 			<!-- Gradient fade indicators for scroll -->
-			<div class="pointer-events-none absolute left-0 top-0 bottom-0 w-6 bg-gradient-to-r from-background to-transparent z-10 opacity-0 md:hidden" id="scroll-fade-left"></div>
-			<div class="pointer-events-none absolute right-0 top-0 bottom-0 w-6 bg-gradient-to-l from-background to-transparent z-10 opacity-0 md:hidden" id="scroll-fade-right"></div>
+			<div class="pointer-events-none absolute left-0 top-0 bottom-0 w-6 bg-gradient-to-r from-background to-transparent z-10 opacity-0" id="scroll-fade-left"></div>
+			<div class="pointer-events-none absolute right-0 top-0 bottom-0 w-6 bg-gradient-to-l from-background to-transparent z-10 opacity-0" id="scroll-fade-right"></div>
 			<div class="flex border-b border-border overflow-x-auto scrollbar-hide scroll-smooth -webkit-overflow-scrolling-touch pb-px">
 				for _, tab := range tabs {
 					<button
 						hx-get={ tab.URL }
-						hx-target="#settings-tabs"
+						hx-target={ "#" + targetID }
 						hx-swap="innerHTML"
 						hx-push-url="true"
 						class={ "tab-button flex items-center gap-2 px-3 md:px-4 py-3 text-xs md:text-sm font-medium whitespace-nowrap transition-all duration-200 border-b-2 -mb-px flex-shrink-0",
@@ -33,9 +79,7 @@ templ Tabs(tabs []TabItem, targetID string) {
 						aria-controls={ targetID }
 					>
 						if tab.Icon != "" {
-							<span class="hidden sm:inline">
-								@TabIcon(tab.Icon)
-							</span>
+							@TabIcon(tab.Icon)
 						}
 						{ tab.Label }
 					</button>

@@ -41,6 +41,55 @@ function closeMobileMenu() {
     }
 }
 
+// ═══════════════════════════════════════════════════════════════════════
+// Global Tabs Dropdown Functions (for mobile tabs burger menu)
+// ═══════════════════════════════════════════════════════════════════════
+
+function toggleTabsDropdown(button) {
+    const container = button.parentElement;
+    const menu = container.querySelector('.tabs-dropdown-menu');
+    const chevron = button.querySelector('.tabs-dropdown-chevron');
+    const isExpanded = button.getAttribute('aria-expanded') === 'true';
+
+    if (menu) {
+        menu.classList.toggle('hidden');
+        button.setAttribute('aria-expanded', !isExpanded);
+
+        if (chevron) {
+            chevron.classList.toggle('rotate-180');
+        }
+    }
+}
+
+function closeTabsDropdown(clickedTab) {
+    const container = clickedTab.closest('.tabs-container');
+    if (container) {
+        const button = container.querySelector('[aria-haspopup="true"]');
+        const menu = container.querySelector('.tabs-dropdown-menu');
+        const chevron = container.querySelector('.tabs-dropdown-chevron');
+
+        if (menu) menu.classList.add('hidden');
+        if (button) button.setAttribute('aria-expanded', 'false');
+        if (chevron) chevron.classList.remove('rotate-180');
+    }
+}
+
+// Close tabs dropdown when clicking outside
+document.addEventListener('click', function(e) {
+    const dropdowns = document.querySelectorAll('.tabs-container');
+    dropdowns.forEach(function(container) {
+        const button = container.querySelector('[aria-haspopup="true"]');
+        const menu = container.querySelector('.tabs-dropdown-menu');
+
+        if (button && menu && !container.contains(e.target)) {
+            menu.classList.add('hidden');
+            button.setAttribute('aria-expanded', 'false');
+            const chevron = container.querySelector('.tabs-dropdown-chevron');
+            if (chevron) chevron.classList.remove('rotate-180');
+        }
+    });
+});
+
 (function() {
     'use strict';
 
