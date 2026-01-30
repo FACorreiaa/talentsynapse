@@ -1,7 +1,7 @@
 package components
 
 templ Navbar(isAuthenticated bool, userName string, userAvatar string) {
-	<nav class="nav-premium sticky top-0 z-50">
+	<nav class="nav-premium sticky top-0 z-50" hx-boost="true" hx-target="body" hx-swap="innerHTML show:window:top">
 		<div class="container mx-auto flex items-center justify-between px-4 py-3">
 			<div class="flex items-center gap-3">
 				<!-- Mobile Menu Toggle (visible only on mobile) -->
