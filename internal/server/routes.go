@@ -32,6 +32,9 @@ func (s *Server) RegisterRoutes() http.Handler {
 	// Core Middleware
 	// ──────────────────────────────────────────────────────────────────
 
+	// New Relic APM middleware (should be very early to capture full transaction)
+	r.Use(customMiddleware.NewRelicMiddleware)
+
 	// Sentry middleware (should be early in the chain to catch all errors)
 	sentryHandler := sentryhttp.New(sentryhttp.Options{
 		Repanic:         true,

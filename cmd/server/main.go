@@ -17,6 +17,10 @@ func main() {
 	observability.InitSentry()
 	defer observability.FlushSentry()
 
+	// Initialize New Relic APM
+	observability.InitNewRelic()
+	defer observability.ShutdownNewRelic()
+
 	// Create server instance
 	s := server.New()
 
