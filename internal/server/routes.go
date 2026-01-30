@@ -224,6 +224,7 @@ func (s *Server) RegisterRoutes() http.Handler {
 
 		// Settings routes
 		r.Get("/settings", c.SettingsHandler.Show)
+		r.Get("/settings/tab/{tab}", c.SettingsHandler.Tab)
 		r.Get("/settings/security", c.AuthHandler.HandleSecuritySettings)
 
 		// MFA management routes (protected)

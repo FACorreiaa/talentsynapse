@@ -1,6 +1,95 @@
 // TalentSynapse Custom JavaScript
 // Handles flash messages, mobile interactions, and UI enhancements
 
+// ═══════════════════════════════════════════════════════════════════════
+// Global Mobile Menu Functions (must be global for onclick handlers)
+// ═══════════════════════════════════════════════════════════════════════
+
+function toggleMobileMenu() {
+    const menu = document.getElementById('mobile-menu');
+    const backdrop = document.getElementById('mobile-menu-backdrop');
+    const toggle = document.getElementById('mobile-menu-toggle');
+
+    if (menu && backdrop) {
+        menu.classList.toggle('hidden');
+        backdrop.classList.toggle('hidden');
+
+        if (toggle) {
+            const hamburger = toggle.querySelector('.hamburger-icon');
+            const closeIcon = toggle.querySelector('.close-icon');
+            if (hamburger && closeIcon) {
+                hamburger.classList.toggle('hidden');
+                closeIcon.classList.toggle('hidden');
+            }
+        }
+    }
+}
+
+function closeMobileMenu() {
+    const menu = document.getElementById('mobile-menu');
+    const backdrop = document.getElementById('mobile-menu-backdrop');
+    const toggle = document.getElementById('mobile-menu-toggle');
+
+    if (menu) menu.classList.add('hidden');
+    if (backdrop) backdrop.classList.add('hidden');
+
+    if (toggle) {
+        const hamburger = toggle.querySelector('.hamburger-icon');
+        const closeIcon = toggle.querySelector('.close-icon');
+        if (hamburger) hamburger.classList.remove('hidden');
+        if (closeIcon) closeIcon.classList.add('hidden');
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+// Global Tabs Dropdown Functions (for mobile tabs burger menu)
+// ═══════════════════════════════════════════════════════════════════════
+
+function toggleTabsDropdown(button) {
+    const container = button.parentElement;
+    const menu = container.querySelector('.tabs-dropdown-menu');
+    const chevron = button.querySelector('.tabs-dropdown-chevron');
+    const isExpanded = button.getAttribute('aria-expanded') === 'true';
+
+    if (menu) {
+        menu.classList.toggle('hidden');
+        button.setAttribute('aria-expanded', !isExpanded);
+
+        if (chevron) {
+            chevron.classList.toggle('rotate-180');
+        }
+    }
+}
+
+function closeTabsDropdown(clickedTab) {
+    const container = clickedTab.closest('.tabs-container');
+    if (container) {
+        const button = container.querySelector('[aria-haspopup="true"]');
+        const menu = container.querySelector('.tabs-dropdown-menu');
+        const chevron = container.querySelector('.tabs-dropdown-chevron');
+
+        if (menu) menu.classList.add('hidden');
+        if (button) button.setAttribute('aria-expanded', 'false');
+        if (chevron) chevron.classList.remove('rotate-180');
+    }
+}
+
+// Close tabs dropdown when clicking outside
+document.addEventListener('click', function(e) {
+    const dropdowns = document.querySelectorAll('.tabs-container');
+    dropdowns.forEach(function(container) {
+        const button = container.querySelector('[aria-haspopup="true"]');
+        const menu = container.querySelector('.tabs-dropdown-menu');
+
+        if (button && menu && !container.contains(e.target)) {
+            menu.classList.add('hidden');
+            button.setAttribute('aria-expanded', 'false');
+            const chevron = container.querySelector('.tabs-dropdown-chevron');
+            if (chevron) chevron.classList.remove('rotate-180');
+        }
+    });
+});
+
 (function() {
     'use strict';
 
@@ -145,10 +234,17 @@
         init();
     }
 
-    // Re-initialize flash messages after HTMX swaps
+    // Re-initialize after HTMX swaps
     if (typeof htmx !== 'undefined') {
         document.body.addEventListener('htmx:afterSwap', function() {
             initFlashMessages();
+            initMobileMenu();
+            initTabs();
+        });
+
+        // Close mobile menu before navigation
+        document.body.addEventListener('htmx:beforeRequest', function() {
+            closeMobileMenu();
         });
     }
 
