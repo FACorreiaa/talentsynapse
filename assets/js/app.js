@@ -1,6 +1,46 @@
 // TalentSynapse Custom JavaScript
 // Handles flash messages, mobile interactions, and UI enhancements
 
+// ═══════════════════════════════════════════════════════════════════════
+// Global Mobile Menu Functions (must be global for onclick handlers)
+// ═══════════════════════════════════════════════════════════════════════
+
+function toggleMobileMenu() {
+    const menu = document.getElementById('mobile-menu');
+    const backdrop = document.getElementById('mobile-menu-backdrop');
+    const toggle = document.getElementById('mobile-menu-toggle');
+
+    if (menu && backdrop) {
+        menu.classList.toggle('hidden');
+        backdrop.classList.toggle('hidden');
+
+        if (toggle) {
+            const hamburger = toggle.querySelector('.hamburger-icon');
+            const closeIcon = toggle.querySelector('.close-icon');
+            if (hamburger && closeIcon) {
+                hamburger.classList.toggle('hidden');
+                closeIcon.classList.toggle('hidden');
+            }
+        }
+    }
+}
+
+function closeMobileMenu() {
+    const menu = document.getElementById('mobile-menu');
+    const backdrop = document.getElementById('mobile-menu-backdrop');
+    const toggle = document.getElementById('mobile-menu-toggle');
+
+    if (menu) menu.classList.add('hidden');
+    if (backdrop) backdrop.classList.add('hidden');
+
+    if (toggle) {
+        const hamburger = toggle.querySelector('.hamburger-icon');
+        const closeIcon = toggle.querySelector('.close-icon');
+        if (hamburger) hamburger.classList.remove('hidden');
+        if (closeIcon) closeIcon.classList.add('hidden');
+    }
+}
+
 (function() {
     'use strict';
 
@@ -145,10 +185,17 @@
         init();
     }
 
-    // Re-initialize flash messages after HTMX swaps
+    // Re-initialize after HTMX swaps
     if (typeof htmx !== 'undefined') {
         document.body.addEventListener('htmx:afterSwap', function() {
             initFlashMessages();
+            initMobileMenu();
+            initTabs();
+        });
+
+        // Close mobile menu before navigation
+        document.body.addEventListener('htmx:beforeRequest', function() {
+            closeMobileMenu();
         });
     }
 
