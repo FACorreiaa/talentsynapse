@@ -1,21 +1,71 @@
-<svg width="240" height="50" viewBox="0 0 240 50" xmlns="http://www.w3.org/2000/svg">
-  <style>
-    .brand { fill: #F59E0B; } /* Orange */
-    .text  { fill: #1F2937; } /* Dark Gray (Light Mode) */
-    
-    @media (prefers-color-scheme: dark) {
-      .text { fill: #F3F4F6; } /* White (Dark Mode) */
-    }
-  </style>
+<svg width="512" height="512" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#1e1e2e;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#181825;stop-opacity:1" />
+    </linearGradient>
+    <filter id="glow">
+      <feGaussianBlur stdDeviation="2" result="coloredBlur"/>
+      <feMerge>
+        <feMergeNode in="coloredBlur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
 
-  <g transform="translate(0, 10)">
-      <text x="0" y="24" font-family="system-ui, sans-serif" font-weight="800" font-size="24" class="brand">F</text>
-      <text x="20" y="24" font-family="system-ui, sans-serif" font-weight="300" font-size="24" class="text">|</text>
-      <text x="34" y="24" font-family="system-ui, sans-serif" font-weight="800" font-size="24" class="text">C</text>
+  <!-- Background -->
+  <rect width="512" height="512" rx="128" fill="url(#bgGrad)"/>
+
+  <!-- Network connections (lines) in orange -->
+  <g stroke="#f59e0b" stroke-width="3" opacity="0.6" fill="none">
+    <!-- Top nodes connections -->
+    <line x1="140" y1="120" x2="256" y2="180"/>
+    <line x1="372" y1="120" x2="256" y2="180"/>
+    <line x1="140" y1="120" x2="372" y2="120"/>
+
+    <!-- Middle to side connections -->
+    <line x1="256" y1="180" x2="100" y2="256"/>
+    <line x1="256" y1="180" x2="412" y2="256"/>
+
+    <!-- Center to bottom connections -->
+    <line x1="256" y1="180" x2="200" y2="350"/>
+    <line x1="256" y1="180" x2="312" y2="350"/>
+
+    <!-- Bottom connections -->
+    <line x1="200" y1="350" x2="312" y2="350"/>
+    <line x1="100" y1="256" x2="200" y2="350"/>
+    <line x1="412" y1="256" x2="312" y2="350"/>
   </g>
 
-  <g transform="translate(70, 10)">
-      <text x="0" y="24" font-family="system-ui, sans-serif" font-weight="800" font-size="24" class="brand">Skill</text>
-      <text x="54" y="24" font-family="system-ui, sans-serif" font-weight="400" font-size="24" class="text">Sphere</text>
+  <!-- Network nodes (circles) in orange -->
+  <g fill="#f59e0b" filter="url(#glow)">
+    <!-- Top nodes -->
+    <circle cx="140" cy="120" r="8"/>
+    <circle cx="372" cy="120" r="8"/>
+
+    <!-- Side nodes -->
+    <circle cx="100" cy="256" r="8"/>
+    <circle cx="412" cy="256" r="8"/>
+
+    <!-- Bottom nodes -->
+    <circle cx="200" cy="350" r="8"/>
+    <circle cx="312" cy="350" r="8"/>
+  </g>
+
+  <!-- Central node (larger, orange border with dark fill) -->
+  <circle cx="256" cy="180" r="90" fill="#f59e0b" filter="url(#glow)"/>
+  <circle cx="256" cy="180" r="85" fill="#1e1e2e"/>
+
+  <!-- TS Text - Orange T and White S -->
+  <text x="220" y="210" font-family="Arial, sans-serif" font-size="80" font-weight="bold" text-anchor="middle" fill="#f59e0b">T</text>
+  <text x="292" y="210" font-family="Arial, sans-serif" font-size="80" font-weight="bold" text-anchor="middle" fill="#e5e5e5">S</text>
+
+  <!-- Accent nodes in lighter orange/cream -->
+  <g fill="#fde68a" opacity="0.8">
+    <circle cx="180" cy="90" r="5"/>
+    <circle cx="332" cy="90" r="5"/>
+    <circle cx="70" cy="300" r="5"/>
+    <circle cx="442" cy="300" r="5"/>
+    <circle cx="256" cy="390" r="5"/>
   </g>
 </svg>
