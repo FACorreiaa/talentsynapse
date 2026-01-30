@@ -4,7 +4,7 @@ import "github.com/FACorreiaa/talentsynapse/internal/app/views/components"
 
 // AccountTab renders the account settings tab content
 templ AccountTab(data SettingsData) {
-	@components.Tabs(GetSettingsTabs("account"), "tab-content")
+	@components.Tabs(GetSettingsTabs("account"), "settings-tabs")
 	<div id="tab-content" role="tabpanel" class="mt-6 animate-fade-in">
 		<div class="glass-card rounded-xl p-6">
 			<h2 class="text-xl font-semibold text-foreground mb-6 flex items-center gap-2">
@@ -43,7 +43,7 @@ templ AccountTab(data SettingsData) {
 
 // NotificationsTab renders the notifications settings tab content
 templ NotificationsTab(data SettingsData) {
-	@components.Tabs(GetSettingsTabs("notifications"), "tab-content")
+	@components.Tabs(GetSettingsTabs("notifications"), "settings-tabs")
 	<div id="tab-content" role="tabpanel" class="mt-6 animate-fade-in">
 		<div class="glass-card rounded-xl p-6">
 			<h2 class="text-xl font-semibold text-foreground mb-6 flex items-center gap-2">
@@ -63,7 +63,7 @@ templ NotificationsTab(data SettingsData) {
 
 // PrivacyTab renders the privacy settings tab content
 templ PrivacyTab(data SettingsData) {
-	@components.Tabs(GetSettingsTabs("privacy"), "tab-content")
+	@components.Tabs(GetSettingsTabs("privacy"), "settings-tabs")
 	<div id="tab-content" role="tabpanel" class="mt-6 animate-fade-in">
 		<div class="glass-card rounded-xl p-6">
 			<h2 class="text-xl font-semibold text-foreground mb-6 flex items-center gap-2">
@@ -83,7 +83,7 @@ templ PrivacyTab(data SettingsData) {
 
 // SecurityTabContent renders the security settings tab content (partial, for HTMX)
 templ SecurityTabContent(data SettingsData, mfaEnabled bool) {
-	@components.Tabs(GetSettingsTabs("security"), "tab-content")
+	@components.Tabs(GetSettingsTabs("security"), "settings-tabs")
 	<div id="tab-content" role="tabpanel" class="mt-6 animate-fade-in">
 		<div class="glass-card rounded-xl p-6">
 			<h2 class="text-xl font-semibold text-foreground mb-6 flex items-center gap-2">
@@ -132,7 +132,7 @@ templ SecurityTabContent(data SettingsData, mfaEnabled bool) {
 
 // AppearanceTab renders the appearance settings tab content
 templ AppearanceTab(data SettingsData) {
-	@components.Tabs(GetSettingsTabs("appearance"), "tab-content")
+	@components.Tabs(GetSettingsTabs("appearance"), "settings-tabs")
 	<div id="tab-content" role="tabpanel" class="mt-6 animate-fade-in">
 		<div class="glass-card rounded-xl p-6">
 			<h2 class="text-xl font-semibold text-foreground mb-6 flex items-center gap-2">
@@ -182,7 +182,7 @@ templ AppearanceTab(data SettingsData) {
 
 // DangerTab renders the danger zone settings tab content
 templ DangerTab(data SettingsData) {
-	@components.Tabs(GetSettingsTabs("danger"), "tab-content")
+	@components.Tabs(GetSettingsTabs("danger"), "settings-tabs")
 	<div id="tab-content" role="tabpanel" class="mt-6 animate-fade-in">
 		<div class="glass-card rounded-xl p-6 border border-destructive/20">
 			<h2 class="text-xl font-semibold text-destructive mb-6 flex items-center gap-2">
