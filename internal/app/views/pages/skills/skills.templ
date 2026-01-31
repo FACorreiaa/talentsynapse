@@ -20,94 +20,95 @@ type CatalogSkill struct {
 }
 
 templ Skills(offeredSkills []SkillItem, wantedSkills []SkillItem, catalogSkills []CatalogSkill, userName string, userAvatar string, successMsg string) {
-	@layouts.Base("Skills | TalentSynapse") {
-		<div class="min-h-screen flex flex-col bg-background">
-			@components.Navbar(true, userName, userAvatar)
-			<main class="flex-1 py-8 px-4">
-				<div class="container mx-auto max-w-6xl">
-					<!-- Flash Messages -->
-					if successMsg != "" {
-						@components.FlashMessage(successMsg, "success")
-					}
-					<!-- Page Header -->
-					<div class="mb-8 animate-fade-in-up">
-						<h1 class="text-3xl md:text-4xl font-bold text-foreground mb-2">
-							My <span class="text-gradient">Skills</span>
-						</h1>
-						<p class="text-muted-foreground">
-							Manage the skills you can teach and the skills you want to learn
-						</p>
-					</div>
-					<!-- Two Column Layout -->
-					<div class="grid lg:grid-cols-2 gap-8">
-						<!-- Skills I Can Teach -->
-						<div class="glass-card rounded-xl p-6 animate-fade-in-up">
-							<div class="flex items-center justify-between mb-6">
-								<div class="flex items-center gap-3">
-									@teachIcon()
-									<h2 class="text-xl font-semibold text-foreground">Skills I Can Teach</h2>
-								</div>
-								<span class="text-sm text-muted-foreground bg-muted px-3 py-1 rounded-full">
-									{ strconv.Itoa(len(offeredSkills)) } skills
-								</span>
-							</div>
-							<!-- Skill List -->
-							<div class="space-y-3 mb-6" id="offered-skills-list">
-								if len(offeredSkills) == 0 {
-									<div class="text-center py-8 text-muted-foreground">
-										<p>No skills added yet</p>
-										<p class="text-sm mt-1">Add skills you can teach to find matches!</p>
-									</div>
-								}
-								for _, skill := range offeredSkills {
-									@skillChip(skill, "offered")
-								}
-							</div>
-							<!-- Add Skill Button -->
-							<a href="/skills/add?type=offered" class="btn btn-outline w-full inline-flex items-center justify-center">
-								<svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-									<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
-								</svg>
-								Add Skill
-							</a>
-						</div>
-						<!-- Skills I Want to Learn -->
-						<div class="glass-card rounded-xl p-6 animate-fade-in-up delay-100">
-							<div class="flex items-center justify-between mb-6">
-								<div class="flex items-center gap-3">
-									@learnIcon()
-									<h2 class="text-xl font-semibold text-foreground">Skills I Want to Learn</h2>
-								</div>
-								<span class="text-sm text-muted-foreground bg-muted px-3 py-1 rounded-full">
-									{ strconv.Itoa(len(wantedSkills)) } skills
-								</span>
-							</div>
-							<!-- Skill List -->
-							<div class="space-y-3 mb-6" id="wanted-skills-list">
-								if len(wantedSkills) == 0 {
-									<div class="text-center py-8 text-muted-foreground">
-										<p>No skills added yet</p>
-										<p class="text-sm mt-1">Add skills you want to learn!</p>
-									</div>
-								}
-								for _, skill := range wantedSkills {
-									@skillChip(skill, "wanted")
-								}
-							</div>
-							<!-- Add Skill Button -->
-							<a href="/skills/add?type=wanted" class="btn btn-outline w-full inline-flex items-center justify-center">
-								<svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-									<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
-								</svg>
-								Add Skill
-							</a>
-						</div>
-					</div>
-				</div>
-			</main>
-			@components.Footer()
-		</div>
+	@layouts.AppLayout("Skills | TalentSynapse", true, userName, userAvatar) {
+		@SkillsContent(offeredSkills, wantedSkills, catalogSkills, successMsg)
 	}
+}
+
+// SkillsContent renders just the main content (for HTMX partial swaps)
+templ SkillsContent(offeredSkills []SkillItem, wantedSkills []SkillItem, catalogSkills []CatalogSkill, successMsg string) {
+	<div class="py-8 px-4">
+		<div class="container mx-auto max-w-6xl">
+			<!-- Flash Messages -->
+			if successMsg != "" {
+				@components.FlashMessage(successMsg, "success")
+			}
+			<!-- Page Header -->
+			<div class="mb-8 animate-fade-in-up">
+				<h1 class="text-3xl md:text-4xl font-bold text-foreground mb-2">
+					My <span class="text-gradient">Skills</span>
+				</h1>
+				<p class="text-muted-foreground">
+					Manage the skills you can teach and the skills you want to learn
+				</p>
+			</div>
+			<!-- Two Column Layout -->
+			<div class="grid lg:grid-cols-2 gap-8">
+				<!-- Skills I Can Teach -->
+				<div class="glass-card rounded-xl p-6 animate-fade-in-up">
+					<div class="flex items-center justify-between mb-6">
+						<div class="flex items-center gap-3">
+							@teachIcon()
+							<h2 class="text-xl font-semibold text-foreground">Skills I Can Teach</h2>
+						</div>
+						<span class="text-sm text-muted-foreground bg-muted px-3 py-1 rounded-full">
+							{ strconv.Itoa(len(offeredSkills)) } skills
+						</span>
+					</div>
+					<!-- Skill List -->
+					<div class="space-y-3 mb-6" id="offered-skills-list">
+						if len(offeredSkills) == 0 {
+							<div class="text-center py-8 text-muted-foreground">
+								<p>No skills added yet</p>
+								<p class="text-sm mt-1">Add skills you can teach to find matches!</p>
+							</div>
+						}
+						for _, skill := range offeredSkills {
+							@skillChip(skill, "offered")
+						}
+					</div>
+					<!-- Add Skill Button -->
+					<a href="/skills/add?type=offered" class="btn btn-outline w-full inline-flex items-center justify-center">
+						<svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+						</svg>
+						Add Skill
+					</a>
+				</div>
+				<!-- Skills I Want to Learn -->
+				<div class="glass-card rounded-xl p-6 animate-fade-in-up delay-100">
+					<div class="flex items-center justify-between mb-6">
+						<div class="flex items-center gap-3">
+							@learnIcon()
+							<h2 class="text-xl font-semibold text-foreground">Skills I Want to Learn</h2>
+						</div>
+						<span class="text-sm text-muted-foreground bg-muted px-3 py-1 rounded-full">
+							{ strconv.Itoa(len(wantedSkills)) } skills
+						</span>
+					</div>
+					<!-- Skill List -->
+					<div class="space-y-3 mb-6" id="wanted-skills-list">
+						if len(wantedSkills) == 0 {
+							<div class="text-center py-8 text-muted-foreground">
+								<p>No skills added yet</p>
+								<p class="text-sm mt-1">Add skills you want to learn!</p>
+							</div>
+						}
+						for _, skill := range wantedSkills {
+							@skillChip(skill, "wanted")
+						}
+					</div>
+					<!-- Add Skill Button -->
+					<a href="/skills/add?type=wanted" class="btn btn-outline w-full inline-flex items-center justify-center">
+						<svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+						</svg>
+						Add Skill
+					</a>
+				</div>
+			</div>
+		</div>
+	</div>
 }
 
 templ skillChip(skill SkillItem, skillType string) {

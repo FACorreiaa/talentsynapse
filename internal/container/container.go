@@ -16,6 +16,7 @@ import (
 	"github.com/FACorreiaa/talentsynapse/internal/app/domain/errors"
 	"github.com/FACorreiaa/talentsynapse/internal/app/domain/home"
 	"github.com/FACorreiaa/talentsynapse/internal/app/domain/matches"
+	"github.com/FACorreiaa/talentsynapse/internal/app/domain/points"
 	"github.com/FACorreiaa/talentsynapse/internal/app/domain/portfolio"
 	"github.com/FACorreiaa/talentsynapse/internal/app/domain/profile"
 	"github.com/FACorreiaa/talentsynapse/internal/app/domain/report"
@@ -42,7 +43,9 @@ type Container struct {
 	DashboardRepo *dashboard.Repository
 
 	// Services
-	AuthService *auth.Service
+	AuthService   *auth.Service
+	BadgeService  *badges.Service
+	PointsService *points.Service
 
 	// WebSocket
 	ChatHub       *chat.Hub
@@ -87,6 +90,7 @@ func New(pool *pgxpool.Pool) *Container {
 	portfolioRepo := portfolio.NewRepository(pool)
 	sessionRepo := session.NewRepository(pool)
 	dashboardRepo := dashboard.NewRepository(pool)
+	pointsRepo := points.NewRepository(pool)
 
 	// Seed admin user from environment variables
 	if err := admin.SeedAdmin(context.Background(), userRepo); err != nil {
@@ -108,6 +112,10 @@ func New(pool *pgxpool.Pool) *Container {
 	schedulingHub := scheduling.NewHub()
 	go schedulingHub.Run()
 
+	// Create badge and points services with scheduling hub for notifications
+	badgeService := badges.NewService(badgesRepo, schedulingHub)
+	pointsService := points.NewService(pointsRepo, schedulingHub)
+
 	// Create background services
 	schedulingNotifier := scheduling.NewNotifier(schedulingRepo, schedulingHub)
 	schedulingNotifier.Start()
@@ -116,9 +124,9 @@ func New(pool *pgxpool.Pool) *Container {
 	authHandler := auth.NewHandler(authService)
 	homeHandler := home.NewHandler()
 	dashboardHandler := dashboard.NewHandler(dashboardRepo)
-	profileHandler := profile.NewHandler(userRepo, badgesRepo, reviewRepo, portfolioRepo)
+	profileHandler := profile.NewHandler(userRepo, badgesRepo, reviewRepo, portfolioRepo, matchesRepo, sessionRepo)
 	skillsHandler := skills.NewHandler(skillsRepo)
-	matchesHandler := matches.NewHandler(matchesRepo, badgesRepo)
+	matchesHandler := matches.NewHandler(matchesRepo, badgeService, reviewRepo)
 	discoverHandler := discover.NewHandler(skillsRepo)
 	settingsHandler := settings.NewHandler()
 	chatHandler := chat.NewHandler(chatRepo, matchesRepo, chatHub)
@@ -126,9 +134,9 @@ func New(pool *pgxpool.Pool) *Container {
 	errorHandler := errors.NewHandler()
 	adminHandler := admin.NewHandler(userRepo, reportRepo)
 	reportHandler := report.NewHandler(reportRepo)
-	reviewHandler := review.NewHandler(reviewRepo, badgesRepo)
+	reviewHandler := review.NewHandler(reviewRepo, badgesRepo, pointsService, userRepo, schedulingHub)
 	portfolioHandler := portfolio.NewHandler(portfolioRepo)
-	sessionHandler := session.NewHandler(sessionRepo, badgesRepo, matchesRepo)
+	sessionHandler := session.NewHandler(sessionRepo, badgesRepo, matchesRepo, pointsService)
 	schedulingHandler := scheduling.NewHandler(schedulingService, schedulingHub)
 
 	return &Container{
@@ -145,7 +153,9 @@ func New(pool *pgxpool.Pool) *Container {
 		DashboardRepo: dashboardRepo,
 
 		// Services
-		AuthService: authService,
+		AuthService:   authService,
+		BadgeService:  badgeService,
+		PointsService: pointsService,
 
 		// WebSocket
 		ChatHub:       chatHub,

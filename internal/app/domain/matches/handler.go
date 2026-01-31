@@ -1,28 +1,31 @@
 package matches
 
 import (
+	"log"
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
 
 	"github.com/FACorreiaa/talentsynapse/internal/app/domain/auth"
 	"github.com/FACorreiaa/talentsynapse/internal/app/domain/badges"
+	"github.com/FACorreiaa/talentsynapse/internal/app/domain/review"
 	matchespages "github.com/FACorreiaa/talentsynapse/internal/app/views/pages/matches"
 	"github.com/google/uuid"
 )
 
 // Handler handles matches HTTP requests
 type Handler struct {
-	repo       *Repository
-	badgesRepo *badges.Repository
+	repo         *Repository
+	badgeService *badges.Service
+	reviewRepo   *review.Repository
 }
 
 // NewHandler creates a new matches handler
-// NewHandler creates a new matches handler
-func NewHandler(repo *Repository, badgesRepo *badges.Repository) *Handler {
+func NewHandler(repo *Repository, badgeService *badges.Service, reviewRepo *review.Repository) *Handler {
 	return &Handler{
-		repo:       repo,
-		badgesRepo: badgesRepo,
+		repo:         repo,
+		badgeService: badgeService,
+		reviewRepo:   reviewRepo,
 	}
 }
 
@@ -95,6 +98,9 @@ func (h *Handler) List(w http.ResponseWriter, r *http.Request) {
 			})
 		}
 
+		// Get rating stats
+		reviewCount, avgRating, _ := h.reviewRepo.GetStats(r.Context(), uuid.MustParse(pr.UserID))
+
 		matchCards = append(matchCards, matchespages.MatchCard{
 			UserID:        pr.UserID,
 			DisplayName:   pr.DisplayName,
@@ -103,6 +109,8 @@ func (h *Handler) List(w http.ResponseWriter, r *http.Request) {
 			MatchScore:    int(pr.MatchScore * 100),
 			OverlapSkills: skills,
 			IsLikedYou:    true, // Flag to show "Liked You" badge
+			ReviewCount:   reviewCount,
+			AverageRating: avgRating,
 		})
 	}
 
@@ -123,6 +131,9 @@ func (h *Handler) List(w http.ResponseWriter, r *http.Request) {
 			})
 		}
 
+		// Get rating stats
+		reviewCount, avgRating, _ := h.reviewRepo.GetStats(r.Context(), uuid.MustParse(m.UserID))
+
 		matchCards = append(matchCards, matchespages.MatchCard{
 			UserID:        m.UserID,
 			DisplayName:   m.DisplayName,
@@ -131,6 +142,8 @@ func (h *Handler) List(w http.ResponseWriter, r *http.Request) {
 			MatchScore:    int(m.MatchScore * 100),
 			OverlapSkills: skills,
 			IsLikedYou:    false,
+			ReviewCount:   reviewCount,
+			AverageRating: avgRating,
 		})
 	}
 
@@ -186,9 +199,20 @@ func (h *Handler) Accept(w http.ResponseWriter, r *http.Request) {
 	connected, _ := h.repo.AreConnected(r.Context(), sessionData.UserID, matchedUserID)
 	if connected {
 		// Award 'first_match' badge to both users
-		// We ignore errors as this is non-critical gamification
-		_ = h.badgesRepo.AwardBadge(r.Context(), uuid.MustParse(sessionData.UserID), "first_match")
-		_ = h.badgesRepo.AwardBadge(r.Context(), uuid.MustParse(matchedUserID), "first_match")
+		// The service will check if it's their first match and send notifications
+		currentUserID := uuid.MustParse(sessionData.UserID)
+		otherUserID := uuid.MustParse(matchedUserID)
+
+		// Award badge to current user
+		if err := h.badgeService.AwardBadge(r.Context(), currentUserID, "first_match"); err != nil {
+			// Log error but don't fail the request
+			log.Printf("Failed to award first_match badge to user %s: %v", sessionData.UserID, err)
+		}
+
+		// Award badge to matched user
+		if err := h.badgeService.AwardBadge(r.Context(), otherUserID, "first_match"); err != nil {
+			log.Printf("Failed to award first_match badge to user %s: %v", matchedUserID, err)
+		}
 	}
 
 	// For HTMX requests, return a notification snippet or empty to remove card

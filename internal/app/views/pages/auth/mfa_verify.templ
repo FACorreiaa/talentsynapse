@@ -108,6 +108,19 @@ templ MFAVerify(email string) {
 								Enter one of your backup codes
 							</p>
 						</div>
+						<!-- Trust This Device for backup code form -->
+						<div class="flex items-center">
+							<input
+								type="checkbox"
+								id="trust_device_backup"
+								name="trust_device"
+								value="true"
+								class="h-4 w-4 text-purple-600 focus:ring-purple-500 border-gray-300 rounded"
+							/>
+							<label for="trust_device_backup" class="ml-2 block text-sm text-gray-700">
+								Trust this device for 30 days
+							</label>
+						</div>
 						<div class="flex gap-3">
 							<button
 								type="submit"

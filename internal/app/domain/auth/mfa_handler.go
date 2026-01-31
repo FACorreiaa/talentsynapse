@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"time"
 
 	"github.com/FACorreiaa/talentsynapse/internal/app/views/pages/auth"
 	"github.com/FACorreiaa/talentsynapse/internal/app/views/pages/settings"
@@ -135,6 +136,21 @@ func (h *Handler) HandleMFAVerifyCode(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	authSvc, ok := h.authService.(*Service)
+	if !ok {
+		http.Error(w, "Service not available", http.StatusInternalServerError)
+		return
+	}
+
+	// Check rate limiting
+	isLocked, lockedUntil, _ := authSvc.mfaService.CheckMFARateLimit(r.Context(), userID)
+	if isLocked {
+		remainingMinutes := int(time.Until(lockedUntil).Minutes()) + 1
+		_ = SetFlash(w, r, fmt.Sprintf("Too many failed attempts. Please try again in %d minutes.", remainingMinutes), FlashError)
+		http.Redirect(w, r, "/mfa/verify", http.StatusSeeOther)
+		return
+	}
+
 	code := r.FormValue("code")
 	if code == "" {
 		_ = SetFlash(w, r, "Verification code is required", FlashError)
@@ -142,17 +158,36 @@ func (h *Handler) HandleMFAVerifyCode(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	authSvc, ok := h.authService.(*Service)
-	if !ok {
-		http.Error(w, "Service not available", http.StatusInternalServerError)
-		return
-	}
-
 	valid, err := authSvc.mfaService.VerifyTOTP(r.Context(), userID, code)
 	if err != nil || !valid {
+		// Record failed attempt
+		_ = authSvc.mfaService.RecordMFAAttempt(r.Context(), userID, false)
+
+		// Log the event
+		ipAddress := r.RemoteAddr
+		userAgent := r.UserAgent()
+		_ = authSvc.mfaService.LogMFAEvent(r.Context(), userID, MFAEventVerifyFailed, ipAddress, userAgent, nil)
+
 		_ = SetFlash(w, r, "Invalid verification code. Please try again.", FlashError)
 		http.Redirect(w, r, "/mfa/verify", http.StatusSeeOther)
 		return
+	}
+
+	// Record successful attempt (resets rate limit)
+	_ = authSvc.mfaService.RecordMFAAttempt(r.Context(), userID, true)
+
+	// Log successful verification
+	ipAddress := r.RemoteAddr
+	userAgent := r.UserAgent()
+	_ = authSvc.mfaService.LogMFAEvent(r.Context(), userID, MFAEventVerifySuccess, ipAddress, userAgent, nil)
+
+	// Check if user wants to trust this device
+	trustDevice := r.FormValue("trust_device") == "true"
+	if trustDevice {
+		deviceToken, err := authSvc.mfaService.AddTrustedDevice(r.Context(), userID, userAgent, ipAddress)
+		if err == nil && deviceToken != "" {
+			SetTrustedDeviceCookie(w, deviceToken)
+		}
 	}
 
 	h.completeMFALogin(w, r, userID)
@@ -183,6 +218,21 @@ func (h *Handler) HandleMFAVerifyBackupCode(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
+	authSvc, ok := h.authService.(*Service)
+	if !ok {
+		http.Error(w, "Service not available", http.StatusInternalServerError)
+		return
+	}
+
+	// Check rate limiting
+	isLocked, lockedUntil, _ := authSvc.mfaService.CheckMFARateLimit(r.Context(), userID)
+	if isLocked {
+		remainingMinutes := int(time.Until(lockedUntil).Minutes()) + 1
+		_ = SetFlash(w, r, fmt.Sprintf("Too many failed attempts. Please try again in %d minutes.", remainingMinutes), FlashError)
+		http.Redirect(w, r, "/mfa/verify", http.StatusSeeOther)
+		return
+	}
+
 	backupCode := r.FormValue("backup_code")
 	if backupCode == "" {
 		_ = SetFlash(w, r, "Backup code is required", FlashError)
@@ -190,17 +240,38 @@ func (h *Handler) HandleMFAVerifyBackupCode(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	authSvc, ok := h.authService.(*Service)
-	if !ok {
-		http.Error(w, "Service not available", http.StatusInternalServerError)
-		return
-	}
-
 	valid, err := authSvc.mfaService.VerifyBackupCode(r.Context(), userID, backupCode)
 	if err != nil || !valid {
+		// Record failed attempt
+		_ = authSvc.mfaService.RecordMFAAttempt(r.Context(), userID, false)
+
+		// Log the event
+		ipAddress := r.RemoteAddr
+		userAgent := r.UserAgent()
+		_ = authSvc.mfaService.LogMFAEvent(r.Context(), userID, MFAEventVerifyFailed, ipAddress, userAgent, map[string]string{
+			"method": "backup_code",
+		})
+
 		_ = SetFlash(w, r, "Invalid backup code. Please try again.", FlashError)
 		http.Redirect(w, r, "/mfa/verify", http.StatusSeeOther)
 		return
+	}
+
+	// Record successful attempt (resets rate limit)
+	_ = authSvc.mfaService.RecordMFAAttempt(r.Context(), userID, true)
+
+	// Log backup code usage
+	ipAddress := r.RemoteAddr
+	userAgent := r.UserAgent()
+	_ = authSvc.mfaService.LogMFAEvent(r.Context(), userID, MFAEventBackupCodeUsed, ipAddress, userAgent, nil)
+
+	// Check if user wants to trust this device
+	trustDevice := r.FormValue("trust_device") == "true"
+	if trustDevice {
+		deviceToken, err := authSvc.mfaService.AddTrustedDevice(r.Context(), userID, userAgent, ipAddress)
+		if err == nil && deviceToken != "" {
+			SetTrustedDeviceCookie(w, deviceToken)
+		}
 	}
 
 	h.completeMFALogin(w, r, userID)
@@ -394,6 +465,7 @@ func (h *Handler) HandleSecuritySettings(w http.ResponseWriter, r *http.Request)
 
 	var mfaEnabled bool
 	var backupCodesCount int
+	var trustedDevices []settings.TrustedDeviceData
 
 	if isMFAEnabled() {
 		authSvc, ok := h.authService.(*Service)
@@ -401,6 +473,17 @@ func (h *Handler) HandleSecuritySettings(w http.ResponseWriter, r *http.Request)
 			mfaEnabled, _ = authSvc.mfaService.IsMFAEnabled(r.Context(), sessionData.UserID)
 			if mfaEnabled {
 				backupCodesCount, _ = authSvc.mfaService.GetBackupCodesCount(r.Context(), sessionData.UserID)
+
+				// Get trusted devices
+				devices, _ := authSvc.mfaService.GetTrustedDevices(r.Context(), sessionData.UserID)
+				for _, d := range devices {
+					trustedDevices = append(trustedDevices, settings.TrustedDeviceData{
+						ID:         d.ID,
+						DeviceName: d.DeviceName,
+						LastUsedAt: d.LastUsedAt.Format("Jan 2, 2006 3:04 PM"),
+						CreatedAt:  d.CreatedAt.Format("Jan 2, 2006"),
+					})
+				}
 			}
 		}
 	}
@@ -408,11 +491,90 @@ func (h *Handler) HandleSecuritySettings(w http.ResponseWriter, r *http.Request)
 	data := settings.SecuritySettingsData{
 		MFAEnabled:       mfaEnabled,
 		BackupCodesCount: backupCodesCount,
+		TrustedDevices:   trustedDevices,
 	}
 
 	if err := settings.SecuritySettings(sessionData, data).Render(r.Context(), w); err != nil {
 		http.Error(w, "Failed to render page", http.StatusInternalServerError)
 	}
+}
+
+// HandleRemoveTrustedDevice removes a single trusted device
+func (h *Handler) HandleRemoveTrustedDevice(w http.ResponseWriter, r *http.Request) {
+	if !isMFAEnabled() {
+		http.Redirect(w, r, "/settings/security", http.StatusSeeOther)
+		return
+	}
+
+	sessionData := GetSessionData(r)
+	if sessionData.UserID == "" {
+		http.Redirect(w, r, "/login", http.StatusSeeOther)
+		return
+	}
+
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	// Get device ID from URL path
+	deviceID := r.URL.Path[len("/mfa/remove-trusted-device/"):]
+	if deviceID == "" {
+		_ = SetFlash(w, r, "Invalid device ID", FlashError)
+		http.Redirect(w, r, "/settings/security", http.StatusSeeOther)
+		return
+	}
+
+	authSvc, ok := h.authService.(*Service)
+	if !ok {
+		http.Error(w, "Service not available", http.StatusInternalServerError)
+		return
+	}
+
+	err := authSvc.mfaService.RemoveTrustedDevice(r.Context(), sessionData.UserID, deviceID)
+	if err != nil {
+		_ = SetFlash(w, r, "Failed to remove trusted device", FlashError)
+	} else {
+		_ = SetFlash(w, r, "Trusted device removed successfully", FlashSuccess)
+	}
+
+	http.Redirect(w, r, "/settings/security", http.StatusSeeOther)
+}
+
+// HandleRemoveAllTrustedDevices removes all trusted devices for the user
+func (h *Handler) HandleRemoveAllTrustedDevices(w http.ResponseWriter, r *http.Request) {
+	if !isMFAEnabled() {
+		http.Redirect(w, r, "/settings/security", http.StatusSeeOther)
+		return
+	}
+
+	sessionData := GetSessionData(r)
+	if sessionData.UserID == "" {
+		http.Redirect(w, r, "/login", http.StatusSeeOther)
+		return
+	}
+
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	authSvc, ok := h.authService.(*Service)
+	if !ok {
+		http.Error(w, "Service not available", http.StatusInternalServerError)
+		return
+	}
+
+	err := authSvc.mfaService.RemoveAllTrustedDevices(r.Context(), sessionData.UserID)
+	if err != nil {
+		_ = SetFlash(w, r, "Failed to remove trusted devices", FlashError)
+	} else {
+		// Also clear the cookie
+		ClearTrustedDeviceCookie(w)
+		_ = SetFlash(w, r, "All trusted devices removed successfully", FlashSuccess)
+	}
+
+	http.Redirect(w, r, "/settings/security", http.StatusSeeOther)
 }
 
 // isMFAEnabled checks if MFA is enabled based on environment

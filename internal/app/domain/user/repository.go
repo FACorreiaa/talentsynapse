@@ -268,6 +268,14 @@ func (r *Repository) GetUserSkillNames(ctx context.Context, userID string) ([]st
 	return offered, wanted, rows.Err()
 }
 
+// CountUserSkills counts the total number of skills (offered + wanted) for a user
+func (r *Repository) CountUserSkills(ctx context.Context, userID string) (int, error) {
+	query := `SELECT COUNT(*) FROM user_skills WHERE user_id = $1`
+	var count int
+	err := r.pool.QueryRow(ctx, query, userID).Scan(&count)
+	return count, err
+}
+
 // AreConnected checks if two users have mutually accepted each other
 func (r *Repository) AreConnected(ctx context.Context, userA, userB string) (bool, error) {
 	query := `

@@ -1,52 +1,52 @@
 package settings
 
 import "github.com/FACorreiaa/talentsynapse/internal/app/views/layouts"
-import "github.com/FACorreiaa/talentsynapse/internal/app/views/components"
 
 templ Settings(userName string, userAvatar string, userEmail string) {
-	@layouts.Base("Settings | TalentSynapse") {
-		<div class="min-h-screen flex flex-col bg-background">
-			@components.Navbar(true, userName, userAvatar)
-			<main class="flex-1 py-8 px-4">
-				<div class="container mx-auto max-w-3xl">
-					<!-- Page Header -->
-					<div class="mb-8 animate-fade-in-up">
-						<h1 class="text-3xl md:text-4xl font-bold text-foreground mb-2">
-							<span class="text-gradient">Settings</span>
-						</h1>
-						<p class="text-muted-foreground">
-							Manage your account preferences and privacy
-						</p>
+	@layouts.AppLayout("Settings | TalentSynapse", true, userName, userAvatar) {
+		@SettingsContent()
+	}
+}
+
+// SettingsContent renders just the main content (for HTMX partial swaps)
+templ SettingsContent() {
+	<div class="py-8 px-4">
+		<div class="container mx-auto max-w-3xl">
+			<!-- Page Header -->
+			<div class="mb-8 animate-fade-in-up">
+				<h1 class="text-3xl md:text-4xl font-bold text-foreground mb-2">
+					<span class="text-gradient">Settings</span>
+				</h1>
+				<p class="text-muted-foreground">
+					Manage your account preferences and privacy
+				</p>
+			</div>
+			<!-- HTMX Tabs Container - loads account tab by default -->
+			<div
+				id="settings-tabs"
+				hx-get="/settings/tab/account"
+				hx-trigger="load delay:100ms"
+				hx-target="#settings-tabs"
+				hx-swap="innerHTML"
+			>
+				<!-- Loading skeleton -->
+				<div class="animate-pulse">
+					<div class="flex border-b border-border mb-6">
+						<div class="h-10 bg-muted rounded w-24 mr-2"></div>
+						<div class="h-10 bg-muted rounded w-28 mr-2"></div>
+						<div class="h-10 bg-muted rounded w-20 mr-2"></div>
+						<div class="h-10 bg-muted rounded w-24 mr-2"></div>
 					</div>
-					<!-- HTMX Tabs Container - loads account tab by default -->
-					<div
-						id="settings-tabs"
-						hx-get="/settings/tab/account"
-						hx-trigger="load delay:100ms"
-						hx-target="#settings-tabs"
-						hx-swap="innerHTML"
-					>
-						<!-- Loading skeleton -->
-						<div class="animate-pulse">
-							<div class="flex border-b border-border mb-6">
-								<div class="h-10 bg-muted rounded w-24 mr-2"></div>
-								<div class="h-10 bg-muted rounded w-28 mr-2"></div>
-								<div class="h-10 bg-muted rounded w-20 mr-2"></div>
-								<div class="h-10 bg-muted rounded w-24 mr-2"></div>
-							</div>
-							<div class="glass-card rounded-xl p-6">
-								<div class="h-6 bg-muted rounded w-48 mb-6"></div>
-								<div class="space-y-4">
-									<div class="h-16 bg-muted rounded"></div>
-									<div class="h-16 bg-muted rounded"></div>
-									<div class="h-16 bg-muted rounded"></div>
-								</div>
-							</div>
+					<div class="glass-card rounded-xl p-6">
+						<div class="h-6 bg-muted rounded w-48 mb-6"></div>
+						<div class="space-y-4">
+							<div class="h-16 bg-muted rounded"></div>
+							<div class="h-16 bg-muted rounded"></div>
+							<div class="h-16 bg-muted rounded"></div>
 						</div>
 					</div>
 				</div>
-			</main>
-			@components.Footer()
+			</div>
 		</div>
-	}
+	</div>
 }

@@ -251,6 +251,13 @@ h6,
     opacity: 0;
 }
 
+/* Disable animations on navbar after initial load (prevents restart on HTMX navigation) */
+.nav-premium[data-loaded="true"],
+.nav-premium[data-loaded="true"] * {
+    animation: none !important;
+    opacity: 1 !important;
+}
+
 /* Stagger delays */
 .delay-100 {
     animation-delay: 100ms;

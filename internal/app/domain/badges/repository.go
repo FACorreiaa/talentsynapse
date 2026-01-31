@@ -84,3 +84,43 @@ func (r *Repository) GetAllBadges(ctx context.Context) ([]*Badge, error) {
 	}
 	return badges, nil
 }
+
+// HasBadge checks if a user already has a specific badge
+func (r *Repository) HasBadge(ctx context.Context, userID uuid.UUID, badgeCode string) (bool, error) {
+	query := `
+		SELECT EXISTS(
+			SELECT 1
+			FROM user_badges ub
+			JOIN badges b ON ub.badge_id = b.id
+			WHERE ub.user_id = $1 AND b.code = $2
+		)
+	`
+	var exists bool
+	err := r.db.QueryRow(ctx, query, userID, badgeCode).Scan(&exists)
+	if err != nil {
+		return false, fmt.Errorf("failed to check if user has badge: %w", err)
+	}
+	return exists, nil
+}
+
+// GetBadgeByCode retrieves a badge by its code
+func (r *Repository) GetBadgeByCode(ctx context.Context, badgeCode string) (*Badge, error) {
+	query := `
+		SELECT id, code, name, description, icon_url, created_at
+		FROM badges
+		WHERE code = $1
+	`
+	var badge Badge
+	err := r.db.QueryRow(ctx, query, badgeCode).Scan(
+		&badge.ID,
+		&badge.Code,
+		&badge.Name,
+		&badge.Description,
+		&badge.IconURL,
+		&badge.CreatedAt,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get badge by code %s: %w", badgeCode, err)
+	}
+	return &badge, nil
+}

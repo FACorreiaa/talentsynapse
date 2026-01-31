@@ -53,136 +53,138 @@ type DashboardData struct {
 	ProfileStrength ProfileStrength
 }
 
+// Dashboard renders the full dashboard page with AppLayout (navbar/footer outside swap area)
 templ Dashboard(data DashboardData) {
-	@layouts.Base("Dashboard | TalentSynapse") {
-		<div class="min-h-screen flex flex-col bg-background">
-			@components.Navbar(true, data.UserName, data.UserAvatar)
-			<main class="flex-1 py-8 px-4">
-				<div class="container mx-auto max-w-7xl">
-					<!-- Flash Messages -->
-					if data.SuccessMsg != "" {
-						@components.FlashMessage(data.SuccessMsg, "success")
-					}
-					<!-- Welcome Header -->
-					<div class="mb-8 animate-fade-in-up">
-						<h1 class="text-3xl md:text-4xl font-bold text-foreground mb-2">
-							Welcome back, <span class="text-gradient">{ data.UserName }</span>! 👋
-						</h1>
-						<p class="text-muted-foreground">
-							Here's what's happening with your skill exchange journey.
-						</p>
-					</div>
-					<!-- Stats Cards -->
-					<div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-						@statCard("Points", strconv.Itoa(data.Stats.Points), "text-amber-500", pointsIcon())
-						@statCard("Tier", data.Stats.Tier, "text-purple-500", tierIcon())
-						@statCard("Matches", strconv.Itoa(data.Stats.Matches), "text-emerald-500", matchesIcon())
-						@statCard("Sessions", strconv.Itoa(data.Stats.Sessions), "text-blue-500", sessionsIcon())
-					</div>
-					<!-- Main Content Grid -->
-					<div class="grid lg:grid-cols-3 gap-6">
-						<!-- Left Column - Activity & Actions -->
-						<div class="lg:col-span-2 space-y-6">
-							<!-- Quick Actions -->
-							<div class="glass-card rounded-xl p-6 animate-fade-in-up delay-100">
-								<h2 class="text-lg font-semibold text-foreground mb-4">Quick Actions</h2>
-								<div class="grid sm:grid-cols-3 gap-3">
-									<a href="/skills/add" class="flex items-center gap-3 p-4 rounded-lg bg-primary/10 hover:bg-primary/20 transition-colors group">
-										<div class="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center group-hover:scale-110 transition-transform">
-											<svg class="w-5 h-5 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-												<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
-											</svg>
-										</div>
-										<span class="font-medium text-foreground">Add Skill</span>
-									</a>
-									<a href="/discover" class="flex items-center gap-3 p-4 rounded-lg bg-blue-500/10 hover:bg-blue-500/20 transition-colors group">
-										<div class="w-10 h-10 rounded-full bg-blue-500/20 flex items-center justify-center group-hover:scale-110 transition-transform">
-											<svg class="w-5 h-5 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-												<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
-											</svg>
-										</div>
-										<span class="font-medium text-foreground">Browse Skills</span>
-									</a>
-									<a href="/messages" class="flex items-center gap-3 p-4 rounded-lg bg-purple-500/10 hover:bg-purple-500/20 transition-colors group">
-										<div class="w-10 h-10 rounded-full bg-purple-500/20 flex items-center justify-center group-hover:scale-110 transition-transform">
-											<svg class="w-5 h-5 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-												<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path>
-											</svg>
-										</div>
-										<span class="font-medium text-foreground">Messages</span>
-									</a>
+	@layouts.AppLayout("Dashboard | TalentSynapse", true, data.UserName, data.UserAvatar) {
+		@DashboardContent(data)
+	}
+}
+
+// DashboardContent renders just the main content (for HTMX partial swaps)
+templ DashboardContent(data DashboardData) {
+	<div class="py-8 px-4">
+		<div class="container mx-auto max-w-7xl">
+			<!-- Flash Messages -->
+			if data.SuccessMsg != "" {
+				@components.FlashMessage(data.SuccessMsg, "success")
+			}
+			<!-- Welcome Header -->
+			<div class="mb-8 animate-fade-in-up">
+				<h1 class="text-3xl md:text-4xl font-bold text-foreground mb-2">
+					Welcome back, <span class="text-gradient">{ data.UserName }</span>! 👋
+				</h1>
+				<p class="text-muted-foreground">
+					Here's what's happening with your skill exchange journey.
+				</p>
+			</div>
+			<!-- Stats Cards -->
+			<div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+				@statCard("Points", strconv.Itoa(data.Stats.Points), "text-amber-500", pointsIcon())
+				@statCard("Tier", data.Stats.Tier, "text-purple-500", tierIcon())
+				@statCard("Matches", strconv.Itoa(data.Stats.Matches), "text-emerald-500", matchesIcon())
+				@statCard("Sessions", strconv.Itoa(data.Stats.Sessions), "text-blue-500", sessionsIcon())
+			</div>
+			<!-- Main Content Grid -->
+			<div class="grid lg:grid-cols-3 gap-6">
+				<!-- Left Column - Activity & Actions -->
+				<div class="lg:col-span-2 space-y-6">
+					<!-- Quick Actions -->
+					<div class="glass-card rounded-xl p-6 animate-fade-in-up delay-100">
+						<h2 class="text-lg font-semibold text-foreground mb-4">Quick Actions</h2>
+						<div class="grid sm:grid-cols-3 gap-3">
+							<a href="/skills/add" class="flex items-center gap-3 p-4 rounded-lg bg-primary/10 hover:bg-primary/20 transition-colors group">
+								<div class="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center group-hover:scale-110 transition-transform">
+									<svg class="w-5 h-5 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+										<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+									</svg>
 								</div>
-							</div>
-							<!-- Recent Activity -->
-							<div class="glass-card rounded-xl p-6 animate-fade-in-up delay-200">
-								<div class="flex items-center justify-between mb-4">
-									<h2 class="text-lg font-semibold text-foreground">Recent Activity</h2>
-									<a href="/matches" class="text-sm text-primary hover:underline">View all</a>
+								<span class="font-medium text-foreground">Add Skill</span>
+							</a>
+							<a href="/discover" class="flex items-center gap-3 p-4 rounded-lg bg-blue-500/10 hover:bg-blue-500/20 transition-colors group">
+								<div class="w-10 h-10 rounded-full bg-blue-500/20 flex items-center justify-center group-hover:scale-110 transition-transform">
+									<svg class="w-5 h-5 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+										<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+									</svg>
 								</div>
-								<div class="space-y-4">
-									if len(data.Activities) > 0 {
-										for _, activity := range data.Activities {
-											@activityItem(activity.UserName, activity.Action, activity.TimeAgo, activity.Type)
-										}
-									} else {
-										@activityItem("Welcome", "Start by adding skills you can teach and want to learn!", "Just now", "info")
-									}
+								<span class="font-medium text-foreground">Browse Skills</span>
+							</a>
+							<a href="/messages" class="flex items-center gap-3 p-4 rounded-lg bg-purple-500/10 hover:bg-purple-500/20 transition-colors group">
+								<div class="w-10 h-10 rounded-full bg-purple-500/20 flex items-center justify-center group-hover:scale-110 transition-transform">
+									<svg class="w-5 h-5 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+										<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path>
+									</svg>
 								</div>
-							</div>
+								<span class="font-medium text-foreground">Messages</span>
+							</a>
 						</div>
-						<!-- Right Column - Matches & Recommendations -->
-						<div class="space-y-6">
-							<!-- Suggested Matches -->
-							<div class="glass-card rounded-xl p-6 animate-fade-in-up delay-300">
-								<div class="flex items-center justify-between mb-4">
-									<h2 class="text-lg font-semibold text-foreground">Top Matches</h2>
-									<a href="/matches" class="text-sm text-primary hover:underline">See all</a>
-								</div>
-								<div class="space-y-3">
-									if len(data.TopMatches) > 0 {
-										for _, match := range data.TopMatches {
-											@matchCard(match.DisplayName, match.Skills, fmt.Sprintf("%d%%", match.MatchScore), match.AvatarURL, match.UserID)
-										}
-									} else {
-										<p class="text-sm text-muted-foreground text-center py-4">
-											Add skills to find matches!
-										</p>
-									}
-								</div>
-							</div>
-							<!-- Profile Completion -->
-							<div class="glass-card rounded-xl p-6 animate-fade-in-up delay-400">
-								<h2 class="text-lg font-semibold text-foreground mb-4">Profile Strength</h2>
-								<div class="relative pt-1">
-									<div class="flex items-center justify-between mb-2">
-										<span class="text-sm font-medium text-foreground">{ strconv.Itoa(data.ProfileStrength.Percentage) }% Complete</span>
-										if data.ProfileStrength.Percentage < 100 {
-											<span class="text-xs text-muted-foreground">+{ strconv.Itoa(100 - data.ProfileStrength.Percentage) }% to unlock all features</span>
-										}
-									</div>
-									<div class="overflow-hidden h-2 rounded-full bg-muted">
-										<div class="h-full rounded-full bg-gradient-to-r from-primary to-accent" style={ fmt.Sprintf("width: %d%%", data.ProfileStrength.Percentage) }></div>
-									</div>
-								</div>
-								<div class="mt-4 space-y-2">
-									@profileCheckItem("Add profile photo", data.ProfileStrength.HasAvatar)
-									@profileCheckItem("Add bio", data.ProfileStrength.HasBio)
-									@profileCheckItem("Add 3+ skills you can teach", data.ProfileStrength.HasOfferedSkills)
-									@profileCheckItem("Add 3+ skills you want to learn", data.ProfileStrength.HasWantedSkills)
-									@profileCheckItem("Complete your first session", data.ProfileStrength.HasSession)
-									@profileCheckItem("Add social links", data.ProfileStrength.HasSocialLinks)
-								</div>
-								<a href="/profile" class="btn btn-outline w-full mt-4">
-									Complete Profile
-								</a>
-							</div>
+					</div>
+					<!-- Recent Activity -->
+					<div class="glass-card rounded-xl p-6 animate-fade-in-up delay-200">
+						<div class="flex items-center justify-between mb-4">
+							<h2 class="text-lg font-semibold text-foreground">Recent Activity</h2>
+							<a href="/matches" class="text-sm text-primary hover:underline">View all</a>
+						</div>
+						<div class="space-y-4">
+							if len(data.Activities) > 0 {
+								for _, activity := range data.Activities {
+									@activityItem(activity.UserName, activity.Action, activity.TimeAgo, activity.Type)
+								}
+							} else {
+								@activityItem("Welcome", "Start by adding skills you can teach and want to learn!", "Just now", "info")
+							}
 						</div>
 					</div>
 				</div>
-			</main>
-			@components.Footer()
+				<!-- Right Column - Matches & Recommendations -->
+				<div class="space-y-6">
+					<!-- Suggested Matches -->
+					<div class="glass-card rounded-xl p-6 animate-fade-in-up delay-300">
+						<div class="flex items-center justify-between mb-4">
+							<h2 class="text-lg font-semibold text-foreground">Top Matches</h2>
+							<a href="/matches" class="text-sm text-primary hover:underline">See all</a>
+						</div>
+						<div class="space-y-3">
+							if len(data.TopMatches) > 0 {
+								for _, match := range data.TopMatches {
+									@matchCard(match.DisplayName, match.Skills, fmt.Sprintf("%d%%", match.MatchScore), match.AvatarURL, match.UserID)
+								}
+							} else {
+								<p class="text-sm text-muted-foreground text-center py-4">
+									Add skills to find matches!
+								</p>
+							}
+						</div>
+					</div>
+					<!-- Profile Completion -->
+					<div class="glass-card rounded-xl p-6 animate-fade-in-up delay-400">
+						<h2 class="text-lg font-semibold text-foreground mb-4">Profile Strength</h2>
+						<div class="relative pt-1">
+							<div class="flex items-center justify-between mb-2">
+								<span class="text-sm font-medium text-foreground">{ strconv.Itoa(data.ProfileStrength.Percentage) }% Complete</span>
+								if data.ProfileStrength.Percentage < 100 {
+									<span class="text-xs text-muted-foreground">+{ strconv.Itoa(100 - data.ProfileStrength.Percentage) }% to unlock all features</span>
+								}
+							</div>
+							<div class="overflow-hidden h-2 rounded-full bg-muted">
+								<div class="h-full rounded-full bg-gradient-to-r from-primary to-accent" style={ fmt.Sprintf("width: %d%%", data.ProfileStrength.Percentage) }></div>
+							</div>
+						</div>
+						<div class="mt-4 space-y-2">
+							@profileCheckItem("Add profile photo", data.ProfileStrength.HasAvatar)
+							@profileCheckItem("Add bio", data.ProfileStrength.HasBio)
+							@profileCheckItem("Add 3+ skills you can teach", data.ProfileStrength.HasOfferedSkills)
+							@profileCheckItem("Add 3+ skills you want to learn", data.ProfileStrength.HasWantedSkills)
+							@profileCheckItem("Complete your first session", data.ProfileStrength.HasSession)
+							@profileCheckItem("Add social links", data.ProfileStrength.HasSocialLinks)
+						</div>
+						<a href="/profile" class="btn btn-outline w-full mt-4">
+							Complete Profile
+						</a>
+					</div>
+				</div>
+			</div>
 		</div>
-	}
+	</div>
 }
 
 templ statCard(title string, value string, colorClass string, icon templ.Component) {

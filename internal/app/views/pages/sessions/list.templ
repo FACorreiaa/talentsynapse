@@ -2,7 +2,6 @@ package sessions
 
 import (
 	"fmt"
-	"github.com/FACorreiaa/talentsynapse/internal/app/views/components"
 	"github.com/FACorreiaa/talentsynapse/internal/app/views/layouts"
 	"time"
 )
@@ -18,29 +17,30 @@ type SessionItem struct {
 }
 
 templ List(sessions []SessionItem, userName, userAvatar string) {
-	@layouts.Base("My Sessions | TalentSynapse") {
-		<div class="min-h-screen flex flex-col bg-background">
-			@components.Navbar(true, userName, userAvatar)
-			<main class="flex-1 py-8 px-4">
-				<div class="container mx-auto max-w-4xl">
-					<h1 class="text-3xl font-bold mb-6 text-foreground">My Sessions</h1>
-					if len(sessions) == 0 {
-						<div class="glass-card p-12 text-center rounded-xl">
-							<p class="text-xl text-muted-foreground mb-4">No sessions scheduled yet.</p>
-							<a href="/connections" class="btn btn-primary">Find Matches</a>
-						</div>
-					} else {
-						<div class="space-y-4">
-							for _, s := range sessions {
-								@SessionCard(s)
-							}
-						</div>
+	@layouts.AppLayout("My Sessions | TalentSynapse", true, userName, userAvatar) {
+		@ListContent(sessions)
+	}
+}
+
+// ListContent renders just the main content (for HTMX partial swaps)
+templ ListContent(sessions []SessionItem) {
+	<div class="py-8 px-4">
+		<div class="container mx-auto max-w-4xl">
+			<h1 class="text-3xl font-bold mb-6 text-foreground">My Sessions</h1>
+			if len(sessions) == 0 {
+				<div class="glass-card p-12 text-center rounded-xl">
+					<p class="text-xl text-muted-foreground mb-4">No sessions scheduled yet.</p>
+					<a href="/connections" class="btn btn-primary">Find Matches</a>
+				</div>
+			} else {
+				<div class="space-y-4">
+					for _, s := range sessions {
+						@SessionCard(s)
 					}
 				</div>
-			</main>
-			@components.Footer()
+			}
 		</div>
-	}
+	</div>
 }
 
 templ SessionCard(s SessionItem) {

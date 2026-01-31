@@ -3,6 +3,7 @@ package profile
 import "github.com/FACorreiaa/talentsynapse/internal/app/views/layouts"
 import "github.com/FACorreiaa/talentsynapse/internal/app/views/components"
 import "time"
+import "strconv"
 
 // ProfileData holds profile information for display
 type ProfileData struct {
@@ -15,6 +16,12 @@ type ProfileData struct {
 	CreatedAt   time.Time
 	SocialLinks SocialLinksData
 	Portfolio   []PortfolioItem
+	Badges      []BadgeData
+	Tier        string
+	// Stats from database
+	SkillsCount   int
+	MatchesCount  int
+	SessionsCount int
 }
 
 type SocialLinksData struct {
@@ -32,190 +39,231 @@ type PortfolioItem struct {
 	ImageURL    string
 }
 
+type BadgeData struct {
+	Name    string
+	Icon    string
+	Code    string
+	Awarded bool
+}
+
 templ Profile(p ProfileData, userName string, userAvatar string, successMsg string) {
-	@layouts.Base("Profile | TalentSynapse") {
-		<div class="min-h-screen flex flex-col bg-background">
-			@components.Navbar(true, userName, userAvatar)
-			<main class="flex-1 py-8 px-4">
-				<div class="container mx-auto max-w-4xl">
-					<!-- Flash Messages -->
-					if successMsg != "" {
-						@components.FlashMessage(successMsg, "success")
-					}
-					<!-- Profile Header -->
-					<div class="glass-card rounded-xl p-8 mb-6 animate-fade-in-up">
-						<div class="flex flex-col md:flex-row items-center gap-6">
-							<!-- Avatar -->
-							<div class="relative group">
-								if p.AvatarURL != "" {
-									<img
-										src={ p.AvatarURL }
-										alt="Profile picture"
-										class="w-32 h-32 rounded-full object-cover ring-4 ring-primary/20"
-									/>
-								} else {
-									<div class="w-32 h-32 rounded-full bg-gradient-to-br from-primary to-accent flex items-center justify-center text-primary-foreground text-4xl font-bold">
-										{ getInitial(p.DisplayName) }
-									</div>
-								}
-								<button class="absolute bottom-0 right-0 w-10 h-10 rounded-full bg-primary text-primary-foreground flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-									@cameraIcon()
-								</button>
-							</div>
-							<!-- Info -->
-							<div class="flex-1 text-center md:text-left">
-								<h1 class="text-3xl font-bold text-foreground mb-1">{ p.DisplayName }</h1>
-								<p class="text-muted-foreground mb-2">{ "@" + p.Username }</p>
-								<p class="text-sm text-muted-foreground">{ p.Email }</p>
-							</div>
-							<!-- Stats -->
-							<div class="grid grid-cols-3 gap-4 mt-4 md:mt-0">
-								@profileStat("Skills", "12")
-								@profileStat("Matches", "24")
-								@profileStat("Sessions", "7")
-							</div>
-						</div>
-					</div>
-					<!-- Edit Profile Form -->
-					<div class="glass-card rounded-xl p-6 animate-fade-in-up delay-100">
-						<h2 class="text-xl font-semibold text-foreground mb-6">Edit Profile</h2>
-						<form action="/profile" method="POST" class="space-y-6">
-							<!-- Display Name -->
-							<div>
-								<label for="display_name" class="block text-sm font-medium text-foreground mb-2">
-									Display Name
-								</label>
-								<input
-									type="text"
-									id="display_name"
-									name="display_name"
-									value={ p.DisplayName }
-									class="input w-full"
-									placeholder="Your display name"
-								/>
-							</div>
-							<!-- Bio -->
-							<div>
-								<label for="bio" class="block text-sm font-medium text-foreground mb-2">
-									Bio
-								</label>
-								<textarea
-									id="bio"
-									name="bio"
-									rows="4"
-									class="input w-full resize-none"
-									placeholder="Tell others about yourself..."
-								>{ p.Bio }</textarea>
-							</div>
-							<!-- Social Links -->
-							<div class="grid md:grid-cols-2 gap-4">
-								<div>
-									<label for="github" class="block text-sm font-medium text-foreground mb-2">GitHub</label>
-									<input type="text" id="github" name="github" value={ p.SocialLinks.GitHub } class="input w-full" placeholder="GitHub Username"/>
-								</div>
-								<div>
-									<label for="linkedin" class="block text-sm font-medium text-foreground mb-2">LinkedIn</label>
-									<input type="text" id="linkedin" name="linkedin" value={ p.SocialLinks.LinkedIn } class="input w-full" placeholder="LinkedIn Profile URL"/>
-								</div>
-								<div>
-									<label for="twitter" class="block text-sm font-medium text-foreground mb-2">Twitter</label>
-									<input type="text" id="twitter" name="twitter" value={ p.SocialLinks.Twitter } class="input w-full" placeholder="Twitter Username"/>
-								</div>
-								<div>
-									<label for="website" class="block text-sm font-medium text-foreground mb-2">Website</label>
-									<input type="text" id="website" name="website" value={ p.SocialLinks.Website } class="input w-full" placeholder="Your Website URL"/>
-								</div>
-							</div>
-							<!-- Submit Button -->
-							<div class="flex justify-end">
-								<button type="submit" class="btn btn-primary btn-glow">
-									Save Changes
-								</button>
-							</div>
-						</form>
-					</div>
-					<!-- Portfolio Section -->
-					<div class="glass-card rounded-xl p-6 animate-fade-in-up delay-150 mb-6">
-						<div class="flex justify-between items-center mb-6">
-							<h2 class="text-xl font-semibold text-foreground">Portfolio Projects</h2>
-							<button
-								class="btn btn-sm btn-primary"
-								_="on click me('#add-portfolio-modal').showModal()"
-							>
-								+ Add Project
-							</button>
-						</div>
-						<!-- Portfolio List -->
-						if len(p.Portfolio) == 0 {
-							<p class="text-muted-foreground text-sm">No projects added yet.</p>
+	@layouts.AppLayout("Profile | TalentSynapse", true, userName, userAvatar) {
+		@ProfileContent(p, successMsg)
+	}
+}
+
+// ProfileContent renders just the main content (for HTMX partial swaps)
+templ ProfileContent(p ProfileData, successMsg string) {
+	<div class="py-8 px-4">
+		<div class="container mx-auto max-w-4xl">
+			<!-- Flash Messages -->
+			if successMsg != "" {
+				@components.FlashMessage(successMsg, "success")
+			}
+			<!-- Profile Header -->
+			<div class="glass-card rounded-xl p-8 mb-6 animate-fade-in-up">
+				<div class="flex flex-col md:flex-row items-center gap-6">
+					<!-- Avatar -->
+					<div class="relative group">
+						if p.AvatarURL != "" {
+							<img
+								src={ p.AvatarURL }
+								alt="Profile picture"
+								class="w-32 h-32 rounded-full object-cover ring-4 ring-primary/20"
+							/>
 						} else {
-							<div class="space-y-4">
-								for _, item := range p.Portfolio {
-									<div class="flex items-center justify-between p-4 bg-secondary/30 rounded-lg">
-										<div>
-											<h3 class="font-bold">{ item.Title }</h3>
-											<p class="text-xs text-muted-foreground truncate max-w-xs">{ item.Description }</p>
-										</div>
-										<div class="flex items-center gap-2">
-											if item.LinkURL != "" {
-												<a href={ templ.SafeURL(item.LinkURL) } target="_blank" class="btn btn-xs btn-ghost">Link</a>
-											}
-											<button
-												class="btn btn-xs btn-error btn-outline"
-												hx-delete={ "/profile/portfolio/" + item.ID }
-												hx-confirm="Are you sure you want to delete this project?"
-												hx-target="body"
-											>
-												Delete
-											</button>
-										</div>
-									</div>
-								}
+							<div class="w-32 h-32 rounded-full bg-gradient-to-br from-primary to-accent flex items-center justify-center text-primary-foreground text-4xl font-bold">
+								{ getInitial(p.DisplayName) }
+							</div>
+						}
+						<button class="absolute bottom-0 right-0 w-10 h-10 rounded-full bg-primary text-primary-foreground flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+							@cameraIcon()
+						</button>
+					</div>
+					<!-- Info -->
+					<div class="flex-1 text-center md:text-left">
+						<h1 class="text-3xl font-bold text-foreground mb-1">{ p.DisplayName }</h1>
+						<p class="text-muted-foreground mb-2">{ "@" + p.Username }</p>
+						<p class="text-sm text-muted-foreground">{ p.Email }</p>
+					</div>
+					<!-- Stats -->
+					<div class="grid grid-cols-3 gap-4 mt-4 md:mt-0">
+						@profileStat("Skills", formatInt(p.SkillsCount))
+						@profileStat("Matches", formatInt(p.MatchesCount))
+						@profileStat("Sessions", formatInt(p.SessionsCount))
+					</div>
+				</div>
+				<!-- Tier Badge -->
+				if p.Tier != "" && p.Tier != "Bronze" {
+					<div class="mt-4 flex justify-center md:justify-start">
+						<div
+							class={ "inline-flex items-center px-3 py-1 rounded-full text-sm font-medium",
+							templ.KV("bg-gray-100 text-gray-800", p.Tier == "Silver"),
+							templ.KV("bg-yellow-100 text-yellow-800", p.Tier == "Gold") }
+						>
+							if p.Tier == "Silver" {
+								🥈
+							} else if p.Tier == "Gold" {
+								🥇
+							}
+							{ p.Tier } Member
+						</div>
+					</div>
+				}
+			</div>
+			<!-- Badges Section -->
+			if len(p.Badges) > 0 {
+				<div class="glass-card rounded-xl p-6 mb-6 animate-fade-in-up delay-75">
+					<h3 class="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
+						<span class="text-xl">🏆</span> Achievements
+					</h3>
+					<div class="flex flex-wrap gap-4">
+						for _, badge := range p.Badges {
+							<div class="group relative flex flex-col items-center p-3 rounded-lg bg-secondary/30 hover:bg-secondary/50 transition-colors cursor-help" title={ badge.Name }>
+								<div class="text-3xl mb-1 filter drop-shadow-md transform group-hover:scale-110 transition-transform">{ badge.Icon }</div>
+								<span class="text-xs font-medium text-center max-w-[80px] leading-tight">{ badge.Name }</span>
 							</div>
 						}
 					</div>
-					<!-- Add Portfolio Modal -->
-					<dialog id="add-portfolio-modal" class="modal">
-						<div class="modal-box bg-background border border-border">
-							<h3 class="font-bold text-lg mb-4">Add Portfolio Project</h3>
-							<form action="/profile/portfolio" method="POST" class="space-y-4">
-								<div>
-									<label class="label">Title</label>
-									<input type="text" name="title" class="input w-full" required/>
-								</div>
-								<div>
-									<label class="label">Description</label>
-									<textarea name="description" class="textarea w-full" rows="3"></textarea>
-								</div>
-								<div>
-									<label class="label">Link URL</label>
-									<input type="url" name="link_url" class="input w-full" placeholder="https://"/>
-								</div>
-								<div class="modal-action">
-									<button type="button" class="btn btn-ghost" _="on click me('#add-portfolio-modal').close()">Cancel</button>
-									<button type="submit" class="btn btn-primary">Add Project</button>
-								</div>
-							</form>
+				</div>
+			}
+			<!-- Edit Profile Form -->
+			<div class="glass-card rounded-xl p-6 animate-fade-in-up delay-100">
+				<h2 class="text-xl font-semibold text-foreground mb-6">Edit Profile</h2>
+				<form action="/profile" method="POST" class="space-y-6">
+					<!-- Display Name -->
+					<div>
+						<label for="display_name" class="block text-sm font-medium text-foreground mb-2">
+							Display Name
+						</label>
+						<input
+							type="text"
+							id="display_name"
+							name="display_name"
+							value={ p.DisplayName }
+							class="input w-full"
+							placeholder="Your display name"
+						/>
+					</div>
+					<!-- Bio -->
+					<div>
+						<label for="bio" class="block text-sm font-medium text-foreground mb-2">
+							Bio
+						</label>
+						<textarea
+							id="bio"
+							name="bio"
+							rows="4"
+							class="input w-full resize-none"
+							placeholder="Tell others about yourself..."
+						>{ p.Bio }</textarea>
+					</div>
+					<!-- Social Links -->
+					<div class="grid md:grid-cols-2 gap-4">
+						<div>
+							<label for="github" class="block text-sm font-medium text-foreground mb-2">GitHub</label>
+							<input type="text" id="github" name="github" value={ p.SocialLinks.GitHub } class="input w-full" placeholder="GitHub Username"/>
 						</div>
-						<form method="dialog" class="modal-backdrop">
-							<button>close</button>
-						</form>
-					</dialog>
-					<!-- Danger Zone -->
-					<div class="glass-card rounded-xl p-6 mt-6 border border-destructive/20 animate-fade-in-up delay-200">
-						<h2 class="text-xl font-semibold text-destructive mb-4">Danger Zone</h2>
-						<p class="text-sm text-muted-foreground mb-4">
-							Once you delete your account, there is no going back. Please be certain.
-						</p>
-						<button type="button" class="btn btn-outline border-destructive text-destructive hover:bg-destructive hover:text-destructive-foreground">
-							Delete Account
+						<div>
+							<label for="linkedin" class="block text-sm font-medium text-foreground mb-2">LinkedIn</label>
+							<input type="text" id="linkedin" name="linkedin" value={ p.SocialLinks.LinkedIn } class="input w-full" placeholder="LinkedIn Profile URL"/>
+						</div>
+						<div>
+							<label for="twitter" class="block text-sm font-medium text-foreground mb-2">Twitter</label>
+							<input type="text" id="twitter" name="twitter" value={ p.SocialLinks.Twitter } class="input w-full" placeholder="Twitter Username"/>
+						</div>
+						<div>
+							<label for="website" class="block text-sm font-medium text-foreground mb-2">Website</label>
+							<input type="text" id="website" name="website" value={ p.SocialLinks.Website } class="input w-full" placeholder="Your Website URL"/>
+						</div>
+					</div>
+					<!-- Submit Button -->
+					<div class="flex justify-end">
+						<button type="submit" class="btn btn-primary btn-glow">
+							Save Changes
 						</button>
 					</div>
+				</form>
+			</div>
+			<!-- Portfolio Section -->
+			<div class="glass-card rounded-xl p-6 animate-fade-in-up delay-150 mb-6">
+				<div class="flex justify-between items-center mb-6">
+					<h2 class="text-xl font-semibold text-foreground">Portfolio Projects</h2>
+					<button
+						class="btn btn-sm btn-primary"
+						_="on click me('#add-portfolio-modal').showModal()"
+					>
+						+ Add Project
+					</button>
 				</div>
-			</main>
-			@components.Footer()
+				<!-- Portfolio List -->
+				if len(p.Portfolio) == 0 {
+					<p class="text-muted-foreground text-sm">No projects added yet.</p>
+				} else {
+					<div class="space-y-4">
+						for _, item := range p.Portfolio {
+							<div class="flex items-center justify-between p-4 bg-secondary/30 rounded-lg">
+								<div>
+									<h3 class="font-bold">{ item.Title }</h3>
+									<p class="text-xs text-muted-foreground truncate max-w-xs">{ item.Description }</p>
+								</div>
+								<div class="flex items-center gap-2">
+									if item.LinkURL != "" {
+										<a href={ templ.SafeURL(item.LinkURL) } target="_blank" class="btn btn-xs btn-ghost">Link</a>
+									}
+									<button
+										class="btn btn-xs btn-error btn-outline"
+										hx-delete={ "/profile/portfolio/" + item.ID }
+										hx-confirm="Are you sure you want to delete this project?"
+										hx-target="body"
+									>
+										Delete
+									</button>
+								</div>
+							</div>
+						}
+					</div>
+				}
+			</div>
+			<!-- Add Portfolio Modal -->
+			<dialog id="add-portfolio-modal" class="modal">
+				<div class="modal-box bg-background border border-border">
+					<h3 class="font-bold text-lg mb-4">Add Portfolio Project</h3>
+					<form action="/profile/portfolio" method="POST" class="space-y-4">
+						<div>
+							<label class="label">Title</label>
+							<input type="text" name="title" class="input w-full" required/>
+						</div>
+						<div>
+							<label class="label">Description</label>
+							<textarea name="description" class="textarea w-full" rows="3"></textarea>
+						</div>
+						<div>
+							<label class="label">Link URL</label>
+							<input type="url" name="link_url" class="input w-full" placeholder="https://"/>
+						</div>
+						<div class="modal-action">
+							<button type="button" class="btn btn-ghost" _="on click me('#add-portfolio-modal').close()">Cancel</button>
+							<button type="submit" class="btn btn-primary">Add Project</button>
+						</div>
+					</form>
+				</div>
+				<form method="dialog" class="modal-backdrop">
+					<button>close</button>
+				</form>
+			</dialog>
+			<!-- Danger Zone -->
+			<div class="glass-card rounded-xl p-6 mt-6 border border-destructive/20 animate-fade-in-up delay-200">
+				<h2 class="text-xl font-semibold text-destructive mb-4">Danger Zone</h2>
+				<p class="text-sm text-muted-foreground mb-4">
+					Once you delete your account, there is no going back. Please be certain.
+				</p>
+				<button type="button" class="btn btn-outline border-destructive text-destructive hover:bg-destructive hover:text-destructive-foreground">
+					Delete Account
+				</button>
+			</div>
 		</div>
-	}
+	</div>
 }
 
 func getInitial(name string) string {
@@ -224,6 +272,10 @@ func getInitial(name string) string {
 	}
 	runes := []rune(name)
 	return string(runes[0])
+}
+
+func formatInt(n int) string {
+	return strconv.Itoa(n)
 }
 
 templ profileStat(label string, value string) {

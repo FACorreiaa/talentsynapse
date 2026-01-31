@@ -1,24 +1,40 @@
 package review
 
 import (
+	"context"
 	"errors"
+	"fmt"
+	"log"
 	"net/http"
 	"strconv"
 
 	"github.com/FACorreiaa/talentsynapse/internal/app/domain/auth"
 	"github.com/FACorreiaa/talentsynapse/internal/app/domain/badges"
+	"github.com/FACorreiaa/talentsynapse/internal/app/domain/points"
+	"github.com/FACorreiaa/talentsynapse/internal/app/domain/user"
 	"github.com/google/uuid"
 )
 
-type Handler struct {
-	repo       *Repository
-	badgesRepo *badges.Repository
+// NotificationHub interface for sending real-time notifications
+type NotificationHub interface {
+	BroadcastToUser(userID string, message []byte)
 }
 
-func NewHandler(repo *Repository, badgesRepo *badges.Repository) *Handler {
+type Handler struct {
+	repo          *Repository
+	badgesRepo    *badges.Repository
+	pointsService *points.Service
+	userRepo      *user.Repository
+	hub           NotificationHub
+}
+
+func NewHandler(repo *Repository, badgesRepo *badges.Repository, pointsService *points.Service, userRepo *user.Repository, hub NotificationHub) *Handler {
 	return &Handler{
-		repo:       repo,
-		badgesRepo: badgesRepo,
+		repo:          repo,
+		badgesRepo:    badgesRepo,
+		pointsService: pointsService,
+		userRepo:      userRepo,
+		hub:           hub,
 	}
 }
 
@@ -97,6 +113,19 @@ func (h *Handler) Submit(w http.ResponseWriter, r *http.Request) {
 	} else {
 		_ = auth.SetFlash(w, r, "Review submitted successfully!", auth.FlashSuccess)
 
+		// Send notification to the reviewed user
+		h.notifyReviewReceived(r.Context(), toUserID, fromUserID, rating)
+
+		// Award points to the reviewed user based on rating
+		if h.pointsService != nil {
+			upgrade, err := h.pointsService.AwardReviewPoints(r.Context(), toUserID, rating)
+			if err != nil {
+				log.Printf("Failed to award review points: %v", err)
+			} else if upgrade != nil {
+				log.Printf("User %s upgraded to %s tier after review!", toUserID, upgrade.NewTier)
+			}
+		}
+
 		// Gamification Check: Top Teacher
 		// 5+ reviews, 4.5+ average
 		total, avg, err := h.repo.GetStats(r.Context(), toUserID)
@@ -106,4 +135,46 @@ func (h *Handler) Submit(w http.ResponseWriter, r *http.Request) {
 	}
 
 	http.Redirect(w, r, r.Header.Get("Referer"), http.StatusSeeOther)
+}
+
+// notifyReviewReceived sends a real-time notification to the user who received a review
+func (h *Handler) notifyReviewReceived(ctx context.Context, reviewedUserID, reviewerUserID uuid.UUID, rating int) {
+	if h.hub == nil || h.userRepo == nil {
+		log.Printf("Review notification skipped: hub or userRepo not configured")
+		return
+	}
+
+	// Get reviewer information
+	reviewer, err := h.userRepo.GetByID(ctx, reviewerUserID.String())
+	if err != nil {
+		log.Printf("Failed to get reviewer info for notification: %v", err)
+		return
+	}
+
+	// Generate star icons based on rating
+	stars := ""
+	for i := 0; i < rating; i++ {
+		stars += "⭐"
+	}
+
+	// Create notification HTML
+	notification := fmt.Sprintf(`
+		<div id="notifications" hx-swap-oob="beforeend">
+			<div class="alert shadow-lg mb-2 bg-gradient-to-r from-blue-500 to-purple-500 text-white animate-fade-in" role="alert">
+				<div class="flex items-center gap-3">
+					<span class="text-3xl">📝</span>
+					<div>
+						<h3 class="font-bold text-lg">New Review Received!</h3>
+						<div class="text-sm"><strong>%s</strong> left you a review</div>
+						<div class="text-sm mt-1">Rating: %s</div>
+						<a href="/users/%s" class="text-xs underline hover:text-blue-200 mt-1 inline-block">View your profile</a>
+					</div>
+				</div>
+				<button class="btn btn-sm btn-ghost text-white" onclick="this.parentElement.remove()">✕</button>
+			</div>
+		</div>
+	`, reviewer.DisplayName, stars, reviewedUserID.String())
+
+	h.hub.BroadcastToUser(reviewedUserID.String(), []byte(notification))
+	log.Printf("📝 Review notification sent: %s reviewed %s with %d stars", reviewer.DisplayName, reviewedUserID, rating)
 }

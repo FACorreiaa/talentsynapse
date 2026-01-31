@@ -1,5 +1,7 @@
 package layouts
 
+import "github.com/FACorreiaa/talentsynapse/internal/app/views/components"
+
 templ Base(title string) {
 	<!DOCTYPE html>
 	<html lang="en" class="dark">
@@ -24,7 +26,7 @@ templ Base(title string) {
 			<!-- Surreal.js - Must load in head before inline scripts -->
 			<script src="/assets/js/surreal.min.js"></script>
 		</head>
-		<body>
+		<body hx-boost="true" hx-target="#main-content" hx-swap="innerHTML show:window:top" hx-push-url="true">
 			{ children... }
 			<!-- JavaScript Libraries (loaded at end for performance) -->
 			<script src="/assets/js/htmx.min.js"></script>
@@ -57,4 +59,82 @@ templ Base(title string) {
 			</script>
 		</body>
 	</html>
+}
+
+// AppLayout is a layout that keeps navbar/footer outside the swapped content area
+// This prevents navbar animations from restarting on HTMX navigation
+// Use this for all authenticated pages
+templ AppLayout(title string, isAuthenticated bool, userName string, userAvatar string) {
+	<!DOCTYPE html>
+	<html lang="en" class="dark">
+		<head>
+			<meta charset="UTF-8"/>
+			<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+			<title id="page-title">{ title }</title>
+			<!-- Favicon -->
+			<link rel="icon" type="image/svg+xml" href="/assets/static/icon.svg"/>
+			<link rel="icon" type="image/x-icon" href="/favicon.ico"/>
+			<!-- SEO Meta Tags -->
+			<meta name="description" content="TalentSynapse - Professional skill tracking platform"/>
+			<meta name="author" content="TalentSynapse"/>
+			<!-- PWA Meta Tags -->
+			<link rel="manifest" href="/assets/static/manifest.json"/>
+			<meta name="theme-color" content="#cba6f7"/>
+			<meta name="apple-mobile-web-app-capable" content="yes"/>
+			<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+			<link rel="apple-touch-icon" href="/assets/static/icon-192.svg"/>
+			<!-- Stylesheets -->
+			<link rel="stylesheet" href="/assets/css/output.css"/>
+			<!-- Surreal.js - Must load in head before inline scripts -->
+			<script src="/assets/js/surreal.min.js"></script>
+		</head>
+		<body hx-boost="true" hx-target="#main-content" hx-swap="innerHTML show:window:top" hx-push-url="true">
+			<div class="min-h-screen flex flex-col bg-background">
+				<!-- Navbar is outside the swapped content - stays static -->
+				@components.Navbar(isAuthenticated, userName, userAvatar)
+				<!-- Main content area that gets swapped on HTMX navigation -->
+				<main id="main-content" class="flex-1">
+					{ children... }
+				</main>
+				<!-- Footer is outside the swapped content - stays static -->
+				@components.Footer()
+			</div>
+			<!-- JavaScript Libraries (loaded at end for performance) -->
+			<script src="/assets/js/htmx.min.js"></script>
+			<script src="/assets/js/ws.js"></script>
+			<script src="/assets/js/basecoat.min.js" defer></script>
+			<script src="/assets/js/app.js" defer></script>
+			<!-- Theme initialization -->
+			<script>
+				(function() {
+					const savedTheme = localStorage.getItem('theme');
+					const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+					const isDark = savedTheme === 'dark' || (savedTheme === null && prefersDark);
+					document.documentElement.classList.toggle('dark', isDark);
+					document.addEventListener('DOMContentLoaded', function() {
+						document.querySelectorAll('.sun-icon').forEach(el => el.classList.toggle('hidden', !isDark));
+						document.querySelectorAll('.moon-icon').forEach(el => el.classList.toggle('hidden', isDark));
+					});
+				})();
+			</script>
+			<!-- Service Worker Registration -->
+			<script>
+				if ('serviceWorker' in navigator) {
+					window.addEventListener('load', () => {
+						navigator.serviceWorker.register('/assets/static/sw.js')
+							.then(reg => console.log('✅ Service Worker registered'))
+							.catch(err => console.error('❌ SW registration failed:', err));
+					});
+				}
+			</script>
+		</body>
+	</html>
+}
+
+// PageContent is used for HTMX partial responses - returns just the main content
+// Also updates the page title via out-of-band swap
+templ PageContent(title string) {
+	<!-- Update page title via out-of-band swap -->
+	<title id="page-title" hx-swap-oob="true">{ title }</title>
+	{ children... }
 }

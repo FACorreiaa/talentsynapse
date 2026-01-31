@@ -1,28 +1,32 @@
 package session
 
 import (
+	"log"
 	"net/http"
 	"time"
 
 	"github.com/FACorreiaa/talentsynapse/internal/app/domain/auth"
 	"github.com/FACorreiaa/talentsynapse/internal/app/domain/badges"
 	"github.com/FACorreiaa/talentsynapse/internal/app/domain/matches"
+	"github.com/FACorreiaa/talentsynapse/internal/app/domain/points"
 	sessionpages "github.com/FACorreiaa/talentsynapse/internal/app/views/pages/sessions"
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
 )
 
 type Handler struct {
-	repo        *Repository
-	badgesRepo  *badges.Repository
-	matchesRepo *matches.Repository
+	repo          *Repository
+	badgesRepo    *badges.Repository
+	matchesRepo   *matches.Repository
+	pointsService *points.Service
 }
 
-func NewHandler(repo *Repository, badgesRepo *badges.Repository, matchesRepo *matches.Repository) *Handler {
+func NewHandler(repo *Repository, badgesRepo *badges.Repository, matchesRepo *matches.Repository, pointsService *points.Service) *Handler {
 	return &Handler{
-		repo:        repo,
-		badgesRepo:  badgesRepo,
-		matchesRepo: matchesRepo,
+		repo:          repo,
+		badgesRepo:    badgesRepo,
+		matchesRepo:   matchesRepo,
+		pointsService: pointsService,
 	}
 }
 
@@ -120,10 +124,27 @@ func (h *Handler) Complete(w http.ResponseWriter, r *http.Request) {
 	} else {
 		_ = auth.SetFlash(w, r, "Session completed! Please leave a review.", auth.FlashSuccess)
 
+		userUUID := uuid.MustParse(sessionData.UserID)
+
+		// Award points for completing session
+		if h.pointsService != nil {
+			upgrade, err := h.pointsService.AwardSessionPoints(r.Context(), userUUID)
+			if err != nil {
+				log.Printf("Failed to award session points: %v", err)
+			} else if upgrade != nil {
+				log.Printf("User %s upgraded to %s tier!", sessionData.UserID, upgrade.NewTier)
+			}
+		}
+
 		// Gamification: Check for dedicated_learner badge (5+ completed sessions)
 		count, err := h.repo.CountCompletedSessions(r.Context(), sessionData.UserID)
 		if err == nil && count >= 5 {
-			_ = h.badgesRepo.AwardBadge(r.Context(), uuid.MustParse(sessionData.UserID), "dedicated_learner")
+			_ = h.badgesRepo.AwardBadge(r.Context(), userUUID, "dedicated_learner")
+		}
+
+		// Award first session badge if this is the first
+		if err == nil && count == 1 && h.pointsService != nil {
+			_, _ = h.pointsService.AwardFirstSessionPoints(r.Context(), userUUID)
 		}
 	}
 

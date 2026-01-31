@@ -1,7 +1,6 @@
 package discover
 
 import "github.com/FACorreiaa/talentsynapse/internal/app/views/layouts"
-import "github.com/FACorreiaa/talentsynapse/internal/app/views/components"
 
 // SkillCard represents a skill for browsing
 type SkillCard struct {
@@ -19,75 +18,76 @@ type CategoryFilter struct {
 }
 
 templ Discover(skills []SkillCard, categories []CategoryFilter, selectedCategory string, userName string, userAvatar string, isAuthenticated bool) {
-	@layouts.Base("Discover Skills | TalentSynapse") {
-		<div class="min-h-screen flex flex-col bg-background">
-			@components.Navbar(isAuthenticated, userName, userAvatar)
-			<main class="flex-1 py-8 px-4">
-				<div class="container mx-auto max-w-6xl">
-					<!-- Page Header -->
-					<div class="mb-8 animate-fade-in-up">
-						<h1 class="text-3xl md:text-4xl font-bold text-foreground mb-2">
-							Discover <span class="text-gradient">Skills</span>
-						</h1>
-						<p class="text-muted-foreground">
-							Browse the skill catalog and find people to exchange knowledge with
-						</p>
-					</div>
-					<!-- Search and Filters -->
-					<div class="glass-card rounded-xl p-4 mb-8 animate-fade-in-up delay-100">
-						<div class="flex flex-col md:flex-row gap-4">
-							<!-- Search -->
-							<div class="flex-1">
-								<div class="relative">
-									<svg class="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-										<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
-									</svg>
-									<input
-										type="text"
-										placeholder="Search skills..."
-										class="input w-full pl-10 bg-muted border-border"
-									/>
-								</div>
-							</div>
-							<!-- Category Filter -->
-							<div class="flex gap-2 flex-wrap">
-								<a
-									href="/discover"
-									class={ "btn btn-sm", templ.KV("btn-primary", selectedCategory == ""), templ.KV("btn-outline", selectedCategory != "") }
-								>
-									All
-								</a>
-								for _, cat := range categories {
-									<a
-										href={ templ.SafeURL("/discover?category=" + cat.ID) }
-										class={ "btn btn-sm", templ.KV("btn-primary", selectedCategory == cat.ID), templ.KV("btn-outline", selectedCategory != cat.ID) }
-									>
-										{ cat.Name }
-									</a>
-								}
-							</div>
+	@layouts.AppLayout("Discover Skills | TalentSynapse", isAuthenticated, userName, userAvatar) {
+		@DiscoverContent(skills, categories, selectedCategory)
+	}
+}
+
+// DiscoverContent renders just the main content (for HTMX partial swaps)
+templ DiscoverContent(skills []SkillCard, categories []CategoryFilter, selectedCategory string) {
+	<div class="py-8 px-4">
+		<div class="container mx-auto max-w-6xl">
+			<!-- Page Header -->
+			<div class="mb-8 animate-fade-in-up">
+				<h1 class="text-3xl md:text-4xl font-bold text-foreground mb-2">
+					Discover <span class="text-gradient">Skills</span>
+				</h1>
+				<p class="text-muted-foreground">
+					Browse the skill catalog and find people to exchange knowledge with
+				</p>
+			</div>
+			<!-- Search and Filters -->
+			<div class="glass-card rounded-xl p-4 mb-8 animate-fade-in-up delay-100">
+				<div class="flex flex-col md:flex-row gap-4">
+					<!-- Search -->
+					<div class="flex-1">
+						<div class="relative">
+							<svg class="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+								<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+							</svg>
+							<input
+								type="text"
+								placeholder="Search skills..."
+								class="input w-full pl-10 bg-muted border-border"
+							/>
 						</div>
 					</div>
-					<!-- Skills Grid -->
-					<div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
-						if len(skills) == 0 {
-							<div class="col-span-full text-center py-12 text-muted-foreground">
-								<svg class="w-16 h-16 mx-auto mb-4 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-									<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-								</svg>
-								<p class="text-lg font-medium">No skills found</p>
-								<p class="text-sm mt-1">Try a different search or category</p>
-							</div>
-						}
-						for i, skill := range skills {
-							@skillCard(skill, i)
+					<!-- Category Filter -->
+					<div class="flex gap-2 flex-wrap">
+						<a
+							href="/discover"
+							class={ "btn btn-sm", templ.KV("btn-primary", selectedCategory == ""), templ.KV("btn-outline", selectedCategory != "") }
+						>
+							All
+						</a>
+						for _, cat := range categories {
+							<a
+								href={ templ.SafeURL("/discover?category=" + cat.ID) }
+								class={ "btn btn-sm", templ.KV("btn-primary", selectedCategory == cat.ID), templ.KV("btn-outline", selectedCategory != cat.ID) }
+							>
+								{ cat.Name }
+							</a>
 						}
 					</div>
 				</div>
-			</main>
-			@components.Footer()
+			</div>
+			<!-- Skills Grid -->
+			<div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+				if len(skills) == 0 {
+					<div class="col-span-full text-center py-12 text-muted-foreground">
+						<svg class="w-16 h-16 mx-auto mb-4 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+						</svg>
+						<p class="text-lg font-medium">No skills found</p>
+						<p class="text-sm mt-1">Try a different search or category</p>
+					</div>
+				}
+				for i, skill := range skills {
+					@skillCard(skill, i)
+				}
+			</div>
 		</div>
-	}
+	</div>
 }
 
 templ skillCard(skill SkillCard, index int) {

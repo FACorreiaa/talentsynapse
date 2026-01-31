@@ -234,17 +234,36 @@ document.addEventListener('click', function(e) {
         init();
     }
 
+    // ═══════════════════════════════════════════════════════════════════════
+    // HTMX Navigation Handlers
+    // ═══════════════════════════════════════════════════════════════════════
+
     // Re-initialize after HTMX swaps
     if (typeof htmx !== 'undefined') {
+        // Mark navbar as loaded after first page load to prevent animation replay
+        document.addEventListener('DOMContentLoaded', function() {
+            setTimeout(function() {
+                const navbar = document.querySelector('.nav-premium');
+                if (navbar) {
+                    navbar.setAttribute('data-loaded', 'true');
+                }
+            }, 1000); // Wait for initial animations to complete
+        });
+
         document.body.addEventListener('htmx:afterSwap', function() {
             initFlashMessages();
             initMobileMenu();
             initTabs();
         });
 
-        // Close mobile menu before navigation
+        // Before HTMX navigation: close mobile menu and mark navbar
         document.body.addEventListener('htmx:beforeRequest', function() {
             closeMobileMenu();
+            // Ensure navbar stays stable during navigation
+            const navbar = document.querySelector('.nav-premium');
+            if (navbar) {
+                navbar.setAttribute('data-loaded', 'true');
+            }
         });
     }
 

@@ -424,6 +424,26 @@ func (r *Repository) AreConnected(ctx context.Context, userA, userB string) (boo
 	return exists, err
 }
 
+// CountMutualMatches counts the number of mutual matches for a user
+func (r *Repository) CountMutualMatches(ctx context.Context, userID string) (int, error) {
+	query := `
+		SELECT COUNT(DISTINCT 
+			CASE 
+				WHEN mh1.user_id_a = $1 THEN mh1.user_id_b 
+				ELSE mh1.user_id_a 
+			END
+		)
+		FROM match_history mh1
+		JOIN match_history mh2 ON mh1.user_id_a = mh2.user_id_b AND mh1.user_id_b = mh2.user_id_a
+		WHERE (mh1.user_id_a = $1 OR mh1.user_id_b = $1)
+		AND mh1.interaction_initiated = true
+		AND mh2.interaction_initiated = true
+	`
+	var count int
+	err := r.pool.QueryRow(ctx, query, userID).Scan(&count)
+	return count, err
+}
+
 // PendingMatch represents a user who has expressed interest but hasn't been responded to
 type PendingMatch struct {
 	UserID      string

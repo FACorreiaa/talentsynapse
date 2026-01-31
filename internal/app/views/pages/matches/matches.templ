@@ -12,7 +12,9 @@ type MatchCard struct {
 	AvatarURL     string
 	MatchScore    int // percentage 0-100
 	OverlapSkills []SkillOverlap
-	IsLikedYou    bool // true if this user has already liked the current user
+	IsLikedYou    bool    // true if this user has already liked the current user
+	AverageRating float64 // Average review rating
+	ReviewCount   int     // Total number of reviews
 }
 
 // SkillOverlap represents a shared skill interest
@@ -39,96 +41,97 @@ type PendingCard struct {
 }
 
 templ MatchesPage(matches []MatchCard, connections []ConnectionCard, pending []PendingCard, activeTab string, userName string, userAvatar string, successMsg string) {
-	@layouts.Base("Matches | TalentSynapse") {
-		<div class="min-h-screen flex flex-col bg-background">
-			@components.Navbar(true, userName, userAvatar)
-			<main class="flex-1 py-8 px-4">
-				<div class="container mx-auto max-w-4xl">
-					<!-- Flash Messages -->
-					if successMsg != "" {
-						@components.FlashMessage(successMsg, "success")
-					}
-					<!-- Page Header -->
-					<div class="text-center mb-6 animate-fade-in-up">
-						<h1 class="text-3xl md:text-4xl font-bold text-foreground mb-2">
-							Find Your <span class="text-gradient">Match</span>
-						</h1>
-						<p class="text-muted-foreground">
-							Discover people who can teach you and learn from you
-						</p>
-					</div>
-					<!-- Tabs -->
-					<div class="flex justify-center mb-8">
-						<div class="inline-flex bg-muted rounded-xl p-1 flex-wrap gap-1">
-							<a
-								href="/matches?tab=discover"
-								class={ "px-4 py-2 rounded-lg font-medium transition-all duration-200 text-sm",
-									templ.KV("bg-background text-foreground shadow-sm", activeTab == "discover"),
-									templ.KV("text-muted-foreground hover:text-foreground", activeTab != "discover") }
-							>
-								<div class="flex items-center gap-1.5">
-									<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-										<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
-									</svg>
-									Discover
-									if len(matches) > 0 {
-										<span class="px-1.5 py-0.5 text-xs bg-primary/20 text-primary rounded-full">
-											{ strconv.Itoa(len(matches)) }
-										</span>
-									}
-								</div>
-							</a>
-							<a
-								href="/matches?tab=pending"
-								class={ "px-4 py-2 rounded-lg font-medium transition-all duration-200 text-sm",
-									templ.KV("bg-background text-foreground shadow-sm", activeTab == "pending"),
-									templ.KV("text-muted-foreground hover:text-foreground", activeTab != "pending") }
-							>
-								<div class="flex items-center gap-1.5">
-									<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-										<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-									</svg>
-									Pending
-									if len(pending) > 0 {
-										<span class="px-1.5 py-0.5 text-xs bg-yellow-500/20 text-yellow-500 rounded-full">
-											{ strconv.Itoa(len(pending)) }
-										</span>
-									}
-								</div>
-							</a>
-							<a
-								href="/matches?tab=connections"
-								class={ "px-4 py-2 rounded-lg font-medium transition-all duration-200 text-sm",
-									templ.KV("bg-background text-foreground shadow-sm", activeTab == "connections"),
-									templ.KV("text-muted-foreground hover:text-foreground", activeTab != "connections") }
-							>
-								<div class="flex items-center gap-1.5">
-									<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-										<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
-									</svg>
-									Connections
-									if len(connections) > 0 {
-										<span class="px-1.5 py-0.5 text-xs bg-emerald-500/20 text-emerald-500 rounded-full">
-											{ strconv.Itoa(len(connections)) }
-										</span>
-									}
-								</div>
-							</a>
-						</div>
-					</div>
-					<!-- Tab Content -->
-					if activeTab == "discover" {
-						@discoverTab(matches)
-					} else if activeTab == "pending" {
-						@pendingTab(pending)
-					} else {
-						@connectionsTab(connections)
-					}
-				</div>
-			</main>
-			@components.Footer()
-		</div>
+	@layouts.AppLayout("Matches | TalentSynapse", true, userName, userAvatar) {
+		@MatchesContent(matches, connections, pending, activeTab, successMsg)
 	}
+}
+
+// MatchesContent renders just the main content (for HTMX partial swaps)
+templ MatchesContent(matches []MatchCard, connections []ConnectionCard, pending []PendingCard, activeTab string, successMsg string) {
+	<div class="py-8 px-4">
+		<div class="container mx-auto max-w-4xl">
+			<!-- Flash Messages -->
+			if successMsg != "" {
+				@components.FlashMessage(successMsg, "success")
+			}
+			<!-- Page Header -->
+			<div class="text-center mb-6 animate-fade-in-up">
+				<h1 class="text-3xl md:text-4xl font-bold text-foreground mb-2">
+					Find Your <span class="text-gradient">Match</span>
+				</h1>
+				<p class="text-muted-foreground">
+					Discover people who can teach you and learn from you
+				</p>
+			</div>
+			<!-- Tabs -->
+			<div class="flex justify-center mb-8">
+				<div class="inline-flex bg-muted rounded-xl p-1 flex-wrap gap-1">
+					<a
+						href="/matches?tab=discover"
+						class={ "px-4 py-2 rounded-lg font-medium transition-all duration-200 text-sm",
+							templ.KV("bg-background text-foreground shadow-sm", activeTab == "discover"),
+							templ.KV("text-muted-foreground hover:text-foreground", activeTab != "discover") }
+					>
+						<div class="flex items-center gap-1.5">
+							<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+								<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+							</svg>
+							Discover
+							if len(matches) > 0 {
+								<span class="px-1.5 py-0.5 text-xs bg-primary/20 text-primary rounded-full">
+									{ strconv.Itoa(len(matches)) }
+								</span>
+							}
+						</div>
+					</a>
+					<a
+						href="/matches?tab=pending"
+						class={ "px-4 py-2 rounded-lg font-medium transition-all duration-200 text-sm",
+							templ.KV("bg-background text-foreground shadow-sm", activeTab == "pending"),
+							templ.KV("text-muted-foreground hover:text-foreground", activeTab != "pending") }
+					>
+						<div class="flex items-center gap-1.5">
+							<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+								<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+							</svg>
+							Pending
+							if len(pending) > 0 {
+								<span class="px-1.5 py-0.5 text-xs bg-yellow-500/20 text-yellow-500 rounded-full">
+									{ strconv.Itoa(len(pending)) }
+								</span>
+							}
+						</div>
+					</a>
+					<a
+						href="/matches?tab=connections"
+						class={ "px-4 py-2 rounded-lg font-medium transition-all duration-200 text-sm",
+							templ.KV("bg-background text-foreground shadow-sm", activeTab == "connections"),
+							templ.KV("text-muted-foreground hover:text-foreground", activeTab != "connections") }
+					>
+						<div class="flex items-center gap-1.5">
+							<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+								<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
+							</svg>
+							Connections
+							if len(connections) > 0 {
+								<span class="px-1.5 py-0.5 text-xs bg-emerald-500/20 text-emerald-500 rounded-full">
+									{ strconv.Itoa(len(connections)) }
+								</span>
+							}
+						</div>
+					</a>
+				</div>
+			</div>
+			<!-- Tab Content -->
+			if activeTab == "discover" {
+				@discoverTab(matches)
+			} else if activeTab == "pending" {
+				@pendingTab(pending)
+			} else {
+				@connectionsTab(connections)
+			}
+		</div>
+	</div>
 }
 
 templ discoverTab(matches []MatchCard) {
@@ -313,7 +316,19 @@ templ matchCard(match MatchCard, index int) {
 							</span>
 						}
 					</div>
-					<p class="text-sm text-muted-foreground">{ "@" + match.Username }</p>
+					<p class="text-sm text-muted-foreground mb-1">{ "@" + match.Username }</p>
+					<!-- Rating Display -->
+					if match.ReviewCount > 0 {
+						<div class="flex items-center gap-1 text-sm">
+							<svg class="w-4 h-4 fill-current text-yellow-500" viewBox="0 0 20 20">
+								<path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path>
+							</svg>
+							<span class="font-medium text-foreground">{ formatRating(match.AverageRating) }</span>
+							<span class="text-muted-foreground">({ strconv.Itoa(match.ReviewCount) })</span>
+						</div>
+					} else {
+						<p class="text-xs text-muted-foreground">No reviews yet</p>
+					}
 				</div>
 			</div>
 			<!-- Match Score -->
@@ -437,4 +452,11 @@ func truncateBio(s string, maxLen int) string {
 		return s
 	}
 	return s[:maxLen-3] + "..."
+}
+
+func formatRating(rating float64) string {
+	if rating == 0 {
+		return "0.0"
+	}
+	return strconv.FormatFloat(rating, 'f', 1, 64)
 }

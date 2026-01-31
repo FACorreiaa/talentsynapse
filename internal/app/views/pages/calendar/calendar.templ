@@ -7,61 +7,64 @@ import (
 	"github.com/google/uuid"
 
 	"github.com/FACorreiaa/talentsynapse/internal/app/types"
-	"github.com/FACorreiaa/talentsynapse/internal/app/views/components"
 	"github.com/FACorreiaa/talentsynapse/internal/app/views/layouts"
 )
 
 templ CalendarPage(sessionData types.SessionData, calendarMonth *CalendarMonth, upcomingSessions []SessionView) {
-	@layouts.Base("Calendar | TalentSynapse") {
-		@components.Navbar(true, sessionData.UserName, sessionData.UserAvatar)
-		<div class="container mx-auto px-4 py-8">
-			<div class="flex justify-between items-center mb-6">
-				<h1 class="text-3xl font-bold">My Calendar</h1>
-				<a href="/discover" class="btn btn-primary">
-					Schedule New Session
-				</a>
-			</div>
-			<!-- WebSocket connection for live updates -->
-			<div hx-ext="ws" ws-connect="/calendar/ws" id="calendar-ws"></div>
-			<!-- Notification container for in-app reminders -->
-			<div id="notifications" class="fixed top-20 right-4 z-50 space-y-2"></div>
-			<div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
-				<!-- Calendar Grid -->
-				<div class="lg:col-span-3">
-					@CalendarNavigation(calendarMonth.Year, int(calendarMonth.Month))
-					<div id="calendar-container" class="mt-4">
-						@CalendarGrid(calendarMonth)
-					</div>
+	@layouts.AppLayout("Calendar | TalentSynapse", true, sessionData.UserName, sessionData.UserAvatar) {
+		@CalendarContent(calendarMonth, upcomingSessions)
+	}
+}
+
+// CalendarContent renders just the main content (for HTMX partial swaps)
+templ CalendarContent(calendarMonth *CalendarMonth, upcomingSessions []SessionView) {
+	<div class="container mx-auto px-4 py-8">
+		<div class="flex justify-between items-center mb-6">
+			<h1 class="text-3xl font-bold">My Calendar</h1>
+			<a href="/discover" class="btn btn-primary">
+				Schedule New Session
+			</a>
+		</div>
+		<!-- WebSocket connection for live updates -->
+		<div hx-ext="ws" ws-connect="/calendar/ws" id="calendar-ws"></div>
+		<!-- Notification container for in-app reminders -->
+		<div id="notifications" class="fixed top-20 right-4 z-50 space-y-2"></div>
+		<div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
+			<!-- Calendar Grid -->
+			<div class="lg:col-span-3">
+				@CalendarNavigation(calendarMonth.Year, int(calendarMonth.Month))
+				<div id="calendar-container" class="mt-4">
+					@CalendarGrid(calendarMonth)
 				</div>
-				<!-- Upcoming Sessions Sidebar -->
-				<div class="lg:col-span-1">
-					<div class="card bg-base-200 shadow-xl">
-						<div class="card-body">
-							<h2 class="card-title">Upcoming Sessions</h2>
-							if len(upcomingSessions) == 0 {
-								<p class="text-sm text-gray-500">No upcoming sessions</p>
-							} else {
-								<div class="space-y-2">
-									for _, session := range upcomingSessions {
-										@UpcomingSessionCard(session)
-									}
-								</div>
-							}
-						</div>
+			</div>
+			<!-- Upcoming Sessions Sidebar -->
+			<div class="lg:col-span-1">
+				<div class="card bg-base-200 shadow-xl">
+					<div class="card-body">
+						<h2 class="card-title">Upcoming Sessions</h2>
+						if len(upcomingSessions) == 0 {
+							<p class="text-sm text-gray-500">No upcoming sessions</p>
+						} else {
+							<div class="space-y-2">
+								for _, session := range upcomingSessions {
+									@UpcomingSessionCard(session)
+								}
+							</div>
+						}
 					</div>
 				</div>
 			</div>
 		</div>
-		<!-- Modal for session details -->
-		<dialog id="session-modal" class="modal">
-			<div class="modal-box w-11/12 max-w-2xl" id="modal-content">
-				<!-- Content loaded via HTMX -->
-			</div>
-			<form method="dialog" class="modal-backdrop">
-				<button>close</button>
-			</form>
-		</dialog>
-	}
+	</div>
+	<!-- Modal for session details -->
+	<dialog id="session-modal" class="modal">
+		<div class="modal-box w-11/12 max-w-2xl" id="modal-content">
+			<!-- Content loaded via HTMX -->
+		</div>
+		<form method="dialog" class="modal-backdrop">
+			<button>close</button>
+		</form>
+	</dialog>
 }
 
 templ CalendarNavigation(year int, month int) {

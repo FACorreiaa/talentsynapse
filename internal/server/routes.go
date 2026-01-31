@@ -232,6 +232,8 @@ func (s *Server) RegisterRoutes() http.Handler {
 		r.Post("/mfa/verify-setup", c.AuthHandler.HandleMFAVerifySetup)
 		r.Post("/mfa/disable", c.AuthHandler.HandleMFADisable)
 		r.Post("/mfa/regenerate-backup-codes", c.AuthHandler.HandleMFARegenerateBackupCodes)
+		r.Post("/mfa/remove-trusted-device/*", c.AuthHandler.HandleRemoveTrustedDevice)
+		r.Post("/mfa/remove-all-trusted-devices", c.AuthHandler.HandleRemoveAllTrustedDevices)
 
 		// Report routes
 		r.Post("/report", c.ReportHandler.SubmitReport)

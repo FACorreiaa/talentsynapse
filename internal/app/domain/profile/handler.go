@@ -8,8 +8,10 @@ import (
 
 	"github.com/FACorreiaa/talentsynapse/internal/app/domain/auth"
 	"github.com/FACorreiaa/talentsynapse/internal/app/domain/badges"
+	"github.com/FACorreiaa/talentsynapse/internal/app/domain/matches"
 	"github.com/FACorreiaa/talentsynapse/internal/app/domain/portfolio"
 	"github.com/FACorreiaa/talentsynapse/internal/app/domain/review"
+	"github.com/FACorreiaa/talentsynapse/internal/app/domain/session"
 	"github.com/FACorreiaa/talentsynapse/internal/app/domain/user"
 	profilepages "github.com/FACorreiaa/talentsynapse/internal/app/views/pages/profile"
 )
@@ -21,15 +23,19 @@ type Handler struct {
 	badgesRepo    *badges.Repository
 	reviewRepo    *review.Repository
 	portfolioRepo *portfolio.Repository
+	matchesRepo   *matches.Repository
+	sessionRepo   *session.Repository
 }
 
 // NewHandler creates a new profile handler
-func NewHandler(userRepo *user.Repository, badgesRepo *badges.Repository, reviewRepo *review.Repository, portfolioRepo *portfolio.Repository) *Handler {
+func NewHandler(userRepo *user.Repository, badgesRepo *badges.Repository, reviewRepo *review.Repository, portfolioRepo *portfolio.Repository, matchesRepo *matches.Repository, sessionRepo *session.Repository) *Handler {
 	return &Handler{
 		userRepo:      userRepo,
 		badgesRepo:    badgesRepo,
 		reviewRepo:    reviewRepo,
 		portfolioRepo: portfolioRepo,
+		matchesRepo:   matchesRepo,
+		sessionRepo:   sessionRepo,
 	}
 }
 
@@ -64,15 +70,38 @@ func (h *Handler) Show(w http.ResponseWriter, r *http.Request) {
 		})
 	}
 
+	// Fetch user badges
+	var viewBadges []profilepages.BadgeData
+	userBadges, err := h.badgesRepo.GetUserBadges(r.Context(), uuid.MustParse(sessionData.UserID))
+	if err == nil {
+		for _, b := range userBadges {
+			viewBadges = append(viewBadges, profilepages.BadgeData{
+				Name:    b.BadgeName,
+				Icon:    b.BadgeIcon,
+				Code:    b.BadgeCode,
+				Awarded: true,
+			})
+		}
+	}
+
+	// Fetch stats from database
+	skillsCount, _ := h.userRepo.CountUserSkills(r.Context(), sessionData.UserID)
+	matchesCount, _ := h.matchesRepo.CountMutualMatches(r.Context(), sessionData.UserID)
+	sessionsCount, _ := h.sessionRepo.CountCompletedSessions(r.Context(), sessionData.UserID)
+
 	// Build profile view model
 	profile := profilepages.ProfileData{
-		ID:          userData.ID,
-		Username:    userData.Username,
-		DisplayName: userData.DisplayName,
-		Email:       userData.Email,
-		AvatarURL:   getStringPtr(userData.AvatarURL),
-		Bio:         getStringPtr(userData.Bio),
-		CreatedAt:   userData.CreatedAt,
+		ID:            userData.ID,
+		Username:      userData.Username,
+		DisplayName:   userData.DisplayName,
+		Email:         userData.Email,
+		AvatarURL:     getStringPtr(userData.AvatarURL),
+		Bio:           getStringPtr(userData.Bio),
+		CreatedAt:     userData.CreatedAt,
+		Tier:          userData.Tier,
+		SkillsCount:   skillsCount,
+		MatchesCount:  matchesCount,
+		SessionsCount: sessionsCount,
 		SocialLinks: profilepages.SocialLinksData{
 			GitHub:   userData.SocialLinks.GitHub,
 			LinkedIn: userData.SocialLinks.LinkedIn,
@@ -80,6 +109,7 @@ func (h *Handler) Show(w http.ResponseWriter, r *http.Request) {
 			Website:  userData.SocialLinks.Website,
 		},
 		Portfolio: viewPortfolio,
+		Badges:    viewBadges,
 	}
 
 	flashes := auth.GetFlash(w, r)
@@ -235,6 +265,13 @@ func (h *Handler) ShowPublic(w http.ResponseWriter, r *http.Request) {
 				CreatedAt:      rev.CreatedAt,
 			})
 		}
+	}
+
+	// Fetch rating stats
+	reviewCount, avgRating, err := h.reviewRepo.GetStats(r.Context(), uuid.MustParse(profileUserID))
+	if err == nil {
+		profile.ReviewCount = reviewCount
+		profile.AverageRating = avgRating
 	}
 
 	component := profilepages.PublicProfile(profile, sessionData.UserName, sessionData.UserAvatar)
