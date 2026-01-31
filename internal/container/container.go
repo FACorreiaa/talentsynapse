@@ -128,7 +128,7 @@ func New(pool *pgxpool.Pool) *Container {
 	reportHandler := report.NewHandler(reportRepo)
 	reviewHandler := review.NewHandler(reviewRepo, badgesRepo)
 	portfolioHandler := portfolio.NewHandler(portfolioRepo)
-	sessionHandler := session.NewHandler(sessionRepo, badgesRepo)
+	sessionHandler := session.NewHandler(sessionRepo, badgesRepo, matchesRepo)
 	schedulingHandler := scheduling.NewHandler(schedulingService, schedulingHub)
 
 	return &Container{

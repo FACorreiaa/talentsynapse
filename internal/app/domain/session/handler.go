@@ -6,28 +6,46 @@ import (
 
 	"github.com/FACorreiaa/talentsynapse/internal/app/domain/auth"
 	"github.com/FACorreiaa/talentsynapse/internal/app/domain/badges"
+	"github.com/FACorreiaa/talentsynapse/internal/app/domain/matches"
 	sessionpages "github.com/FACorreiaa/talentsynapse/internal/app/views/pages/sessions"
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
 )
 
 type Handler struct {
-	repo       *Repository
-	badgesRepo *badges.Repository
+	repo        *Repository
+	badgesRepo  *badges.Repository
+	matchesRepo *matches.Repository
 }
 
-func NewHandler(repo *Repository, badgesRepo *badges.Repository) *Handler {
+func NewHandler(repo *Repository, badgesRepo *badges.Repository, matchesRepo *matches.Repository) *Handler {
 	return &Handler{
-		repo:       repo,
-		badgesRepo: badgesRepo,
+		repo:        repo,
+		badgesRepo:  badgesRepo,
+		matchesRepo: matchesRepo,
 	}
 }
 
 // List shows the "My Sessions" page
+// Redirects to matches page if user has no confirmed connections
 func (h *Handler) List(w http.ResponseWriter, r *http.Request) {
 	sessionData := auth.GetSessionData(r)
 	if sessionData.UserID == "" {
 		http.Redirect(w, r, "/login", http.StatusSeeOther)
+		return
+	}
+
+	// Check if user has any confirmed connections
+	hasConnections, err := h.matchesRepo.HasConnections(r.Context(), sessionData.UserID)
+	if err != nil {
+		// Log error but continue - don't block the page
+		hasConnections = false
+	}
+
+	// If no connections, redirect to matches page to find people
+	if !hasConnections {
+		_ = auth.SetFlash(w, r, "Find and connect with people first to schedule sessions!", auth.FlashInfo)
+		http.Redirect(w, r, "/matches", http.StatusSeeOther)
 		return
 	}
 

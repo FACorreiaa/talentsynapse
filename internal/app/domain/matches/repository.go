@@ -56,7 +56,7 @@ func (r *Repository) GetPendingMatches(ctx context.Context, userID string, limit
 	// Convert algorithm results to Match objects with overlap skills
 	var matches []Match
 	for _, result := range matchResults {
-		overlapSkills, err := r.getOverlapSkills(ctx, userID, result.UserID)
+		overlapSkills, err := r.GetOverlapSkills(ctx, userID, result.UserID)
 		if err != nil {
 			return nil, err
 		}
@@ -161,6 +161,7 @@ func (r *Repository) getUserProfile(ctx context.Context, userID string) (algorit
 
 // getAllCandidateProfiles retrieves all potential candidate users with their skill vectors
 // This queries user_skills directly to ensure fresh data
+// Excludes users that the current user has already acted on (accepted or rejected)
 func (r *Repository) getAllCandidateProfiles(ctx context.Context, excludeUserID string) ([]algorithm.UserProfile, error) {
 	// Get total skill count to determine vector dimension
 	var skillCount int
@@ -169,7 +170,9 @@ func (r *Repository) getAllCandidateProfiles(ctx context.Context, excludeUserID 
 		return nil, err
 	}
 
-	// Get all active users except the excluded one who have at least one skill
+	// Get all active users except:
+	// 1. The current user
+	// 2. Users the current user has already acted on (accepted or rejected)
 	usersQuery := `
 		SELECT DISTINCT
 			u.id,
@@ -178,7 +181,12 @@ func (r *Repository) getAllCandidateProfiles(ctx context.Context, excludeUserID 
 			COALESCE(u.avatar_url, '') as avatar_url
 		FROM users u
 		INNER JOIN user_skills us ON u.id = us.user_id
-		WHERE u.id != $1 AND u.is_active = true
+		WHERE u.id != $1 
+		AND u.is_active = true
+		AND NOT EXISTS (
+			SELECT 1 FROM match_history mh 
+			WHERE mh.user_id_a = $1 AND mh.user_id_b = u.id
+		)
 	`
 
 	rows, err := r.pool.Query(ctx, usersQuery, excludeUserID)
@@ -267,8 +275,8 @@ func (r *Repository) getAllCandidateProfiles(ctx context.Context, excludeUserID 
 	return candidates, skillRows.Err()
 }
 
-// getOverlapSkills retrieves the skills that overlap between two users
-func (r *Repository) getOverlapSkills(ctx context.Context, userID, matchedUserID string) ([]OverlapSkill, error) {
+// GetOverlapSkills retrieves the skills that overlap between two users
+func (r *Repository) GetOverlapSkills(ctx context.Context, userID, matchedUserID string) ([]OverlapSkill, error) {
 	query := `
 		SELECT 
 			s.name,
@@ -344,7 +352,8 @@ type MutualMatch struct {
 
 // GetMutualMatches retrieves users who have mutually accepted each other
 func (r *Repository) GetMutualMatches(ctx context.Context, userID string, limit int) ([]MutualMatch, error) {
-	// Find pairs where both users have accepted each other
+	// Find users where both have accepted each other
+	// We look for any record where userA accepted userB AND userB accepted userA
 	query := `
 		SELECT DISTINCT
 			u.id,
@@ -352,16 +361,23 @@ func (r *Repository) GetMutualMatches(ctx context.Context, userID string, limit 
 			u.username,
 			COALESCE(u.avatar_url, '') as avatar_url,
 			COALESCE(u.bio, '') as bio
-		FROM match_history mh1
-		JOIN match_history mh2 ON mh1.user_id_a = mh2.user_id_b AND mh1.user_id_b = mh2.user_id_a
-		JOIN users u ON (
-			CASE WHEN mh1.user_id_a = $1 THEN mh1.user_id_b ELSE mh1.user_id_a END = u.id
-		)
-		WHERE 
-			(mh1.user_id_a = $1 OR mh1.user_id_b = $1)
+		FROM users u
+		WHERE u.id != $1
+		AND u.is_active = true
+		-- Current user accepted them
+		AND EXISTS (
+			SELECT 1 FROM match_history mh1 
+			WHERE mh1.user_id_a = $1 
+			AND mh1.user_id_b = u.id 
 			AND mh1.interaction_initiated = true
+		)
+		-- They accepted current user
+		AND EXISTS (
+			SELECT 1 FROM match_history mh2 
+			WHERE mh2.user_id_a = u.id 
+			AND mh2.user_id_b = $1 
 			AND mh2.interaction_initiated = true
-			AND u.is_active = true
+		)
 		ORDER BY u.display_name
 		LIMIT $2
 	`
@@ -389,16 +405,147 @@ func (r *Repository) GetMutualMatches(ctx context.Context, userID string, limit 
 func (r *Repository) AreConnected(ctx context.Context, userA, userB string) (bool, error) {
 	query := `
 		SELECT EXISTS(
-			SELECT 1
-			FROM match_history mh1
-			JOIN match_history mh2 ON mh1.user_id_a = mh2.user_id_b AND mh1.user_id_b = mh2.user_id_a
-			WHERE 
-				mh1.user_id_a = $1 AND mh1.user_id_b = $2
-				AND mh1.interaction_initiated = true
-				AND mh2.interaction_initiated = true
+			SELECT 1 WHERE
+			-- userA accepted userB
+			EXISTS (
+				SELECT 1 FROM match_history 
+				WHERE user_id_a = $1 AND user_id_b = $2 AND interaction_initiated = true
+			)
+			AND
+			-- userB accepted userA
+			EXISTS (
+				SELECT 1 FROM match_history 
+				WHERE user_id_a = $2 AND user_id_b = $1 AND interaction_initiated = true
+			)
 		)
 	`
 	var exists bool
 	err := r.pool.QueryRow(ctx, query, userA, userB).Scan(&exists)
 	return exists, err
+}
+
+// PendingMatch represents a user who has expressed interest but hasn't been responded to
+type PendingMatch struct {
+	UserID      string
+	DisplayName string
+	Username    string
+	AvatarURL   string
+	MatchScore  float64
+}
+
+// GetPendingReceivedMatches retrieves users who have accepted the current user but the current user hasn't responded
+func (r *Repository) GetPendingReceivedMatches(ctx context.Context, userID string, limit int) ([]PendingMatch, error) {
+	query := `
+		SELECT DISTINCT
+			u.id,
+			u.display_name,
+			u.username,
+			COALESCE(u.avatar_url, '') as avatar_url,
+			COALESCE(mh.match_score, 0) as match_score
+		FROM match_history mh
+		JOIN users u ON mh.user_id_a = u.id
+		WHERE mh.user_id_b = $1 
+		AND mh.interaction_initiated = true
+		AND u.is_active = true
+		-- Current user hasn't responded yet
+		AND NOT EXISTS (
+			SELECT 1 FROM match_history mh2 
+			WHERE mh2.user_id_a = $1 AND mh2.user_id_b = u.id
+		)
+		ORDER BY mh.match_score DESC
+		LIMIT $2
+	`
+
+	rows, err := r.pool.Query(ctx, query, userID, limit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var matches []PendingMatch
+	for rows.Next() {
+		var m PendingMatch
+		err := rows.Scan(&m.UserID, &m.DisplayName, &m.Username, &m.AvatarURL, &m.MatchScore)
+		if err != nil {
+			return nil, err
+		}
+		matches = append(matches, m)
+	}
+
+	return matches, rows.Err()
+}
+
+// GetConnectionCount returns the number of mutual connections for a user
+func (r *Repository) GetConnectionCount(ctx context.Context, userID string) (int, error) {
+	query := `
+		SELECT COUNT(DISTINCT u.id)
+		FROM users u
+		WHERE u.id != $1
+		AND u.is_active = true
+		-- Current user accepted them
+		AND EXISTS (
+			SELECT 1 FROM match_history mh1 
+			WHERE mh1.user_id_a = $1 
+			AND mh1.user_id_b = u.id 
+			AND mh1.interaction_initiated = true
+		)
+		-- They accepted current user
+		AND EXISTS (
+			SELECT 1 FROM match_history mh2 
+			WHERE mh2.user_id_a = u.id 
+			AND mh2.user_id_b = $1 
+			AND mh2.interaction_initiated = true
+		)
+	`
+	var count int
+	err := r.pool.QueryRow(ctx, query, userID).Scan(&count)
+	return count, err
+}
+
+// HasConnections checks if a user has any mutual connections
+func (r *Repository) HasConnections(ctx context.Context, userID string) (bool, error) {
+	count, err := r.GetConnectionCount(ctx, userID)
+	return count > 0, err
+}
+
+// GetPendingSentMatches retrieves users that the current user has liked but who haven't responded yet
+func (r *Repository) GetPendingSentMatches(ctx context.Context, userID string, limit int) ([]PendingMatch, error) {
+	query := `
+		SELECT DISTINCT
+			u.id,
+			u.display_name,
+			u.username,
+			COALESCE(u.avatar_url, '') as avatar_url,
+			COALESCE(mh.match_score, 0) as match_score
+		FROM match_history mh
+		JOIN users u ON mh.user_id_b = u.id
+		WHERE mh.user_id_a = $1 
+		AND mh.interaction_initiated = true
+		AND u.is_active = true
+		-- They haven't responded yet (no record from them to current user with acceptance)
+		AND NOT EXISTS (
+			SELECT 1 FROM match_history mh2 
+			WHERE mh2.user_id_a = u.id AND mh2.user_id_b = $1 AND mh2.interaction_initiated = true
+		)
+		ORDER BY mh.match_score DESC
+		LIMIT $2
+	`
+
+	rows, err := r.pool.Query(ctx, query, userID, limit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var matches []PendingMatch
+	for rows.Next() {
+		var m PendingMatch
+		err := rows.Scan(&m.UserID, &m.DisplayName, &m.Username, &m.AvatarURL, &m.MatchScore)
+		if err != nil {
+			return nil, err
+		}
+		matches = append(matches, m)
+	}
+
+	return matches, rows.Err()
 }

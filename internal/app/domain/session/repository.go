@@ -35,6 +35,7 @@ func (r *Repository) CreateRequest(ctx context.Context, initiatorID, partnerID s
 }
 
 // GetUserSessions fetches sessions for a user (both as initiator and partner)
+// Only returns sessions where both users have mutually accepted each other
 func (r *Repository) GetUserSessions(ctx context.Context, userID string) ([]Session, error) {
 	query := `
 		SELECT 
@@ -46,7 +47,16 @@ func (r *Repository) GetUserSessions(ctx context.Context, userID string) ([]Sess
 		FROM sessions s
 		JOIN users u1 ON s.initiator_id = u1.id
 		JOIN users u2 ON s.partner_id = u2.id
-		WHERE s.initiator_id = $1 OR s.partner_id = $1
+		WHERE (s.initiator_id = $1 OR s.partner_id = $1)
+		-- Only show sessions where users are mutually connected
+		AND EXISTS (
+			SELECT 1 
+			FROM match_history mh1
+			JOIN match_history mh2 ON mh1.user_id_a = mh2.user_id_b AND mh1.user_id_b = mh2.user_id_a
+			WHERE mh1.user_id_a = s.initiator_id AND mh1.user_id_b = s.partner_id
+			AND mh1.interaction_initiated = true
+			AND mh2.interaction_initiated = true
+		)
 		ORDER BY s.scheduled_start DESC
 	`
 	rows, err := r.pool.Query(ctx, query, userID)
