@@ -102,6 +102,7 @@ func (r *Repository) GetByEmail(ctx context.Context, email string) (*User, error
 		&user.UpdatedAt,
 		&user.LastLoginAt,
 		&user.SocialLinks,
+		&user.Tier,
 	)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
@@ -139,6 +140,7 @@ func (r *Repository) GetByID(ctx context.Context, id string) (*User, error) {
 		&user.UpdatedAt,
 		&user.LastLoginAt,
 		&user.SocialLinks,
+		&user.Tier,
 	)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
@@ -175,6 +177,7 @@ func (r *Repository) GetByUsername(ctx context.Context, username string) (*User,
 		&user.UpdatedAt,
 		&user.LastLoginAt,
 		&user.SocialLinks,
+		&user.Tier,
 	)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
@@ -375,4 +378,22 @@ func (r *Repository) UpdatePassword(ctx context.Context, userID, hashedPassword 
 	}
 
 	return nil
+}
+
+// IsUserActive checks if a user exists and is active (not banned/deleted)
+func (r *Repository) IsUserActive(ctx context.Context, userID string) (bool, error) {
+	query := `
+		SELECT is_active 
+		FROM users 
+		WHERE id = $1 AND deleted_at IS NULL
+	`
+	var isActive bool
+	err := r.pool.QueryRow(ctx, query, userID).Scan(&isActive)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return false, nil // User doesn't exist
+		}
+		return false, err
+	}
+	return isActive, nil
 }

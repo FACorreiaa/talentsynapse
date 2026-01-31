@@ -2,6 +2,7 @@ package discover
 
 import (
 	"net/http"
+	"sort"
 
 	"github.com/FACorreiaa/talentsynapse/internal/app/domain/auth"
 	"github.com/FACorreiaa/talentsynapse/internal/app/domain/skills"
@@ -54,6 +55,11 @@ func (h *Handler) Show(w http.ResponseWriter, r *http.Request) {
 			Name: name,
 		})
 	}
+
+	// Sort categories alphabetically by name for consistent ordering
+	sort.Slice(categories, func(i, j int) bool {
+		return categories[i].Name < categories[j].Name
+	})
 
 	component := discoverpages.Discover(
 		skillCards,

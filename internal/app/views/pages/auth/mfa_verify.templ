@@ -57,6 +57,19 @@ templ MFAVerify(email string) {
 								Verify
 							</button>
 						</div>
+						<!-- Trust This Device -->
+						<div class="flex items-center">
+							<input
+								type="checkbox"
+								id="trust_device"
+								name="trust_device"
+								value="true"
+								class="h-4 w-4 text-purple-600 focus:ring-purple-500 border-gray-300 rounded"
+							/>
+							<label for="trust_device" class="ml-2 block text-sm text-gray-700">
+								Trust this device for 30 days
+							</label>
+						</div>
 						<!-- Backup Code Option -->
 						<div class="relative">
 							<div class="absolute inset-0 flex items-center">

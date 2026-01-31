@@ -2,10 +2,21 @@ package review
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
+)
+
+// Custom errors for review validation
+var (
+	ErrDuplicateReview       = errors.New("you have already submitted a review for this session")
+	ErrSessionNotCompleted   = errors.New("you can only review after the session is completed")
+	ErrSessionNotFound       = errors.New("session not found")
+	ErrNotSessionParticipant = errors.New("you are not a participant in this session")
+	ErrCannotReviewSelf      = errors.New("you cannot review yourself")
 )
 
 type Repository struct {
@@ -14,6 +25,95 @@ type Repository struct {
 
 func NewRepository(db *pgxpool.Pool) *Repository {
 	return &Repository{db: db}
+}
+
+// ValidateReviewSubmission validates that a review can be submitted for a session.
+// It checks:
+// 1. Session exists and is completed
+// 2. User is a participant in the session
+// 3. User hasn't already reviewed this session
+// 4. User is not trying to review themselves
+func (r *Repository) ValidateReviewSubmission(ctx context.Context, fromUserID, toUserID, sessionID string) error {
+	// Check for self-review
+	if fromUserID == toUserID {
+		return ErrCannotReviewSelf
+	}
+
+	// Check session exists and get its status
+	var status string
+	var initiatorID, partnerID string
+	query := `
+		SELECT status, initiator_id::text, partner_id::text 
+		FROM sessions 
+		WHERE id = $1
+	`
+	err := r.db.QueryRow(ctx, query, sessionID).Scan(&status, &initiatorID, &partnerID)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return ErrSessionNotFound
+		}
+		return fmt.Errorf("failed to fetch session: %w", err)
+	}
+
+	// Check user is a participant
+	if fromUserID != initiatorID && fromUserID != partnerID {
+		return ErrNotSessionParticipant
+	}
+
+	// Check the target user is the other participant
+	if toUserID != initiatorID && toUserID != partnerID {
+		return ErrNotSessionParticipant
+	}
+
+	// Check session is completed
+	if status != "completed" {
+		return ErrSessionNotCompleted
+	}
+
+	// Check for duplicate review (same user reviewing same session)
+	exists, err := r.ReviewExistsForSession(ctx, fromUserID, sessionID)
+	if err != nil {
+		return fmt.Errorf("failed to check for existing review: %w", err)
+	}
+	if exists {
+		return ErrDuplicateReview
+	}
+
+	return nil
+}
+
+// ReviewExistsForSession checks if a user has already submitted a review for a specific session.
+// This allows one review per session per direction (A→B and B→A are separate reviews).
+func (r *Repository) ReviewExistsForSession(ctx context.Context, fromUserID, sessionID string) (bool, error) {
+	query := `
+		SELECT EXISTS(
+			SELECT 1 FROM reviews 
+			WHERE requester_id = $1 AND session_id = $2
+		)
+	`
+	var exists bool
+	err := r.db.QueryRow(ctx, query, fromUserID, sessionID).Scan(&exists)
+	if err != nil {
+		return false, err
+	}
+	return exists, nil
+}
+
+// ReviewExistsForUsers checks if a user has already reviewed another user (regardless of session).
+// This is a more general check that can be used to see overall review status.
+func (r *Repository) ReviewExistsForUsers(ctx context.Context, fromUserID, toUserID string) (bool, error) {
+	query := `
+		SELECT EXISTS(
+			SELECT 1 FROM reviews 
+			WHERE requester_id = $1 AND reviewer_id = $2
+		)
+	`
+	var exists bool
+	err := r.db.QueryRow(ctx, query, fromUserID, toUserID).Scan(&exists)
+	if err != nil {
+		return false, err
+	}
+	return exists, nil
 }
 
 // CreateReview inserts a new review.

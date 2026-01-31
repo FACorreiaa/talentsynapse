@@ -319,6 +319,11 @@ func (h *Handler) HandleMFARegenerateBackupCodes(w http.ResponseWriter, r *http.
 		return
 	}
 
+	// Log the event
+	ipAddress := r.RemoteAddr
+	userAgent := r.UserAgent()
+	_ = authSvc.mfaService.LogMFAEvent(r.Context(), sessionData.UserID, MFAEventBackupCodesRegenerated, ipAddress, userAgent, nil)
+
 	w.Header().Set("Content-Type", "text/html")
 	if _, err := fmt.Fprintf(w, `
 <!DOCTYPE html>
