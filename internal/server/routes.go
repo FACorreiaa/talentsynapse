@@ -235,6 +235,10 @@ func (s *Server) RegisterRoutes() http.Handler {
 		r.Post("/mfa/remove-trusted-device/*", c.AuthHandler.HandleRemoveTrustedDevice)
 		r.Post("/mfa/remove-all-trusted-devices", c.AuthHandler.HandleRemoveAllTrustedDevices)
 
+		// Push Notifications
+		r.Get("/api/push/vapid-key", c.PushHandler.GetVAPIDKey)
+		r.Post("/api/push/subscribe", c.PushHandler.Subscribe)
+
 		// Report routes
 		r.Post("/report", c.ReportHandler.SubmitReport)
 

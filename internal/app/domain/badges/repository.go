@@ -3,6 +3,7 @@ package badges
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -63,6 +64,26 @@ func (r *Repository) AwardBadge(ctx context.Context, userID uuid.UUID, badgeCode
 		return fmt.Errorf("failed to award badge %s: %w", badgeCode, err)
 	}
 	return nil
+}
+
+// BatchAwardBadgesByCreationDate awards a badge to all users created before a cutoff date.
+// Returns the number of users who received the badge.
+func (r *Repository) BatchAwardBadgesByCreationDate(ctx context.Context, badgeCode string, cutoffDate time.Time) (int64, error) {
+	// Insert for all eligible users, ignoring conflicts if they already have it
+	query := `
+		INSERT INTO user_badges (user_id, badge_id)
+		SELECT u.id, b.id
+		FROM users u, badges b
+		WHERE u.created_at < $1 AND b.code = $2
+		ON CONFLICT (user_id, badge_id) DO NOTHING
+	`
+
+	tag, err := r.db.Exec(ctx, query, cutoffDate, badgeCode)
+	if err != nil {
+		return 0, fmt.Errorf("failed to batch award badge %s: %w", badgeCode, err)
+	}
+
+	return tag.RowsAffected(), nil
 }
 
 // GetAllBadges fetches all available badges

@@ -84,6 +84,26 @@ func createTestUser(t *testing.T, pool *pgxpool.Pool) uuid.UUID {
 	return userID
 }
 
+// createTestUserWithCreationTime creates a test user with a specific creation time
+func createTestUserWithCreationTime(t *testing.T, pool *pgxpool.Pool, createdAt time.Time) uuid.UUID {
+	ctx := context.Background()
+	uniqueSuffix := fmt.Sprintf("%d", time.Now().UnixNano())
+	email := fmt.Sprintf("badge_test_%s@test.com", uniqueSuffix)
+	username := fmt.Sprintf("badge_test_%s", uniqueSuffix)
+
+	query := `
+		INSERT INTO users (email, username, hashed_password, display_name, is_active, created_at)
+		VALUES ($1, $2, '$2a$10$test', $3, true, $4)
+		RETURNING id
+	`
+
+	var userID uuid.UUID
+	err := pool.QueryRow(ctx, query, email, username, username, createdAt).Scan(&userID)
+	require.NoError(t, err)
+
+	return userID
+}
+
 // cleanupTestUser removes a test user and their badges
 func cleanupTestUser(t *testing.T, pool *pgxpool.Pool, userID uuid.UUID) {
 	ctx := context.Background()
@@ -383,4 +403,62 @@ func TestGetUserBadges_OrderedByDate(t *testing.T) {
 	// Should be ordered by awarded_at DESC (most recent first)
 	assert.Equal(t, "first_match", badges[0].BadgeCode, "Most recently awarded badge should be first")
 	assert.Equal(t, "early_adopter", badges[1].BadgeCode)
+}
+
+// TestBatchAwardEarlyAdopterBadges tests batch awarding logic
+func TestBatchAwardEarlyAdopterBadges(t *testing.T) {
+	pool := getTestDBPool(t)
+	if pool == nil {
+		return
+	}
+	defer pool.Close()
+
+	ctx := context.Background()
+
+	// Ensure early_adopter badge exists
+	_, err := pool.Exec(ctx, `
+		INSERT INTO badges (code, name, description, icon_url)
+		VALUES ('early_adopter', 'Early Adopter', 'Joined during beta.', '🚀')
+		ON CONFLICT (code) DO NOTHING
+	`)
+	require.NoError(t, err)
+
+	// Define cutoff date
+	cutoffDate := time.Now().Add(-24 * time.Hour) // 1 day ago
+
+	// Create users:
+	// 1. User created BEFORE cutoff (should get badge)
+	userOld := createTestUserWithCreationTime(t, pool, cutoffDate.Add(-1*time.Hour))
+	defer cleanupTestUser(t, pool, userOld)
+
+	// 2. User created AFTER cutoff (should NOT get badge)
+	userNew := createTestUserWithCreationTime(t, pool, cutoffDate.Add(1*time.Hour))
+	defer cleanupTestUser(t, pool, userNew)
+
+	repo := NewRepository(pool)
+	service := NewService(repo, nil) // Hub not needed for batch
+
+	// Run batch award
+	count, err := service.BatchAwardEarlyAdopterBadges(ctx, cutoffDate)
+	require.NoError(t, err)
+
+	// We expect at least 1 user (our test userOld).
+	if count < 1 {
+		t.Errorf("Expected at least 1 user to be awarded, got %d", count)
+	}
+
+	// Verify userOld HAS the badge
+	hasBadge, err := repo.HasBadge(ctx, userOld, BadgeEarlyAdopter)
+	require.NoError(t, err)
+	assert.True(t, hasBadge, "Old user should have early_adopter badge")
+
+	// Verify userNew DOES NOT HAVE the badge
+	hasBadge, err = repo.HasBadge(ctx, userNew, BadgeEarlyAdopter)
+	require.NoError(t, err)
+	assert.False(t, hasBadge, "New user should NOT have early_adopter badge")
+
+	// Run again (idempotency check)
+	count, err = service.BatchAwardEarlyAdopterBadges(ctx, cutoffDate)
+	require.NoError(t, err)
+	assert.Equal(t, int64(0), count, "Second run should award 0 badges")
 }

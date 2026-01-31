@@ -4,8 +4,13 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"time"
 
 	"github.com/google/uuid"
+)
+
+const (
+	BadgeEarlyAdopter = "early_adopter"
 )
 
 // NotificationHub interface for sending notifications
@@ -102,4 +107,23 @@ func (s *Service) notifyBadgeAwarded(userID uuid.UUID, badge *Badge) {
 	s.hub.BroadcastToUser(userID.String(), []byte(notification))
 
 	log.Printf("🏆 Badge notification sent: User %s unlocked '%s'", userID, badge.Name)
+}
+
+// BatchAwardEarlyAdopterBadges awards the early_adopter badge to all users created before the cutoff.
+func (s *Service) BatchAwardEarlyAdopterBadges(ctx context.Context, cutoffDate time.Time) (int64, error) {
+	// 1. Ensure the badge exists in the system (idempotent check)
+	// We assume migration/seed created it, but good to check or ensure here if we wanted to be robust.
+	// For now, we rely on the repository method which requires the badge to exist in 'badges' table.
+
+	// 2. Perform the batch award
+	count, err := s.repo.BatchAwardBadgesByCreationDate(ctx, BadgeEarlyAdopter, cutoffDate)
+	if err != nil {
+		return 0, fmt.Errorf("failed to batch award early adopter badge: %w", err)
+	}
+
+	if count > 0 {
+		log.Printf("🚀 Awarded 'early_adopter' badge to %d users (cutoff: %s)", count, cutoffDate.Format(time.RFC3339))
+	}
+
+	return count, nil
 }

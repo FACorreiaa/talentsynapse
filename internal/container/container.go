@@ -19,8 +19,10 @@ import (
 	"github.com/FACorreiaa/talentsynapse/internal/app/domain/points"
 	"github.com/FACorreiaa/talentsynapse/internal/app/domain/portfolio"
 	"github.com/FACorreiaa/talentsynapse/internal/app/domain/profile"
+	"github.com/FACorreiaa/talentsynapse/internal/app/domain/push"
 	"github.com/FACorreiaa/talentsynapse/internal/app/domain/report"
 	"github.com/FACorreiaa/talentsynapse/internal/app/domain/review"
+
 	"github.com/FACorreiaa/talentsynapse/internal/app/domain/scheduling"
 	"github.com/FACorreiaa/talentsynapse/internal/app/domain/session"
 	"github.com/FACorreiaa/talentsynapse/internal/app/domain/settings"
@@ -46,6 +48,7 @@ type Container struct {
 	AuthService   *auth.Service
 	BadgeService  *badges.Service
 	PointsService *points.Service
+	PushService   *push.Service
 
 	// WebSocket
 	ChatHub       *chat.Hub
@@ -72,6 +75,7 @@ type Container struct {
 	PortfolioHandler   *portfolio.Handler
 	SessionHandler     *session.Handler
 	SchedulingHandler  *scheduling.Handler
+	PushHandler        *push.Handler
 }
 
 // New creates a new dependency injection container
@@ -138,6 +142,8 @@ func New(pool *pgxpool.Pool) *Container {
 	portfolioHandler := portfolio.NewHandler(portfolioRepo)
 	sessionHandler := session.NewHandler(sessionRepo, badgesRepo, matchesRepo, pointsService)
 	schedulingHandler := scheduling.NewHandler(schedulingService, schedulingHub)
+	pushService := push.NewService(pool)
+	pushHandler := push.NewHandler(pushService)
 
 	return &Container{
 		// Repositories
@@ -156,6 +162,7 @@ func New(pool *pgxpool.Pool) *Container {
 		AuthService:   authService,
 		BadgeService:  badgeService,
 		PointsService: pointsService,
+		PushService:   pushService,
 
 		// WebSocket
 		ChatHub:       chatHub,
@@ -182,5 +189,6 @@ func New(pool *pgxpool.Pool) *Container {
 		PortfolioHandler:   portfolioHandler,
 		SessionHandler:     sessionHandler,
 		SchedulingHandler:  schedulingHandler,
+		PushHandler:        pushHandler,
 	}
 }

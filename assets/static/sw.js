@@ -86,3 +86,37 @@ self.addEventListener('fetch', (event) => {
       })
   );
 });
+
+// Push event - handle incoming push notifications
+self.addEventListener('push', (event) => {
+  console.log('[SW] Push Received.');
+  console.log(`[SW] Push had this data: "${event.data.text()}"`);
+
+  let data = {};
+  try {
+    data = event.data.json();
+  } catch (e) {
+    data = { title: 'TalentSynapse', body: event.data.text() };
+  }
+
+  const title = data.title || 'TalentSynapse Notification';
+  const options = {
+    body: data.body || 'You have a new message.',
+    icon: '/assets/static/icon-192.png',
+    badge: '/assets/static/icon.svg',
+    data: data.url || '/'
+  };
+
+  event.waitUntil(self.registration.showNotification(title, options));
+});
+
+// Notification click event - handle clicks on notifications
+self.addEventListener('notificationclick', (event) => {
+  console.log('[SW] Notification click received.');
+
+  event.notification.close();
+
+  event.waitUntil(
+    clients.openWindow(event.notification.data)
+  );
+});
