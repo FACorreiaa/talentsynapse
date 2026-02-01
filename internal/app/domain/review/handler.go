@@ -11,6 +11,7 @@ import (
 	"github.com/FACorreiaa/talentsynapse/internal/app/domain/auth"
 	"github.com/FACorreiaa/talentsynapse/internal/app/domain/badges"
 	"github.com/FACorreiaa/talentsynapse/internal/app/domain/points"
+	"github.com/FACorreiaa/talentsynapse/internal/app/domain/push"
 	"github.com/FACorreiaa/talentsynapse/internal/app/domain/user"
 	"github.com/google/uuid"
 )
@@ -26,15 +27,17 @@ type Handler struct {
 	pointsService *points.Service
 	userRepo      *user.Repository
 	hub           NotificationHub
+	pushService   *push.Service
 }
 
-func NewHandler(repo *Repository, badgesRepo *badges.Repository, pointsService *points.Service, userRepo *user.Repository, hub NotificationHub) *Handler {
+func NewHandler(repo *Repository, badgesRepo *badges.Repository, pointsService *points.Service, userRepo *user.Repository, hub NotificationHub, pushService *push.Service) *Handler {
 	return &Handler{
 		repo:          repo,
 		badgesRepo:    badgesRepo,
 		pointsService: pointsService,
 		userRepo:      userRepo,
 		hub:           hub,
+		pushService:   pushService,
 	}
 }
 
@@ -177,4 +180,11 @@ func (h *Handler) notifyReviewReceived(ctx context.Context, reviewedUserID, revi
 
 	h.hub.BroadcastToUser(reviewedUserID.String(), []byte(notification))
 	log.Printf("📝 Review notification sent: %s reviewed %s with %d stars", reviewer.DisplayName, reviewedUserID, rating)
+
+	// Send push notification
+	if h.pushService != nil {
+		if err := h.pushService.SendNewReviewNotification(ctx, reviewedUserID, reviewer.DisplayName, rating); err != nil {
+			log.Printf("Failed to send review push notification to user %s: %v", reviewedUserID, err)
+		}
+	}
 }

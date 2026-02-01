@@ -217,6 +217,112 @@ document.addEventListener('click', function(e) {
     }
 
     // ═══════════════════════════════════════════════════════════════════════
+    // Push Notification Management
+    // ═══════════════════════════════════════════════════════════════════════
+
+    async function initPushNotifications() {
+        // Check if service worker and push are supported
+        if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
+            console.log('[Push] Service Worker or Push not supported');
+            return;
+        }
+
+        try {
+            // Wait for service worker to be ready
+            const registration = await navigator.serviceWorker.ready;
+
+            // Check if already subscribed
+            const existingSubscription = await registration.pushManager.getSubscription();
+
+            if (existingSubscription) {
+                console.log('[Push] Already subscribed');
+                return;
+            }
+
+            // Check notification permission
+            if (Notification.permission === 'denied') {
+                console.log('[Push] Notifications are blocked');
+                return;
+            }
+
+            // If permission hasn't been granted, we'll wait for user interaction
+            // This should be triggered by a button click, not automatically
+            // You can expose a function globally for this
+            window.requestNotificationPermission = async function() {
+                try {
+                    const permission = await Notification.requestPermission();
+
+                    if (permission !== 'granted') {
+                        console.log('[Push] Permission not granted');
+                        return false;
+                    }
+
+                    await subscribeToPush(registration);
+                    return true;
+                } catch (error) {
+                    console.error('[Push] Error requesting permission:', error);
+                    return false;
+                }
+            };
+
+            // Auto-subscribe if already granted
+            if (Notification.permission === 'granted') {
+                await subscribeToPush(registration);
+            }
+
+        } catch (error) {
+            console.error('[Push] Initialization error:', error);
+        }
+    }
+
+    async function subscribeToPush(registration) {
+        try {
+            // Get VAPID public key from server
+            const response = await fetch('/api/push/vapid-key');
+            const { publicKey } = await response.json();
+
+            // Subscribe to push
+            const subscription = await registration.pushManager.subscribe({
+                userVisibleOnly: true,
+                applicationServerKey: urlBase64ToUint8Array(publicKey)
+            });
+
+            // Send subscription to server
+            const subResponse = await fetch('/api/push/subscribe', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(subscription)
+            });
+
+            if (subResponse.ok) {
+                console.log('[Push] Successfully subscribed');
+            } else {
+                console.error('[Push] Failed to store subscription on server');
+            }
+        } catch (error) {
+            console.error('[Push] Subscription error:', error);
+        }
+    }
+
+    // Helper function to convert VAPID key
+    function urlBase64ToUint8Array(base64String) {
+        const padding = '='.repeat((4 - base64String.length % 4) % 4);
+        const base64 = (base64String + padding)
+            .replace(/\-/g, '+')
+            .replace(/_/g, '/');
+
+        const rawData = window.atob(base64);
+        const outputArray = new Uint8Array(rawData.length);
+
+        for (let i = 0; i < rawData.length; ++i) {
+            outputArray[i] = rawData.charCodeAt(i);
+        }
+        return outputArray;
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════
     // Initialize All
     // ═══════════════════════════════════════════════════════════════════════
 
@@ -225,6 +331,7 @@ document.addEventListener('click', function(e) {
         initMobileMenu();
         initTabs();
         enhanceMobileInteractions();
+        initPushNotifications();
     }
 
     // Run on DOM ready
@@ -254,6 +361,7 @@ document.addEventListener('click', function(e) {
             initFlashMessages();
             initMobileMenu();
             initTabs();
+            initChatTypingIndicator();
         });
 
         // Before HTMX navigation: close mobile menu and mark navbar
@@ -265,6 +373,419 @@ document.addEventListener('click', function(e) {
                 navbar.setAttribute('data-loaded', 'true');
             }
         });
+
+        // Initialize typing indicator on initial load
+        initChatTypingIndicator();
     }
 
 })();
+
+// ═══════════════════════════════════════════════════════════════════════
+// Chat Typing Indicator
+// ═══════════════════════════════════════════════════════════════════════
+
+function initChatTypingIndicator() {
+    const messageInput = document.getElementById('message-input');
+    const typingIndicator = document.getElementById('typing-indicator');
+    const messagesContainer = document.getElementById('messages-container');
+
+    if (!messageInput || !messagesContainer) {
+        return; // Not on chat page
+    }
+
+    let typingTimer;
+    const typingTimeout = 1000; // 1 second debounce
+    let isTyping = false;
+    let ws = null;
+
+    // Get WebSocket connection from HTMX ws extension
+    function getWebSocket() {
+        // HTMX ws extension stores connection on the element
+        const wsElement = messagesContainer;
+        if (wsElement && wsElement._ws) {
+            return wsElement._ws;
+        }
+        return null;
+    }
+
+    function sendTypingIndicator(typing) {
+        ws = getWebSocket();
+        if (ws && ws.readyState === WebSocket.OPEN) {
+            const conversationID = messagesContainer.getAttribute('ws-connect').split('conversation=')[1];
+            const message = {
+                type: 'typing',
+                conversation_id: conversationID,
+                is_typing: typing
+            };
+            ws.send(JSON.stringify(message));
+            isTyping = typing;
+        }
+    }
+
+    // Handle input events
+    messageInput.addEventListener('input', function() {
+        clearTimeout(typingTimer);
+
+        if (!isTyping) {
+            sendTypingIndicator(true);
+        }
+
+        typingTimer = setTimeout(function() {
+            sendTypingIndicator(false);
+        }, typingTimeout);
+    });
+
+    // Stop typing indicator on blur or form submit
+    messageInput.addEventListener('blur', function() {
+        clearTimeout(typingTimer);
+        if (isTyping) {
+            sendTypingIndicator(false);
+        }
+    });
+
+    // Listen for typing events from WebSocket
+    if (messagesContainer) {
+        // Use HTMX ws extension's message handling
+        messagesContainer.addEventListener('htmx:wsAfterMessage', function(event) {
+            try {
+                const data = JSON.parse(event.detail.message);
+                if (data.type === 'typing' && typingIndicator) {
+                    if (data.is_typing) {
+                        typingIndicator.style.display = 'flex';
+                        // Auto-scroll to show typing indicator
+                        messagesContainer.scrollTop = messagesContainer.scrollHeight;
+                    } else {
+                        typingIndicator.style.display = 'none';
+                    }
+                }
+            } catch (e) {
+                // Not JSON or not a typing message, ignore
+            }
+        });
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+// Voice Recording Functions
+// ═══════════════════════════════════════════════════════════════════════
+
+let voiceRecorder = null;
+let recordingTimer = null;
+let recordingStartTime = null;
+let recordingAnalyser = null;
+let animationFrameId = null;
+
+class VoiceRecorder {
+    constructor() {
+        this.mediaRecorder = null;
+        this.audioChunks = [];
+        this.stream = null;
+        this.audioContext = null;
+    }
+
+    async startRecording() {
+        try {
+            this.stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+
+            // Create audio context for visualization
+            this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            const source = this.audioContext.createMediaStreamSource(this.stream);
+            recordingAnalyser = this.audioContext.createAnalyser();
+            recordingAnalyser.fftSize = 64;
+            source.connect(recordingAnalyser);
+
+            this.mediaRecorder = new MediaRecorder(this.stream, {
+                mimeType: this.getSupportedMimeType()
+            });
+
+            this.audioChunks = [];
+
+            this.mediaRecorder.ondataavailable = (event) => {
+                if (event.data.size > 0) {
+                    this.audioChunks.push(event.data);
+                }
+            };
+
+            this.mediaRecorder.onstop = () => {
+                const mimeType = this.mediaRecorder.mimeType || 'audio/webm';
+                const audioBlob = new Blob(this.audioChunks, { type: mimeType });
+                this.uploadVoiceMessage(audioBlob, mimeType);
+                this.cleanup();
+            };
+
+            this.mediaRecorder.start(100); // Collect data every 100ms
+            return true;
+        } catch (err) {
+            console.error('Failed to start recording:', err);
+            alert('Could not access microphone. Please check permissions.');
+            return false;
+        }
+    }
+
+    getSupportedMimeType() {
+        const types = [
+            'audio/webm;codecs=opus',
+            'audio/webm',
+            'audio/ogg;codecs=opus',
+            'audio/mp4',
+        ];
+        for (const type of types) {
+            if (MediaRecorder.isTypeSupported(type)) {
+                return type;
+            }
+        }
+        return 'audio/webm';
+    }
+
+    stopRecording() {
+        if (this.mediaRecorder && this.mediaRecorder.state !== 'inactive') {
+            this.mediaRecorder.stop();
+        }
+    }
+
+    cancelRecording() {
+        if (this.mediaRecorder && this.mediaRecorder.state !== 'inactive') {
+            this.mediaRecorder.stop();
+        }
+        this.audioChunks = [];
+        this.cleanup();
+    }
+
+    cleanup() {
+        if (this.stream) {
+            this.stream.getTracks().forEach(track => track.stop());
+            this.stream = null;
+        }
+        if (this.audioContext) {
+            this.audioContext.close();
+            this.audioContext = null;
+        }
+        recordingAnalyser = null;
+    }
+
+    async uploadVoiceMessage(audioBlob, mimeType) {
+        // Get conversation ID from URL
+        const pathParts = window.location.pathname.split('/');
+        const chatIndex = pathParts.indexOf('chat');
+        if (chatIndex === -1 || !pathParts[chatIndex + 1]) {
+            console.error('Could not determine conversation ID');
+            return;
+        }
+        const conversationID = pathParts[chatIndex + 1];
+
+        // Calculate duration
+        const duration = Math.floor((Date.now() - recordingStartTime) / 1000);
+
+        const formData = new FormData();
+        const extension = mimeType.includes('webm') ? 'webm' :
+                         mimeType.includes('ogg') ? 'ogg' :
+                         mimeType.includes('mp4') ? 'm4a' : 'webm';
+        formData.append('file', audioBlob, `voice-message.${extension}`);
+        formData.append('type', 'voice');
+        formData.append('duration', duration.toString());
+
+        try {
+            const response = await fetch(`/chat/${conversationID}/voice`, {
+                method: 'POST',
+                body: formData
+            });
+
+            if (!response.ok) {
+                throw new Error('Failed to upload voice message');
+            }
+
+            // Get the HTML response and append to messages
+            const html = await response.text();
+            const messagesList = document.getElementById('messages-list');
+            if (messagesList) {
+                messagesList.insertAdjacentHTML('beforeend', html);
+                const container = document.getElementById('messages-container');
+                if (container) {
+                    container.scrollTop = container.scrollHeight;
+                }
+            }
+        } catch (err) {
+            console.error('Failed to upload voice message:', err);
+            alert('Failed to send voice message. Please try again.');
+        }
+    }
+}
+
+function startVoiceRecording() {
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        alert('Voice recording is not supported in this browser.');
+        return;
+    }
+
+    voiceRecorder = new VoiceRecorder();
+    voiceRecorder.startRecording().then(started => {
+        if (started) {
+            showRecordingUI();
+            startRecordingTimer();
+            animateRecordingWaveform();
+        }
+    });
+}
+
+function stopVoiceRecording() {
+    if (voiceRecorder) {
+        voiceRecorder.stopRecording();
+    }
+    hideRecordingUI();
+    stopRecordingTimer();
+    stopWaveformAnimation();
+}
+
+function cancelVoiceRecording() {
+    if (voiceRecorder) {
+        voiceRecorder.cancelRecording();
+    }
+    hideRecordingUI();
+    stopRecordingTimer();
+    stopWaveformAnimation();
+}
+
+function showRecordingUI() {
+    const form = document.getElementById('message-form');
+    const recordingUI = document.getElementById('voice-recording-ui');
+    if (form) form.classList.add('hidden');
+    if (recordingUI) recordingUI.classList.remove('hidden');
+}
+
+function hideRecordingUI() {
+    const form = document.getElementById('message-form');
+    const recordingUI = document.getElementById('voice-recording-ui');
+    if (form) form.classList.remove('hidden');
+    if (recordingUI) recordingUI.classList.add('hidden');
+}
+
+function startRecordingTimer() {
+    recordingStartTime = Date.now();
+    const timeDisplay = document.getElementById('recording-time');
+
+    recordingTimer = setInterval(() => {
+        const elapsed = Math.floor((Date.now() - recordingStartTime) / 1000);
+        const mins = Math.floor(elapsed / 60);
+        const secs = elapsed % 60;
+        if (timeDisplay) {
+            timeDisplay.textContent = `${mins}:${secs.toString().padStart(2, '0')}`;
+        }
+    }, 1000);
+}
+
+function stopRecordingTimer() {
+    if (recordingTimer) {
+        clearInterval(recordingTimer);
+        recordingTimer = null;
+    }
+    recordingStartTime = null;
+}
+
+function animateRecordingWaveform() {
+    const bars = document.querySelectorAll('#recording-waveform .recording-bar');
+    if (!bars.length) return;
+
+    function animate() {
+        if (recordingAnalyser) {
+            const dataArray = new Uint8Array(recordingAnalyser.frequencyBinCount);
+            recordingAnalyser.getByteFrequencyData(dataArray);
+
+            bars.forEach((bar, i) => {
+                const value = dataArray[i % dataArray.length] || 0;
+                const height = Math.max(4, (value / 255) * 28);
+                bar.style.height = `${height}px`;
+            });
+        } else {
+            // Fallback animation when no analyser
+            bars.forEach((bar, i) => {
+                const height = Math.random() * 24 + 4;
+                bar.style.height = `${height}px`;
+            });
+        }
+        animationFrameId = requestAnimationFrame(animate);
+    }
+    animate();
+}
+
+function stopWaveformAnimation() {
+    if (animationFrameId) {
+        cancelAnimationFrame(animationFrameId);
+        animationFrameId = null;
+    }
+}
+
+// Voice message playback
+let currentAudio = null;
+let currentPlayButton = null;
+
+function toggleVoicePlayback(button) {
+    const audioUrl = button.dataset.audioUrl;
+    if (!audioUrl) return;
+
+    const playIcon = button.querySelector('.play-icon');
+    const pauseIcon = button.querySelector('.pause-icon');
+    const container = button.closest('.voice-message-player');
+    const currentTimeEl = container?.querySelector('.voice-current-time');
+
+    // If clicking the same button that's currently playing
+    if (currentAudio && currentPlayButton === button) {
+        if (currentAudio.paused) {
+            currentAudio.play();
+            playIcon?.classList.add('hidden');
+            pauseIcon?.classList.remove('hidden');
+        } else {
+            currentAudio.pause();
+            playIcon?.classList.remove('hidden');
+            pauseIcon?.classList.add('hidden');
+        }
+        return;
+    }
+
+    // Stop any currently playing audio
+    if (currentAudio) {
+        currentAudio.pause();
+        currentAudio.currentTime = 0;
+        if (currentPlayButton) {
+            const oldPlayIcon = currentPlayButton.querySelector('.play-icon');
+            const oldPauseIcon = currentPlayButton.querySelector('.pause-icon');
+            oldPlayIcon?.classList.remove('hidden');
+            oldPauseIcon?.classList.add('hidden');
+        }
+    }
+
+    // Create and play new audio
+    currentAudio = new Audio(audioUrl);
+    currentPlayButton = button;
+
+    currentAudio.ontimeupdate = () => {
+        if (currentTimeEl) {
+            const mins = Math.floor(currentAudio.currentTime / 60);
+            const secs = Math.floor(currentAudio.currentTime % 60);
+            currentTimeEl.textContent = `${mins}:${secs.toString().padStart(2, '0')}`;
+        }
+    };
+
+    currentAudio.onended = () => {
+        playIcon?.classList.remove('hidden');
+        pauseIcon?.classList.add('hidden');
+        if (currentTimeEl) currentTimeEl.textContent = '0:00';
+        currentAudio = null;
+        currentPlayButton = null;
+    };
+
+    currentAudio.onerror = () => {
+        console.error('Failed to play audio');
+        playIcon?.classList.remove('hidden');
+        pauseIcon?.classList.add('hidden');
+        currentAudio = null;
+        currentPlayButton = null;
+    };
+
+    currentAudio.play().then(() => {
+        playIcon?.classList.add('hidden');
+        pauseIcon?.classList.remove('hidden');
+    }).catch(err => {
+        console.error('Failed to play audio:', err);
+    });
+}
+

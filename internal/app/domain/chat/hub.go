@@ -1,6 +1,7 @@
 package chat
 
 import (
+	"encoding/json"
 	"log"
 	"net/http"
 	"sync"
@@ -47,6 +48,13 @@ type BroadcastMessage struct {
 	ConversationID string
 	Message        []byte
 	SenderID       string
+}
+
+// WSMessage represents incoming WebSocket messages
+type WSMessage struct {
+	Type           string `json:"type"`
+	ConversationID string `json:"conversation_id"`
+	IsTyping       bool   `json:"is_typing,omitempty"`
 }
 
 // NewHub creates a new WebSocket hub
@@ -119,6 +127,36 @@ func (h *Hub) Broadcast(conversationID string, msg []byte, senderID string) {
 	}
 }
 
+// broadcastTyping broadcasts typing indicator to other clients in conversation
+func (h *Hub) broadcastTyping(conversationID, senderID string, isTyping bool) {
+	h.mu.RLock()
+	clients := h.conversations[conversationID]
+	h.mu.RUnlock()
+
+	// Create typing indicator message
+	msg := map[string]interface{}{
+		"type":      "typing",
+		"is_typing": isTyping,
+		"sender_id": senderID,
+	}
+	data, err := json.Marshal(msg)
+	if err != nil {
+		log.Printf("Failed to marshal typing message: %v", err)
+		return
+	}
+
+	// Send to all clients except sender
+	for client := range clients {
+		if client.userID != senderID {
+			select {
+			case client.send <- data:
+			default:
+				// Client buffer full, skip
+			}
+		}
+	}
+}
+
 // HandleWebSocket handles WebSocket upgrade and client management
 func (h *Hub) HandleWebSocket(w http.ResponseWriter, r *http.Request) {
 	sessionData := auth.GetSessionData(r)
@@ -168,12 +206,27 @@ func (c *Client) readPump() {
 	})
 
 	for {
-		_, _, err := c.conn.ReadMessage()
+		_, message, err := c.conn.ReadMessage()
 		if err != nil {
 			if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
 				log.Printf("WebSocket error: %v", err)
 			}
 			break
+		}
+
+		// Parse incoming message
+		var wsMsg WSMessage
+		if err := json.Unmarshal(message, &wsMsg); err != nil {
+			log.Printf("Failed to parse WebSocket message: %v", err)
+			continue
+		}
+
+		// Handle different message types
+		switch wsMsg.Type {
+		case "typing":
+			c.hub.broadcastTyping(c.conversationID, c.userID, wsMsg.IsTyping)
+		default:
+			// Ignore unknown message types
 		}
 	}
 }

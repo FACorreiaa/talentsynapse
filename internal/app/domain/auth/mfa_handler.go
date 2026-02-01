@@ -435,7 +435,13 @@ func (h *Handler) HandleMFARegenerateBackupCodes(w http.ResponseWriter, r *http.
 			<button onclick="copyBackupCodes()" class="px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700">
 				Copy All
 			</button>
-			<a href="/settings/security" class="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300">
+			<button onclick="downloadBackupCodes()" class="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700">
+				Download
+			</button>
+			<button onclick="window.print()" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 print:hidden">
+				Print
+			</button>
+			<a href="/settings/security" class="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 print:hidden">
 				Done
 			</a>
 		</div>
@@ -449,7 +455,37 @@ func (h *Handler) HandleMFARegenerateBackupCodes(w http.ResponseWriter, r *http.
 				alert('Backup codes copied to clipboard!');
 			});
 		}
+
+		function downloadBackupCodes() {
+			const codes = Array.from(document.querySelectorAll('code'))
+				.map(el => el.textContent)
+				.join('\n');
+			const blob = new Blob([
+				'TalentSynapse Backup Codes\n',
+				'Generated: ' + new Date().toLocaleString() + '\n\n',
+				'Keep these codes in a safe place. Each code can only be used once.\n\n',
+				codes
+			], { type: 'text/plain' });
+			const url = URL.createObjectURL(blob);
+			const a = document.createElement('a');
+			a.href = url;
+			a.download = 'talentsynapse-backup-codes.txt';
+			document.body.appendChild(a);
+			a.click();
+			document.body.removeChild(a);
+			URL.revokeObjectURL(url);
+		}
 	</script>
+	<style>
+		@media print {
+			body {
+				background: white !important;
+			}
+			.print\:hidden {
+				display: none !important;
+			}
+		}
+	</style>
 </body>
 </html>
 	`)

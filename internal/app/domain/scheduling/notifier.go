@@ -5,23 +5,27 @@ import (
 	"fmt"
 	"log"
 	"time"
+
+	"github.com/FACorreiaa/talentsynapse/internal/app/domain/push"
 )
 
 // Notifier handles sending reminders for scheduled sessions
 type Notifier struct {
-	repo   *Repository
-	hub    *Hub
-	ticker *time.Ticker
-	done   chan bool
+	repo        *Repository
+	hub         *Hub
+	pushService *push.Service
+	ticker      *time.Ticker
+	done        chan bool
 }
 
 // NewNotifier creates a new reminder notifier
-func NewNotifier(repo *Repository, hub *Hub) *Notifier {
+func NewNotifier(repo *Repository, hub *Hub, pushService *push.Service) *Notifier {
 	return &Notifier{
-		repo:   repo,
-		hub:    hub,
-		ticker: time.NewTicker(1 * time.Minute), // Check every minute
-		done:   make(chan bool),
+		repo:        repo,
+		hub:         hub,
+		pushService: pushService,
+		ticker:      time.NewTicker(1 * time.Minute), // Check every minute
+		done:        make(chan bool),
 	}
 }
 
@@ -99,10 +103,15 @@ func (n *Notifier) sendReminder(reminder Reminder) {
 		log.Printf("Email reminder %s (not implemented yet)", reminder.ID)
 
 	case "push":
-		// TODO: Implement push notification via Firebase
-		// For now, just mark as sent
-		success = true
-		log.Printf("Push reminder %s (not implemented yet)", reminder.ID)
+		// Send push notification
+		err := n.sendPushNotification(reminder)
+		if err != nil {
+			errorMsg = fmt.Sprintf("push failed: %v", err)
+			log.Printf("Failed to send push reminder %s: %v", reminder.ID, err)
+		} else {
+			success = true
+			log.Printf("Sent push reminder %s to user %s", reminder.ID, reminder.UserID)
+		}
 	}
 
 	// Mark as sent/failed
@@ -134,4 +143,34 @@ func (n *Notifier) sendInAppNotification(reminder Reminder) error {
 	n.hub.BroadcastToUser(reminder.UserID.String(), []byte(notification))
 
 	return nil
+}
+
+// sendPushNotification sends a push notification for a session reminder
+func (n *Notifier) sendPushNotification(reminder Reminder) error {
+	if n.pushService == nil {
+		return fmt.Errorf("push service not available")
+	}
+
+	// Get session details to get title and start time
+	ctx := context.Background()
+	session, err := n.repo.GetSessionByID(ctx, reminder.SessionID, reminder.UserID)
+	if err != nil {
+		return fmt.Errorf("failed to get session details: %w", err)
+	}
+
+	// Calculate minutes until session
+	minutesUntil := int(time.Until(session.ScheduledStart).Minutes())
+
+	// Create a session title from offers or use a default
+	sessionTitle := "Upcoming Session"
+	if len(session.InitiatorOffers) > 0 {
+		sessionTitle = session.InitiatorOffers[0]
+	}
+
+	return n.pushService.SendSessionReminderNotification(
+		ctx,
+		reminder.UserID,
+		sessionTitle,
+		minutesUntil,
+	)
 }

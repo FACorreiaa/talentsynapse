@@ -885,6 +885,27 @@ h6,
     }
 }
 
+/* ── Typing Indicator ──────────────────────────────────────────────────── */
+.typing-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: currentColor;
+    opacity: 0.6;
+    animation: typingBounce 1.4s infinite ease-in-out;
+}
+
+@keyframes typingBounce {
+    0%, 60%, 100% {
+        transform: translateY(0);
+        opacity: 0.6;
+    }
+    30% {
+        transform: translateY(-10px);
+        opacity: 1;
+    }
+}
+
 /* ── Print Styles ───────────────────────────────────────────────────────── */
 @media print {
 
@@ -908,4 +929,69 @@ h6,
 
 [x-cloak] {
     display: none !important;
+}
+
+/* ── Voice Message Styles ───────────────────────────────────────────────── */
+.voice-message-player {
+    min-width: 200px;
+    max-width: 280px;
+}
+
+.voice-play-btn {
+    transition: all 0.2s var(--ease-smooth);
+}
+
+.voice-play-btn:hover {
+    transform: scale(1.05);
+}
+
+.voice-play-btn:active {
+    transform: scale(0.95);
+}
+
+.voice-waveform {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+}
+
+.waveform-bar {
+    width: 3px;
+    border-radius: 999px;
+    transition: height 0.1s ease;
+}
+
+/* Recording UI Styles */
+.recording-dot {
+    animation: pulse-recording 1.5s ease-in-out infinite;
+}
+
+@keyframes pulse-recording {
+    0%, 100% {
+        opacity: 1;
+        transform: scale(1);
+    }
+    50% {
+        opacity: 0.5;
+        transform: scale(0.9);
+    }
+}
+
+.recording-bar {
+    transition: height 0.05s ease;
+}
+
+#voice-recording-ui {
+    animation: fadeIn 0.2s ease;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }

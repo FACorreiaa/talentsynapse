@@ -2,13 +2,23 @@ package chat
 
 import (
 	"bytes"
+	"crypto/rand"
+	"encoding/hex"
+	"fmt"
+	"io"
+	"log"
 	"net/http"
+	"os"
+	"path/filepath"
+	"strconv"
 	"strings"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/google/uuid"
 
 	"github.com/FACorreiaa/talentsynapse/internal/app/domain/auth"
 	"github.com/FACorreiaa/talentsynapse/internal/app/domain/matches"
+	"github.com/FACorreiaa/talentsynapse/internal/app/domain/push"
 	chatpages "github.com/FACorreiaa/talentsynapse/internal/app/views/pages/chat"
 )
 
@@ -17,14 +27,16 @@ type Handler struct {
 	repo        *Repository
 	matchesRepo *matches.Repository
 	hub         *Hub
+	pushService *push.Service
 }
 
 // NewHandler creates a new chat handler
-func NewHandler(repo *Repository, matchesRepo *matches.Repository, hub *Hub) *Handler {
+func NewHandler(repo *Repository, matchesRepo *matches.Repository, hub *Hub, pushService *push.Service) *Handler {
 	return &Handler{
 		repo:        repo,
 		matchesRepo: matchesRepo,
 		hub:         hub,
+		pushService: pushService,
 	}
 }
 
@@ -108,13 +120,19 @@ func (h *Handler) ShowChat(w http.ResponseWriter, r *http.Request) {
 	var viewMessages []chatpages.MessageItem
 	for _, m := range messages {
 		viewMessages = append(viewMessages, chatpages.MessageItem{
-			ID:           m.ID,
-			SenderID:     m.SenderID,
-			SenderName:   m.SenderName,
-			SenderAvatar: m.SenderAvatar,
-			Content:      m.Content,
-			SentAt:       m.SentAt,
-			IsOwn:        m.IsOwn,
+			ID:              m.ID,
+			SenderID:        m.SenderID,
+			SenderName:      m.SenderName,
+			SenderAvatar:    m.SenderAvatar,
+			Content:         m.Content,
+			SentAt:          m.SentAt,
+			IsOwn:           m.IsOwn,
+			Type:            m.Type,
+			FileURL:         m.FileURL,
+			FileName:        m.FileName,
+			FileSize:        m.FileSize,
+			FileMimeType:    m.FileMimeType,
+			DurationSeconds: m.DurationSeconds,
 		})
 	}
 
@@ -201,6 +219,24 @@ func (h *Handler) SendMessage(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	// 2.5. Send push notification to the recipient
+	// Get the other participant in the conversation
+	participants, err := h.repo.GetConversationParticipants(r.Context(), conversationID)
+	if err == nil {
+		for _, participantID := range participants {
+			// Don't send notification to the sender
+			if participantID != sessionData.UserID {
+				recipientUUID, err := uuid.Parse(participantID)
+				if err == nil {
+					// Send push notification
+					if err := h.pushService.SendNewMessageNotification(r.Context(), recipientUUID, msg.SenderName); err != nil {
+						log.Printf("Failed to send message notification to user %s: %v", participantID, err)
+					}
+				}
+			}
+		}
+	}
+
 	// 3. Return response to Sender (IsOwn=true)
 	// Sender gets the bubble directly appended via hx-target logic on the form
 	senderViewMsg := viewMsg
@@ -245,6 +281,203 @@ func (h *Handler) StartConversation(w http.ResponseWriter, r *http.Request) {
 	}
 
 	http.Redirect(w, r, "/chat/"+conversationID, http.StatusSeeOther)
+}
+
+// SendVoiceMessage handles voice message uploads
+func (h *Handler) SendVoiceMessage(w http.ResponseWriter, r *http.Request) {
+	sessionData := auth.GetSessionData(r)
+	if sessionData.UserID == "" {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	conversationID := chi.URLParam(r, "id")
+	if conversationID == "" {
+		http.Error(w, "Missing conversation ID", http.StatusBadRequest)
+		return
+	}
+
+	// Verify participant
+	isParticipant, err := h.repo.IsParticipant(r.Context(), conversationID, sessionData.UserID)
+	if err != nil || !isParticipant {
+		http.Error(w, "Conversation not found", http.StatusNotFound)
+		return
+	}
+
+	// Parse multipart form (max 10MB for voice)
+	if err := r.ParseMultipartForm(10 << 20); err != nil {
+		http.Error(w, "File too large", http.StatusBadRequest)
+		return
+	}
+
+	file, header, err := r.FormFile("file")
+	if err != nil {
+		http.Error(w, "No file uploaded", http.StatusBadRequest)
+		return
+	}
+	defer func() {
+		if cerr := file.Close(); cerr != nil {
+			log.Printf("Failed to close uploaded file: %v", cerr)
+		}
+	}()
+
+	// Validate mime type
+	mimeType := header.Header.Get("Content-Type")
+	if !isAllowedAudioMimeType(mimeType) {
+		http.Error(w, "Invalid audio format", http.StatusBadRequest)
+		return
+	}
+
+	// Get duration from form
+	durationStr := r.FormValue("duration")
+	duration, _ := strconv.Atoi(durationStr)
+	if duration <= 0 {
+		duration = 1 // Default to 1 second if not provided
+	}
+	if duration > 300 { // Max 5 minutes
+		duration = 300
+	}
+
+	// Generate unique filename
+	randomBytes := make([]byte, 16)
+	if _, err := rand.Read(randomBytes); err != nil {
+		log.Printf("Failed to generate random filename: %v", err)
+		http.Error(w, "Failed to save file", http.StatusInternalServerError)
+		return
+	}
+	randomName := hex.EncodeToString(randomBytes)
+	ext := getAudioExtension(mimeType)
+	filename := fmt.Sprintf("voice_%s%s", randomName, ext)
+
+	// Create uploads directory if not exists
+	uploadsDir := "./assets/uploads/voice"
+	if err := os.MkdirAll(uploadsDir, 0o750); err != nil {
+		log.Printf("Failed to create uploads directory: %v", err)
+		http.Error(w, "Failed to save file", http.StatusInternalServerError)
+		return
+	}
+
+	// Save file - filepath.Clean prevents path traversal
+	filePath := filepath.Join(uploadsDir, filepath.Clean(filename))
+	dst, err := os.Create(filePath) // #nosec G304 - filename is generated internally, not from user input
+	if err != nil {
+		log.Printf("Failed to create file: %v", err)
+		http.Error(w, "Failed to save file", http.StatusInternalServerError)
+		return
+	}
+	defer func() {
+		if cerr := dst.Close(); cerr != nil {
+			log.Printf("Failed to close destination file: %v", cerr)
+		}
+	}()
+
+	fileSize, err := io.Copy(dst, file)
+	if err != nil {
+		log.Printf("Failed to write file: %v", err)
+		http.Error(w, "Failed to save file", http.StatusInternalServerError)
+		return
+	}
+
+	// Create the file URL
+	fileURL := "/assets/uploads/voice/" + filename
+
+	// Create voice message in database
+	msg, err := h.repo.CreateVoiceMessage(
+		r.Context(),
+		conversationID,
+		sessionData.UserID,
+		fileURL,
+		fileSize,
+		mimeType,
+		duration,
+	)
+	if err != nil {
+		log.Printf("Failed to create voice message: %v", err)
+		http.Error(w, "Failed to send message", http.StatusInternalServerError)
+		return
+	}
+
+	// Prepare View Model
+	viewMsg := chatpages.MessageItem{
+		ID:              msg.ID,
+		SenderID:        msg.SenderID,
+		SenderName:      msg.SenderName,
+		SenderAvatar:    msg.SenderAvatar,
+		Content:         msg.Content,
+		SentAt:          msg.SentAt,
+		IsOwn:           false,
+		Type:            msg.Type,
+		FileURL:         msg.FileURL,
+		DurationSeconds: msg.DurationSeconds,
+	}
+
+	// Broadcast via WebSocket (OOB Swap for receiver)
+	if h.hub != nil {
+		var buf bytes.Buffer
+		if err := chatpages.MessageBubble(viewMsg).Render(r.Context(), &buf); err == nil {
+			oobHTML := `<div id="messages-list" hx-swap-oob="beforeend">` + buf.String() + `</div>`
+			h.hub.Broadcast(conversationID, []byte(oobHTML), sessionData.UserID)
+		}
+	}
+
+	// Send push notification to the recipient
+	participants, err := h.repo.GetConversationParticipants(r.Context(), conversationID)
+	if err == nil {
+		for _, participantID := range participants {
+			if participantID != sessionData.UserID {
+				recipientUUID, err := uuid.Parse(participantID)
+				if err == nil {
+					if err := h.pushService.SendNewMessageNotification(r.Context(), recipientUUID, msg.SenderName+" sent a voice message"); err != nil {
+						log.Printf("Failed to send voice message notification to user %s: %v", participantID, err)
+					}
+				}
+			}
+		}
+	}
+
+	// Return response to Sender (IsOwn=true)
+	senderViewMsg := viewMsg
+	senderViewMsg.IsOwn = true
+	component := chatpages.MessageBubble(senderViewMsg)
+	if err := component.Render(r.Context(), w); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	}
+}
+
+// isAllowedAudioMimeType checks if the mime type is allowed for voice messages
+func isAllowedAudioMimeType(mimeType string) bool {
+	allowed := []string{
+		"audio/webm",
+		"audio/ogg",
+		"audio/mp4",
+		"audio/mpeg",
+		"audio/wav",
+		"audio/x-m4a",
+	}
+	for _, a := range allowed {
+		if strings.HasPrefix(mimeType, a) {
+			return true
+		}
+	}
+	return false
+}
+
+// getAudioExtension returns the file extension for an audio mime type
+func getAudioExtension(mimeType string) string {
+	switch {
+	case strings.Contains(mimeType, "webm"):
+		return ".webm"
+	case strings.Contains(mimeType, "ogg"):
+		return ".ogg"
+	case strings.Contains(mimeType, "mp4"), strings.Contains(mimeType, "m4a"):
+		return ".m4a"
+	case strings.Contains(mimeType, "mpeg"):
+		return ".mp3"
+	case strings.Contains(mimeType, "wav"):
+		return ".wav"
+	default:
+		return ".webm"
+	}
 }
 
 // truncateMessage limits message preview length

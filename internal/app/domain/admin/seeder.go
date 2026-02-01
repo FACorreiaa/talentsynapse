@@ -6,13 +6,14 @@ import (
 	"log"
 	"os"
 
-	"github.com/FACorreiaa/talentsynapse/internal/app/domain/user"
 	"golang.org/x/crypto/bcrypt"
+
+	"github.com/FACorreiaa/talentsynapse/internal/app/domain/user"
 )
 
 // SeedAdmin ensures that an admin user exists based on environment variables
 func SeedAdmin(ctx context.Context, repo *user.Repository) error {
-	adminEmail := os.Getenv("is the seed")
+	adminEmail := os.Getenv("ADMIN_EMAIL")
 	adminPassword := os.Getenv("ADMIN_PASSWORD")
 
 	if adminEmail == "" || adminPassword == "" {

@@ -27,9 +27,16 @@ type Message struct {
 	SenderName     string
 	SenderAvatar   string
 	Content        string
-	Type           string // text, image, file, system
+	Type           string // text, image, file, system, voice
 	SentAt         time.Time
 	IsOwn          bool
+	// File metadata (for image, file, voice types)
+	FileURL         string
+	FileName        string
+	FileSize        int64
+	FileMimeType    string
+	ThumbnailURL    string
+	DurationSeconds int // For voice messages
 }
 
 // Repository handles database operations for chat
@@ -170,7 +177,12 @@ func (r *Repository) GetMessages(ctx context.Context, conversationID, userID str
 				m.content,
 				m.type::text,
 				m.sent_at,
-				(m.sender_id = $2) as is_own
+				(m.sender_id = $2) as is_own,
+				COALESCE(m.file_url, '') as file_url,
+				COALESCE(m.file_name, '') as file_name,
+				COALESCE(m.file_size, 0) as file_size,
+				COALESCE(m.file_mime_type, '') as file_mime_type,
+				COALESCE(m.duration_seconds, 0) as duration_seconds
 			FROM messages m
 			JOIN users u ON m.sender_id = u.id
 			WHERE m.conversation_id = $1 AND m.is_deleted = false
@@ -189,7 +201,12 @@ func (r *Repository) GetMessages(ctx context.Context, conversationID, userID str
 				m.content,
 				m.type::text,
 				m.sent_at,
-				(m.sender_id = $2) as is_own
+				(m.sender_id = $2) as is_own,
+				COALESCE(m.file_url, '') as file_url,
+				COALESCE(m.file_name, '') as file_name,
+				COALESCE(m.file_size, 0) as file_size,
+				COALESCE(m.file_mime_type, '') as file_mime_type,
+				COALESCE(m.duration_seconds, 0) as duration_seconds
 			FROM messages m
 			JOIN users u ON m.sender_id = u.id
 			WHERE m.conversation_id = $1 
@@ -220,6 +237,11 @@ func (r *Repository) GetMessages(ctx context.Context, conversationID, userID str
 			&m.Type,
 			&m.SentAt,
 			&m.IsOwn,
+			&m.FileURL,
+			&m.FileName,
+			&m.FileSize,
+			&m.FileMimeType,
+			&m.DurationSeconds,
 		)
 		if err != nil {
 			return nil, err
@@ -298,11 +320,149 @@ func (r *Repository) MarkAsRead(ctx context.Context, conversationID, userID stri
 func (r *Repository) IsParticipant(ctx context.Context, conversationID, userID string) (bool, error) {
 	query := `
 		SELECT EXISTS(
-			SELECT 1 FROM conversations 
+			SELECT 1 FROM conversations
 			WHERE id = $1 AND (user_a_id = $2 OR user_b_id = $2)
 		)
 	`
 	var exists bool
 	err := r.pool.QueryRow(ctx, query, conversationID, userID).Scan(&exists)
 	return exists, err
+}
+
+// GetConversationParticipants retrieves the IDs of all participants in a conversation
+func (r *Repository) GetConversationParticipants(ctx context.Context, conversationID string) ([]string, error) {
+	query := `
+		SELECT user_a_id, user_b_id
+		FROM conversations
+		WHERE id = $1
+	`
+	var userA, userB string
+	err := r.pool.QueryRow(ctx, query, conversationID).Scan(&userA, &userB)
+	if err != nil {
+		return nil, err
+	}
+	return []string{userA, userB}, nil
+}
+
+// CreateFileMessage stores a new file message with metadata
+func (r *Repository) CreateFileMessage(
+	ctx context.Context,
+	conversationID, senderID, msgType string,
+	fileURL, fileName string,
+	fileSize int64,
+	fileMimeType, thumbnailURL string,
+) (*Message, error) {
+	query := `
+		WITH new_message AS (
+			INSERT INTO messages (
+				conversation_id, sender_id, content, type,
+				file_url, file_name, file_size, file_mime_type, thumbnail_url
+			)
+			VALUES ($1, $2, $3, $4::message_type, $5, $6, $7, $8, $9)
+			RETURNING id, conversation_id, sender_id, content, type::text,
+			          file_url, file_name, file_size, file_mime_type, thumbnail_url, sent_at
+		)
+		UPDATE conversations 
+		SET last_message_id = (SELECT id FROM new_message),
+		    last_message_at = (SELECT sent_at FROM new_message)
+		WHERE id = $1
+		RETURNING (SELECT id FROM new_message)
+	`
+
+	var messageID string
+	err := r.pool.QueryRow(ctx, query,
+		conversationID, senderID, fileName, msgType,
+		fileURL, fileName, fileSize, fileMimeType, thumbnailURL,
+	).Scan(&messageID)
+	if err != nil {
+		return nil, err
+	}
+
+	// Fetch the full message with sender details
+	msgQuery := `
+		SELECT 
+			m.id, m.conversation_id, m.sender_id, u.display_name, 
+			COALESCE(u.avatar_url, ''), m.content, m.type::text, m.sent_at,
+			COALESCE(m.file_url, ''), COALESCE(m.file_name, ''), 
+			COALESCE(m.file_size, 0), COALESCE(m.file_mime_type, ''),
+			COALESCE(m.thumbnail_url, '')
+		FROM messages m
+		JOIN users u ON m.sender_id = u.id
+		WHERE m.id = $1
+	`
+
+	var m Message
+	err = r.pool.QueryRow(ctx, msgQuery, messageID).Scan(
+		&m.ID, &m.ConversationID, &m.SenderID, &m.SenderName,
+		&m.SenderAvatar, &m.Content, &m.Type, &m.SentAt,
+		&m.FileURL, &m.FileName, &m.FileSize, &m.FileMimeType, &m.ThumbnailURL,
+	)
+	if err != nil {
+		return nil, err
+	}
+	m.IsOwn = true
+
+	return &m, nil
+}
+
+// CreateVoiceMessage stores a new voice message with duration metadata
+func (r *Repository) CreateVoiceMessage(
+	ctx context.Context,
+	conversationID, senderID string,
+	fileURL string,
+	fileSize int64,
+	fileMimeType string,
+	durationSeconds int,
+) (*Message, error) {
+	query := `
+		WITH new_message AS (
+			INSERT INTO messages (
+				conversation_id, sender_id, content, type,
+				file_url, file_name, file_size, file_mime_type, duration_seconds
+			)
+			VALUES ($1, $2, 'Voice message', 'voice'::message_type, $3, 'voice-message.webm', $4, $5, $6)
+			RETURNING id, conversation_id, sender_id, content, type::text,
+			          file_url, file_name, file_size, file_mime_type, duration_seconds, sent_at
+		)
+		UPDATE conversations 
+		SET last_message_id = (SELECT id FROM new_message),
+		    last_message_at = (SELECT sent_at FROM new_message)
+		WHERE id = $1
+		RETURNING (SELECT id FROM new_message)
+	`
+
+	var messageID string
+	err := r.pool.QueryRow(ctx, query,
+		conversationID, senderID,
+		fileURL, fileSize, fileMimeType, durationSeconds,
+	).Scan(&messageID)
+	if err != nil {
+		return nil, err
+	}
+
+	// Fetch the full message with sender details
+	msgQuery := `
+		SELECT 
+			m.id, m.conversation_id, m.sender_id, u.display_name, 
+			COALESCE(u.avatar_url, ''), m.content, m.type::text, m.sent_at,
+			COALESCE(m.file_url, ''), COALESCE(m.file_name, ''), 
+			COALESCE(m.file_size, 0), COALESCE(m.file_mime_type, ''),
+			COALESCE(m.duration_seconds, 0)
+		FROM messages m
+		JOIN users u ON m.sender_id = u.id
+		WHERE m.id = $1
+	`
+
+	var m Message
+	err = r.pool.QueryRow(ctx, msgQuery, messageID).Scan(
+		&m.ID, &m.ConversationID, &m.SenderID, &m.SenderName,
+		&m.SenderAvatar, &m.Content, &m.Type, &m.SentAt,
+		&m.FileURL, &m.FileName, &m.FileSize, &m.FileMimeType, &m.DurationSeconds,
+	)
+	if err != nil {
+		return nil, err
+	}
+	m.IsOwn = true
+
+	return &m, nil
 }

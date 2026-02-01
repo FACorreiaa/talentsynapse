@@ -116,12 +116,15 @@ func New(pool *pgxpool.Pool) *Container {
 	schedulingHub := scheduling.NewHub()
 	go schedulingHub.Run()
 
+	// Create push service (needed by multiple handlers)
+	pushService := push.NewService(pool)
+
 	// Create badge and points services with scheduling hub for notifications
 	badgeService := badges.NewService(badgesRepo, schedulingHub)
 	pointsService := points.NewService(pointsRepo, schedulingHub)
 
 	// Create background services
-	schedulingNotifier := scheduling.NewNotifier(schedulingRepo, schedulingHub)
+	schedulingNotifier := scheduling.NewNotifier(schedulingRepo, schedulingHub, pushService)
 	schedulingNotifier.Start()
 
 	// Create handlers
@@ -130,19 +133,18 @@ func New(pool *pgxpool.Pool) *Container {
 	dashboardHandler := dashboard.NewHandler(dashboardRepo)
 	profileHandler := profile.NewHandler(userRepo, badgesRepo, reviewRepo, portfolioRepo, matchesRepo, sessionRepo)
 	skillsHandler := skills.NewHandler(skillsRepo)
-	matchesHandler := matches.NewHandler(matchesRepo, badgeService, reviewRepo)
+	matchesHandler := matches.NewHandler(matchesRepo, badgeService, reviewRepo, pushService)
 	discoverHandler := discover.NewHandler(skillsRepo)
 	settingsHandler := settings.NewHandler()
-	chatHandler := chat.NewHandler(chatRepo, matchesRepo, chatHub)
+	chatHandler := chat.NewHandler(chatRepo, matchesRepo, chatHub, pushService)
 	connectionsHandler := connections.NewHandler(matchesRepo)
 	errorHandler := errors.NewHandler()
-	adminHandler := admin.NewHandler(userRepo, reportRepo)
+	adminHandler := admin.NewHandler(userRepo, reportRepo, badgeService)
 	reportHandler := report.NewHandler(reportRepo)
-	reviewHandler := review.NewHandler(reviewRepo, badgesRepo, pointsService, userRepo, schedulingHub)
+	reviewHandler := review.NewHandler(reviewRepo, badgesRepo, pointsService, userRepo, schedulingHub, pushService)
 	portfolioHandler := portfolio.NewHandler(portfolioRepo)
 	sessionHandler := session.NewHandler(sessionRepo, badgesRepo, matchesRepo, pointsService)
 	schedulingHandler := scheduling.NewHandler(schedulingService, schedulingHub)
-	pushService := push.NewService(pool)
 	pushHandler := push.NewHandler(pushService)
 
 	return &Container{

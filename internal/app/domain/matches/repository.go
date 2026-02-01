@@ -341,6 +341,34 @@ func (r *Repository) RecordMatchAction(ctx context.Context, userID, matchedUserI
 	return err
 }
 
+// UserInfo represents basic user information
+type UserInfo struct {
+	UserID      string
+	DisplayName string
+	Username    string
+	AvatarURL   string
+}
+
+// GetUserInfo retrieves basic user information
+func (r *Repository) GetUserInfo(ctx context.Context, userID string) (*UserInfo, error) {
+	query := `
+		SELECT id, display_name, username, avatar_url
+		FROM users
+		WHERE id = $1
+	`
+	var user UserInfo
+	err := r.pool.QueryRow(ctx, query, userID).Scan(
+		&user.UserID,
+		&user.DisplayName,
+		&user.Username,
+		&user.AvatarURL,
+	)
+	if err != nil {
+		return nil, err
+	}
+	return &user, nil
+}
+
 // MutualMatch represents a user with mutual connection
 type MutualMatch struct {
 	UserID      string

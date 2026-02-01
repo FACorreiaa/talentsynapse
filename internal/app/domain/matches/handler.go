@@ -8,6 +8,7 @@ import (
 
 	"github.com/FACorreiaa/talentsynapse/internal/app/domain/auth"
 	"github.com/FACorreiaa/talentsynapse/internal/app/domain/badges"
+	"github.com/FACorreiaa/talentsynapse/internal/app/domain/push"
 	"github.com/FACorreiaa/talentsynapse/internal/app/domain/review"
 	matchespages "github.com/FACorreiaa/talentsynapse/internal/app/views/pages/matches"
 	"github.com/google/uuid"
@@ -18,14 +19,16 @@ type Handler struct {
 	repo         *Repository
 	badgeService *badges.Service
 	reviewRepo   *review.Repository
+	pushService  *push.Service
 }
 
 // NewHandler creates a new matches handler
-func NewHandler(repo *Repository, badgeService *badges.Service, reviewRepo *review.Repository) *Handler {
+func NewHandler(repo *Repository, badgeService *badges.Service, reviewRepo *review.Repository, pushService *push.Service) *Handler {
 	return &Handler{
 		repo:         repo,
 		badgeService: badgeService,
 		reviewRepo:   reviewRepo,
+		pushService:  pushService,
 	}
 }
 
@@ -161,6 +164,16 @@ func (h *Handler) List(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	// if hx-request, only render the content
+	if r.Header.Get("HX-Request") == "true" {
+		// Render only the content for HTMX requests
+		pageContent := matchespages.MatchesContent(matchCards, connectionCards, pendingCards, activeTab, successMsg)
+		if err := pageContent.Render(r.Context(), w); err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+		}
+		return
+	}
+
 	component := matchespages.MatchesPage(
 		matchCards,
 		connectionCards,
@@ -195,6 +208,12 @@ func (h *Handler) Accept(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Get the matched user's info for notifications (currently unused but may be needed for future features)
+	_, err = h.repo.GetUserInfo(r.Context(), matchedUserID)
+	if err != nil {
+		log.Printf("Failed to get matched user info: %v", err)
+	}
+
 	// Check if connected (mutual match)
 	connected, _ := h.repo.AreConnected(r.Context(), sessionData.UserID, matchedUserID)
 	if connected {
@@ -212,6 +231,23 @@ func (h *Handler) Accept(w http.ResponseWriter, r *http.Request) {
 		// Award badge to matched user
 		if err := h.badgeService.AwardBadge(r.Context(), otherUserID, "first_match"); err != nil {
 			log.Printf("Failed to award first_match badge to user %s: %v", matchedUserID, err)
+		}
+
+		// Send push notification to the matched user about the new connection
+		currentUser, err := h.repo.GetUserInfo(r.Context(), sessionData.UserID)
+		if err == nil {
+			if err := h.pushService.SendNewMatchNotification(r.Context(), otherUserID, currentUser.DisplayName); err != nil {
+				log.Printf("Failed to send match notification to user %s: %v", matchedUserID, err)
+			}
+		}
+	} else {
+		// Send notification to the matched user that someone is interested
+		otherUserID := uuid.MustParse(matchedUserID)
+		currentUser, err := h.repo.GetUserInfo(r.Context(), sessionData.UserID)
+		if err == nil {
+			if err := h.pushService.SendNewMatchNotification(r.Context(), otherUserID, currentUser.DisplayName); err != nil {
+				log.Printf("Failed to send match request notification to user %s: %v", matchedUserID, err)
+			}
 		}
 	}
 

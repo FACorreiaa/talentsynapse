@@ -52,7 +52,7 @@ templ NotificationsTab(data SettingsData) {
 			</h2>
 			<div class="space-y-4">
 				@toggleSetting("Email Notifications", "Receive email updates about matches and messages", true)
-				@toggleSetting("Push Notifications", "Get notified on your device", true)
+				@pushNotificationToggle()
 				@toggleSetting("Match Alerts", "Be notified when new skill matches are found", true)
 				@toggleSetting("Session Reminders", "Get reminders before scheduled sessions", true)
 				@toggleSetting("Marketing Emails", "News, tips, and product updates", false)
@@ -281,5 +281,24 @@ templ toggleSetting(title string, description string, enabled bool) {
 			/>
 			<div class="w-11 h-6 bg-muted rounded-full peer peer-checked:bg-primary peer-focus:ring-2 peer-focus:ring-primary/50 after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:after:translate-x-full"></div>
 		</label>
+	</div>
+}
+
+// pushNotificationToggle renders the push notification toggle with enable button
+templ pushNotificationToggle() {
+	<div class="flex items-center justify-between py-3 border-b border-border">
+		<div class="flex-1 pr-4">
+			<p class="font-medium text-foreground">Push Notifications</p>
+			<p class="text-sm text-muted-foreground" id="push-notification-status">
+				Get notified on your device about matches, messages, and sessions
+			</p>
+		</div>
+		<button
+			id="enable-push-notifications"
+			onclick="if (window.requestNotificationPermission) { window.requestNotificationPermission().then(granted => { if (granted) { this.disabled = true; this.textContent = 'Enabled'; this.classList.remove('btn-primary'); this.classList.add('btn-success'); document.getElementById('push-notification-status').textContent = 'Push notifications are enabled'; } else { alert('Please allow notifications in your browser settings'); } }); } else { alert('Push notifications are not supported in your browser'); }"
+			class="btn btn-sm btn-primary flex-shrink-0"
+		>
+			Enable Push
+		</button>
 	</div>
 }

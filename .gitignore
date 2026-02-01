@@ -54,6 +54,11 @@ tailwindcss
 main
 server
 
+# Uploaded files (voice messages, etc.)
+assets/uploads/*
+!assets/uploads/.gitkeep
+!assets/uploads/**/.gitkeep
+
 # Documentation (keep out of git history for cleaner repo)
 # Uncomment the line below if you want to exclude docs from version control
 docs/

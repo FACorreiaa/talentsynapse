@@ -1,9 +1,11 @@
 package admin
 
 import (
+	"fmt"
 	"net/http"
 
 	"github.com/FACorreiaa/talentsynapse/internal/app/domain/auth"
+	"github.com/FACorreiaa/talentsynapse/internal/app/domain/badges"
 	"github.com/FACorreiaa/talentsynapse/internal/app/domain/report"
 	"github.com/FACorreiaa/talentsynapse/internal/app/domain/user"
 	adminpages "github.com/FACorreiaa/talentsynapse/internal/app/views/pages/admin"
@@ -12,14 +14,16 @@ import (
 )
 
 type Handler struct {
-	userRepo   *user.Repository
-	reportRepo *report.Repository
+	userRepo     *user.Repository
+	reportRepo   *report.Repository
+	badgeService *badges.Service
 }
 
-func NewHandler(userRepo *user.Repository, reportRepo *report.Repository) *Handler {
+func NewHandler(userRepo *user.Repository, reportRepo *report.Repository, badgeService *badges.Service) *Handler {
 	return &Handler{
-		userRepo:   userRepo,
-		reportRepo: reportRepo,
+		userRepo:     userRepo,
+		reportRepo:   reportRepo,
+		badgeService: badgeService,
 	}
 }
 
@@ -151,4 +155,28 @@ func (h *Handler) ResolveReport(w http.ResponseWriter, r *http.Request) {
 	}
 
 	http.Redirect(w, r, "/admin/moderation", http.StatusSeeOther)
+}
+
+// AwardEarlyAdopterBadges awards the early_adopter badge to all eligible users
+func (h *Handler) AwardEarlyAdopterBadges(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	// Get the cutoff date
+	cutoff := badges.GetEarlyAdopterCutoff()
+
+	// Batch award the badge
+	count, err := h.badgeService.BatchAwardEarlyAdopterBadges(r.Context(), cutoff)
+	if err != nil {
+		_ = auth.SetFlash(w, r, fmt.Sprintf("Failed to award early adopter badges: %v", err), auth.FlashError)
+		http.Redirect(w, r, "/admin", http.StatusSeeOther)
+		return
+	}
+
+	msg := fmt.Sprintf("✨ Successfully awarded early adopter badge to %d users (cutoff: %s)",
+		count, cutoff.Format("2006-01-02"))
+	_ = auth.SetFlash(w, r, msg, auth.FlashSuccess)
+	http.Redirect(w, r, "/admin", http.StatusSeeOther)
 }

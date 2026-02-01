@@ -17,8 +17,21 @@ templ DashboardContent(users []*user.User) {
 	<div class="container mx-auto px-4 py-8">
 		<div class="flex justify-between items-center mb-6">
 			<h1 class="text-3xl font-bold text-gray-900 dark:text-gray-100">Admin Dashboard</h1>
-			<div class="text-sm text-gray-500">
-				Total Users: { fmt.Sprint(len(users)) }
+			<div class="flex items-center gap-4">
+				<div class="text-sm text-gray-500">
+					Total Users: { fmt.Sprint(len(users)) }
+				</div>
+				<form action="/admin/badges/award-early-adopter" method="POST" onsubmit="return confirm('Award early adopter badge to all eligible users? This will award the badge to all users who registered before the cutoff date.');">
+					<button
+						type="submit"
+						class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-gradient-to-r from-purple-600 to-green-600 hover:from-purple-700 hover:to-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500"
+					>
+						<svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"></path>
+						</svg>
+						Award Early Adopter Badges
+					</button>
+				</form>
 			</div>
 		</div>
 		<div class="bg-white dark:bg-gray-800 shadow-md rounded-lg overflow-hidden">

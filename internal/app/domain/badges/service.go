@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"os"
 	"time"
 
 	"github.com/google/uuid"
@@ -12,6 +13,20 @@ import (
 const (
 	BadgeEarlyAdopter = "early_adopter"
 )
+
+// GetEarlyAdopterCutoff returns the cutoff date for early adopter badge
+// Can be configured via EARLY_ADOPTER_CUTOFF env var (RFC3339 format)
+// Default: 2026-03-01 (approximately 1 month from initial launch)
+func GetEarlyAdopterCutoff() time.Time {
+	cutoffStr := os.Getenv("EARLY_ADOPTER_CUTOFF")
+	if cutoffStr != "" {
+		if t, err := time.Parse(time.RFC3339, cutoffStr); err == nil {
+			return t
+		}
+	}
+	// Default cutoff: March 1, 2026
+	return time.Date(2026, 3, 1, 0, 0, 0, 0, time.UTC)
+}
 
 // NotificationHub interface for sending notifications
 type NotificationHub interface {
@@ -126,4 +141,23 @@ func (s *Service) BatchAwardEarlyAdopterBadges(ctx context.Context, cutoffDate t
 	}
 
 	return count, nil
+}
+
+// AwardEarlyAdopterIfEligible checks if a user registered before the cutoff and awards badge if eligible.
+// This is meant to be called during or shortly after user registration.
+func (s *Service) AwardEarlyAdopterIfEligible(ctx context.Context, userID uuid.UUID, userCreatedAt time.Time) error {
+	cutoff := GetEarlyAdopterCutoff()
+
+	// Only award if user created before cutoff
+	if userCreatedAt.Before(cutoff) {
+		if err := s.AwardBadge(ctx, userID, BadgeEarlyAdopter); err != nil {
+			// Log but don't fail - badge awarding is not critical to registration
+			log.Printf("Failed to award early_adopter badge to user %s: %v", userID, err)
+			return err
+		}
+		log.Printf("✨ Early adopter badge awarded to user %s (created: %s, cutoff: %s)",
+			userID, userCreatedAt.Format(time.RFC3339), cutoff.Format(time.RFC3339))
+	}
+
+	return nil
 }

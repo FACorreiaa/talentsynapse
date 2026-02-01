@@ -39,6 +39,31 @@ func getTestDBPool(t *testing.T) *pgxpool.Pool {
 	return pool
 }
 
+// getBenchDBPool creates a connection pool for benchmarks
+func getBenchDBPool(b *testing.B) *pgxpool.Pool {
+	dsn := os.Getenv("TEST_DATABASE_URL")
+	if dsn == "" {
+		dsn = "postgres://postgres:postgres@localhost:5470/myapp?sslmode=disable"
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	pool, err := pgxpool.New(ctx, dsn)
+	if err != nil {
+		b.Skipf("Skipping benchmark: could not connect to database: %v", err)
+		return nil
+	}
+
+	if err := pool.Ping(ctx); err != nil {
+		pool.Close()
+		b.Skipf("Skipping benchmark: database not responding: %v", err)
+		return nil
+	}
+
+	return pool
+}
+
 // testUser represents a user created for testing
 type testUser struct {
 	ID          string

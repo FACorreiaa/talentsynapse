@@ -209,6 +209,7 @@ func (s *Server) RegisterRoutes() http.Handler {
 		r.Get("/chat", c.ChatHandler.ListConversations)
 		r.Get("/chat/{id}", c.ChatHandler.ShowChat)
 		r.Post("/chat/{id}/messages", c.ChatHandler.SendMessage)
+		r.Post("/chat/{id}/voice", c.ChatHandler.SendVoiceMessage)
 		r.Get("/chat/start/{userID}", c.ChatHandler.StartConversation)
 		r.Get("/chat/ws", c.ChatHub.HandleWebSocket)
 
@@ -258,6 +259,7 @@ func (s *Server) RegisterRoutes() http.Handler {
 			r.Post("/admin/users/{userID}/verify", c.AdminHandler.ToggleVerify)
 			r.Get("/admin/moderation", c.AdminHandler.ModerationQueue)
 			r.Post("/admin/reports/{reportID}/resolve", c.AdminHandler.ResolveReport)
+			r.Post("/admin/badges/award-early-adopter", c.AdminHandler.AwardEarlyAdopterBadges)
 		})
 	})
 
