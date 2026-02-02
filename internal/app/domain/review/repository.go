@@ -169,26 +169,16 @@ func (r *Repository) UpdateUserStats(ctx context.Context, userID uuid.UUID) erro
         WITH stats AS (
             SELECT 
                 COUNT(*) as total,
-                COALESCE(SUM(requester_rating), 0) as total_score,
                 COALESCE(AVG(requester_rating), 0) as avg_rating
             FROM reviews
             WHERE reviewer_id = $1 AND requester_rating IS NOT NULL
         )
-        INSERT INTO user_stats (user_id, total_reviews, average_rating, points, tier)
-        SELECT 
-            $1, total, avg_rating,
-            (total_score * 10) as pts,
-            CASE 
-                WHEN (total_score * 10) >= 500 THEN 'Gold'
-                WHEN (total_score * 10) >= 100 THEN 'Silver'
-                ELSE 'Bronze'
-            END as new_tier
+        INSERT INTO user_stats (user_id, total_reviews, average_rating)
+        SELECT $1, total, avg_rating
         FROM stats
         ON CONFLICT (user_id) DO UPDATE SET
             total_reviews = EXCLUDED.total_reviews,
             average_rating = EXCLUDED.average_rating,
-            points = EXCLUDED.points,
-            tier = EXCLUDED.tier,
             last_updated_at = NOW();
     `
 	_, err := r.db.Exec(ctx, query, userID)

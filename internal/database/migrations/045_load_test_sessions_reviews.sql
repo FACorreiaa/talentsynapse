@@ -3,6 +3,7 @@
 -- Creates realistic interaction data for load testing
 
 -- Generate sessions between random users
+-- +goose StatementBegin
 DO $$
 DECLARE
     v_user_ids UUID[];
@@ -54,6 +55,8 @@ BEGIN
         INSERT INTO sessions (
             initiator_id,
             partner_id,
+            initiator_offers,
+            partner_offers,
             status,
             scheduled_start,
             scheduled_end,
@@ -66,7 +69,9 @@ BEGIN
         ) VALUES (
             v_initiator_id,
             v_partner_id,
-            v_status,
+            COALESCE(v_initiator_skills, ARRAY[]::UUID[])::TEXT[],
+            COALESCE(v_partner_skills, ARRAY[]::UUID[])::TEXT[],
+            v_status::session_status,
             v_scheduled_start,
             v_scheduled_end,
             CASE WHEN v_status IN ('in_progress', 'completed') THEN v_scheduled_start + (RANDOM() * INTERVAL '15 minutes') ELSE NULL END,
@@ -90,8 +95,10 @@ BEGIN
 
     END LOOP;
 END $$;
+-- +goose StatementEnd
 
 -- Generate reviews for completed sessions
+-- +goose StatementBegin
 DO $$
 DECLARE
     v_session RECORD;
@@ -117,6 +124,11 @@ BEGIN
             requester_id,
             reviewer_id,
             skill_id,
+            type,
+            depth,
+            title,
+            price,
+            status,
             requester_rating,
             requester_comment,
             reviewer_rating,
@@ -127,6 +139,11 @@ BEGIN
             v_session.initiator_id,
             v_session.partner_id,
             v_skill_id,
+            'peer_review',
+            'quick',
+            'Post-session review',
+            0.00,
+            'completed',
             4 + FLOOR(RANDOM() * 2)::INT, -- Rating 4-5
             CASE WHEN RANDOM() > 0.5 THEN 'Great learning experience!' ELSE 'Very helpful and knowledgeable.' END,
             4 + FLOOR(RANDOM() * 2)::INT, -- Rating 4-5
@@ -145,6 +162,7 @@ BEGIN
 
     END LOOP;
 END $$;
+-- +goose StatementEnd
 
 -- Recalculate average ratings
 UPDATE user_stats us
@@ -159,6 +177,7 @@ SET average_rating = COALESCE((
 ), 0.00);
 
 -- Generate match history (who viewed whom, who matched)
+-- +goose StatementBegin
 DO $$
 DECLARE
     v_user_ids UUID[];
@@ -191,8 +210,10 @@ BEGIN
 
     END LOOP;
 END $$;
+-- +goose StatementEnd
 
 -- Generate conversations and messages for chat load testing
+-- +goose StatementBegin
 DO $$
 DECLARE
     v_user_ids UUID[];
@@ -297,8 +318,10 @@ BEGIN
 
     END LOOP;
 END $$;
+-- +goose StatementEnd
 
 -- Award badges to some users
+-- +goose StatementBegin
 DO $$
 DECLARE
     v_user_ids UUID[];
@@ -338,8 +361,10 @@ BEGIN
         END IF;
     END LOOP;
 END $$;
+-- +goose StatementEnd
 
 -- Add portfolio items for some users
+-- +goose StatementBegin
 DO $$
 DECLARE
     v_user_ids UUID[];
@@ -381,6 +406,7 @@ BEGIN
         END LOOP;
     END LOOP;
 END $$;
+-- +goose StatementEnd
 
 -- +goose Down
 -- Remove all load test session/review data

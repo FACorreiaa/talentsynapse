@@ -1,3 +1,5 @@
+-- +goose NO TRANSACTION
+
 -- +goose Up
 -- Only including extensions that come with standard PostgreSQL
 -- PostGIS, TimescaleDB, and vector require special PostgreSQL images
@@ -39,3 +41,12 @@ CREATE TYPE poi_source AS ENUM (
   'user_submitted',-- Submitted by a user (maybe requires verification)
   'partner'        -- From a paying partner/featured listing
   );
+
+-- +goose Down
+DROP FUNCTION IF EXISTS set_updated_at() CASCADE;
+DROP TYPE IF EXISTS subscription_plan_type CASCADE;
+DROP TYPE IF EXISTS subscription_status CASCADE;
+DROP TYPE IF EXISTS poi_source CASCADE;
+DROP EXTENSION IF EXISTS "uuid-ossp" CASCADE;
+DROP EXTENSION IF EXISTS citext CASCADE;
+DROP EXTENSION IF EXISTS pg_trgm CASCADE;

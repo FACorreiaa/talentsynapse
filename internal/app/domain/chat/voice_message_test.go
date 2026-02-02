@@ -19,13 +19,14 @@ import (
 	"github.com/FACorreiaa/talentsynapse/internal/app/domain/auth"
 	"github.com/FACorreiaa/talentsynapse/internal/app/domain/matches"
 	"github.com/FACorreiaa/talentsynapse/internal/app/domain/push"
+	"github.com/FACorreiaa/talentsynapse/internal/app/domain/storage"
 	"github.com/FACorreiaa/talentsynapse/internal/app/domain/user"
 )
 
-func getVoiceTestDBPool(t *testing.T) *pgxpool.Pool {
+func getTestDBPool(t *testing.T) *pgxpool.Pool {
 	dbURL := os.Getenv("DATABASE_URL")
 	if dbURL == "" {
-		dbURL = "postgres://postgres:postgres@localhost:5432/talentsynapse_test?sslmode=disable"
+		dbURL = "postgres://postgres:postgres@localhost:5470/myapp?sslmode=disable"
 	}
 
 	pool, err := pgxpool.New(context.Background(), dbURL)
@@ -45,8 +46,8 @@ func getVoiceTestDBPool(t *testing.T) *pgxpool.Pool {
 
 func createVoiceTestUser(t *testing.T, pool *pgxpool.Pool, email, username string) string {
 	query := `
-		INSERT INTO users (email, username, password_hash, display_name, is_active, email_verified)
-		VALUES ($1, $2, '$2a$10$test', $3, true, true)
+		INSERT INTO users (email, username, hashed_password, display_name, is_active, email_verified_at)
+		VALUES ($1, $2, '$2a$10$test', $3, true, NOW())
 		RETURNING id
 	`
 	var userID string
@@ -65,7 +66,7 @@ func cleanupVoiceTestUser(t *testing.T, pool *pgxpool.Pool, userID string) {
 
 // TestVoiceMessageRepository tests the voice message repository methods
 func TestVoiceMessageRepository(t *testing.T) {
-	pool := getVoiceTestDBPool(t)
+	pool := getTestDBPool(t)
 	if pool == nil {
 		return
 	}
@@ -133,7 +134,7 @@ func TestVoiceMessageRepository(t *testing.T) {
 
 // TestVoiceMessageHandler tests the voice message HTTP handler
 func TestVoiceMessageHandler(t *testing.T) {
-	pool := getVoiceTestDBPool(t)
+	pool := getTestDBPool(t)
 	if pool == nil {
 		return
 	}
@@ -149,8 +150,9 @@ func TestVoiceMessageHandler(t *testing.T) {
 	hub := NewHub()
 	go hub.Run()
 	pushService := push.NewService(pool)
+	storageService := storage.NewService("./uploads", "http://localhost:8080")
 
-	handler := NewHandler(repo, matchesRepo, hub, pushService)
+	handler := NewHandler(repo, matchesRepo, hub, pushService, storageService)
 
 	ctx := context.Background()
 	uniqueSuffix := fmt.Sprintf("%d", time.Now().UnixNano())

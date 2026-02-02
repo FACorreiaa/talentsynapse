@@ -40,6 +40,14 @@ func (m *MockUserRepository) GetByID(ctx context.Context, id string) (*user.User
 	return args.Get(0).(*user.User), args.Error(1)
 }
 
+func (m *MockUserRepository) GetByIDAdmin(ctx context.Context, id string) (*user.User, error) {
+	args := m.Called(ctx, id)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*user.User), args.Error(1)
+}
+
 func (m *MockUserRepository) GetByUsername(ctx context.Context, username string) (*user.User, error) {
 	args := m.Called(ctx, username)
 	if args.Get(0) == nil {

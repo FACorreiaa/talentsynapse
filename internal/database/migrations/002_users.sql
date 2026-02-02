@@ -60,3 +60,8 @@ EXECUTE FUNCTION set_updated_at();
 -- Uncomment when using postgres image with pgvector support
 -- ALTER TABLE users ADD COLUMN embedding VECTOR(768);
 -- CREATE INDEX idx_users_embedding_cosine ON users USING IVFFLAT (embedding vector_cosine_ops);
+
+-- +goose Down
+DROP TABLE IF EXISTS user_oauth_identities CASCADE;
+DROP TABLE IF EXISTS users CASCADE;
+DROP TYPE IF EXISTS user_role CASCADE;

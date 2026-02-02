@@ -175,7 +175,7 @@ func TestAdminActions_BannedUserSession(t *testing.T) {
 				initiator_offers, partner_offers,
 				scheduled_start, scheduled_end,
 				status
-			) VALUES ($1, $2, '{}', '{}', NOW(), NOW() + interval '1 hour', 'pending')
+			) VALUES ($1, $2, ARRAY[]::TEXT[], ARRAY[]::TEXT[], NOW(), NOW() + interval '1 hour', 'pending')
 		`, user1ID, user2ID)
 		require.NoError(t, err)
 	})
@@ -229,14 +229,23 @@ func TestAdminActions_BannedUserMatches(t *testing.T) {
 	defer cleanupTestUser(t, pool, user1ID)
 	defer cleanupTestUser(t, pool, user2ID)
 
-	// Add skills to both users
-	var skillID string
+	// Add skills to both users - first create a category, then the skill
+	var categoryID string
 	err := pool.QueryRow(ctx, `
-		INSERT INTO skills (name, category)
-		VALUES ('TestSkill', 'Technology')
+		INSERT INTO skill_categories (name, description)
+		VALUES ('Technology', 'Tech skills')
 		ON CONFLICT (name) DO UPDATE SET name = EXCLUDED.name
 		RETURNING id
-	`).Scan(&skillID)
+	`).Scan(&categoryID)
+	require.NoError(t, err)
+
+	var skillID string
+	err = pool.QueryRow(ctx, `
+		INSERT INTO skills (name, category_id)
+		VALUES ('TestSkill', $1)
+		ON CONFLICT (category_id, name) DO UPDATE SET name = EXCLUDED.name
+		RETURNING id
+	`, categoryID).Scan(&skillID)
 	require.NoError(t, err)
 
 	_, err = pool.Exec(ctx, `
@@ -432,8 +441,8 @@ func TestAdminActions_BanPreventsAllActions(t *testing.T) {
 	})
 
 	t.Run("banned user data still retrievable for admin", func(t *testing.T) {
-		// Admin should still be able to view user data
-		u, err := userRepo.GetByID(ctx, userID)
+		// Admin should still be able to view user data using GetByIDAdmin
+		u, err := userRepo.GetByIDAdmin(ctx, userID)
 		require.NoError(t, err)
 		assert.NotNil(t, u)
 		assert.Equal(t, userID, u.ID)

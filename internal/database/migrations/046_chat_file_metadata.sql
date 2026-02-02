@@ -1,24 +1,38 @@
 -- +goose Up
 -- Add file metadata fields for image/file sharing in chat messages
 
--- Add file metadata columns
+-- Add file metadata columns (idempotent)
 ALTER TABLE messages
-ADD COLUMN file_url TEXT,
-ADD COLUMN file_name VARCHAR(255),
-ADD COLUMN file_size BIGINT,
-ADD COLUMN file_mime_type VARCHAR(100),
-ADD COLUMN thumbnail_url TEXT;
+ADD COLUMN IF NOT EXISTS file_url TEXT,
+ADD COLUMN IF NOT EXISTS file_name VARCHAR(255),
+ADD COLUMN IF NOT EXISTS file_size BIGINT,
+ADD COLUMN IF NOT EXISTS file_mime_type VARCHAR(100),
+ADD COLUMN IF NOT EXISTS thumbnail_url TEXT;
 
--- Index for file messages
-CREATE INDEX idx_messages_type ON messages(type) WHERE type IN ('image', 'file');
+-- Index for file messages (only if not exists)
+-- +goose StatementBegin
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_indexes WHERE indexname = 'idx_messages_type') THEN
+        CREATE INDEX idx_messages_type ON messages(type) WHERE type IN ('image', 'file');
+    END IF;
+END $$;
+-- +goose StatementEnd
 
--- Add constraint to ensure file messages have required metadata
-ALTER TABLE messages
-ADD CONSTRAINT valid_file_message
-CHECK (
-    (type IN ('image', 'file') AND file_url IS NOT NULL AND file_name IS NOT NULL)
-    OR type NOT IN ('image', 'file')
-);
+-- Add constraint to ensure file messages have required metadata (idempotent)
+-- +goose StatementBegin
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'valid_file_message') THEN
+        ALTER TABLE messages
+        ADD CONSTRAINT valid_file_message
+        CHECK (
+            (type IN ('image', 'file') AND file_url IS NOT NULL AND file_name IS NOT NULL)
+            OR type NOT IN ('image', 'file')
+        );
+    END IF;
+END $$;
+-- +goose StatementEnd
 
 -- Add voice message type to enum
 ALTER TYPE message_type ADD VALUE IF NOT EXISTS 'voice';

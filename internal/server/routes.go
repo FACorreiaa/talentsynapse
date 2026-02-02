@@ -135,6 +135,14 @@ func (s *Server) RegisterRoutes() http.Handler {
 		http.Redirect(w, req, "/assets/static/icon.svg", http.StatusMovedPermanently)
 	})
 
+	// Uploaded files (chat attachments, etc.)
+	uploadDir := os.Getenv("UPLOAD_DIR")
+	if uploadDir == "" {
+		uploadDir = "./uploads"
+	}
+	uploadsFS := http.FileServer(http.Dir(uploadDir))
+	r.Handle("/uploads/*", http.StripPrefix("/uploads/", uploadsFS))
+
 	// ──────────────────────────────────────────────────────────────────
 	// Health Check & Metrics
 	// ──────────────────────────────────────────────────────────────────
@@ -210,6 +218,7 @@ func (s *Server) RegisterRoutes() http.Handler {
 		r.Get("/chat/{id}", c.ChatHandler.ShowChat)
 		r.Post("/chat/{id}/messages", c.ChatHandler.SendMessage)
 		r.Post("/chat/{id}/voice", c.ChatHandler.SendVoiceMessage)
+		r.Post("/chat/{id}/upload", c.ChatHandler.UploadFile)
 		r.Get("/chat/start/{userID}", c.ChatHandler.StartConversation)
 		r.Get("/chat/ws", c.ChatHub.HandleWebSocket)
 

@@ -3,6 +3,7 @@ package container
 import (
 	"context"
 	"log"
+	"os"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 
@@ -27,6 +28,7 @@ import (
 	"github.com/FACorreiaa/talentsynapse/internal/app/domain/session"
 	"github.com/FACorreiaa/talentsynapse/internal/app/domain/settings"
 	"github.com/FACorreiaa/talentsynapse/internal/app/domain/skills"
+	"github.com/FACorreiaa/talentsynapse/internal/app/domain/storage"
 	"github.com/FACorreiaa/talentsynapse/internal/app/domain/user"
 )
 
@@ -136,7 +138,19 @@ func New(pool *pgxpool.Pool) *Container {
 	matchesHandler := matches.NewHandler(matchesRepo, badgeService, reviewRepo, pushService)
 	discoverHandler := discover.NewHandler(skillsRepo)
 	settingsHandler := settings.NewHandler()
-	chatHandler := chat.NewHandler(chatRepo, matchesRepo, chatHub, pushService)
+
+	// Storage service for file uploads
+	uploadDir := os.Getenv("UPLOAD_DIR")
+	if uploadDir == "" {
+		uploadDir = "./uploads"
+	}
+	baseURL := os.Getenv("BASE_URL")
+	if baseURL == "" {
+		baseURL = "http://localhost:8080"
+	}
+	storageService := storage.NewService(uploadDir, baseURL)
+
+	chatHandler := chat.NewHandler(chatRepo, matchesRepo, chatHub, pushService, storageService)
 	connectionsHandler := connections.NewHandler(matchesRepo)
 	errorHandler := errors.NewHandler()
 	adminHandler := admin.NewHandler(userRepo, reportRepo, badgeService)

@@ -81,7 +81,7 @@ func addUserSkill(t *testing.T, pool *pgxpool.Pool, userID, skillName, skillType
 	err = pool.QueryRow(ctx, `
 		INSERT INTO skills (name, category_id)
 		VALUES ($1, $2)
-		ON CONFLICT (name) DO UPDATE SET name = EXCLUDED.name
+		ON CONFLICT (category_id, name) DO UPDATE SET name = EXCLUDED.name
 		RETURNING id
 	`, skillName, categoryID).Scan(&skillID)
 	require.NoError(t, err)
@@ -90,7 +90,7 @@ func addUserSkill(t *testing.T, pool *pgxpool.Pool, userID, skillName, skillType
 	_, err = pool.Exec(ctx, `
 		INSERT INTO user_skills (user_id, skill_id, skill_type, proficiency)
 		VALUES ($1, $2, $3, $4)
-		ON CONFLICT (user_id, skill_id) DO UPDATE SET skill_type = EXCLUDED.skill_type
+		ON CONFLICT (user_id, skill_id, skill_type) DO UPDATE SET proficiency = EXCLUDED.proficiency
 	`, userID, skillID, skillType, proficiency)
 	require.NoError(t, err)
 }

@@ -68,7 +68,7 @@ func createTestSession(t *testing.T, pool *pgxpool.Pool, initiatorID, partnerID 
 			scheduled_start, scheduled_end,
 			status
 		) VALUES (
-			$1, $2, '{}', '{}',
+			$1, $2, ARRAY[]::TEXT[], ARRAY[]::TEXT[],
 			NOW(), NOW() + interval '1 hour',
 			$3
 		) RETURNING id
@@ -222,9 +222,13 @@ func TestReviewFlow_PointsAwarded(t *testing.T) {
 	sessionID := createTestSession(t, pool, user1ID, user2ID, "completed")
 
 	t.Run("5-star review awards double points", func(t *testing.T) {
-		// Get initial points
+		// Reset user2's points to 0 for this test
+		_, _ = pool.Exec(ctx, "UPDATE user_stats SET points = 0, tier = 'Bronze' WHERE user_id = $1", user2ID)
+
+		// Get initial points (should be 0)
 		initialPoints, err := pointsService.GetUserPoints(ctx, uuid.MustParse(user2ID))
 		require.NoError(t, err)
+		initialPointsValue := initialPoints.Points
 
 		// Submit 5-star review
 		err = reviewRepo.CreateSessionReview(ctx, user1ID, user2ID, sessionID, 5, "Excellent!")
@@ -239,8 +243,9 @@ func TestReviewFlow_PointsAwarded(t *testing.T) {
 		require.NoError(t, err)
 
 		// Should have awarded double points for 5-star review
-		expectedPoints := initialPoints.Points + (points.PointsReward[points.ActionReviewReceived] * 2)
-		assert.Equal(t, expectedPoints, updatedPoints.Points, "Should award double points for 5-star review")
+		pointsDelta := updatedPoints.Points - initialPointsValue
+		expectedDelta := points.PointsReward[points.ActionReviewReceived] * 2
+		assert.Equal(t, expectedDelta, pointsDelta, "Should award double points for 5-star review")
 
 		// Tier upgrade might have occurred
 		if upgrade != nil {
@@ -252,13 +257,15 @@ func TestReviewFlow_PointsAwarded(t *testing.T) {
 		// Create another session
 		sessionID2 := createTestSession(t, pool, user2ID, user1ID, "completed")
 
-		// Get initial points
-		initialPoints, err := pointsService.GetUserPoints(ctx, uuid.MustParse(user1ID))
-		require.NoError(t, err)
-
-		// Ensure stats exist
+		// Ensure stats exist and reset points to 0 for this test
 		err = pointsService.EnsureUserStats(ctx, uuid.MustParse(user1ID))
 		require.NoError(t, err)
+		_, _ = pool.Exec(ctx, "UPDATE user_stats SET points = 0, tier = 'Bronze' WHERE user_id = $1", user1ID)
+
+		// Get initial points (should be 0)
+		initialPoints, err := pointsService.GetUserPoints(ctx, uuid.MustParse(user1ID))
+		require.NoError(t, err)
+		initialPointsValue := initialPoints.Points
 
 		// Submit 4-star review
 		err = reviewRepo.CreateSessionReview(ctx, user2ID, user1ID, sessionID2, 4, "Good session")
@@ -273,8 +280,9 @@ func TestReviewFlow_PointsAwarded(t *testing.T) {
 		require.NoError(t, err)
 
 		// Should have awarded standard points for 4-star review
-		expectedPoints := initialPoints.Points + points.PointsReward[points.ActionReviewReceived]
-		assert.Equal(t, expectedPoints, updatedPoints.Points, "Should award standard points for 4-star review")
+		pointsDelta := updatedPoints.Points - initialPointsValue
+		expectedDelta := points.PointsReward[points.ActionReviewReceived]
+		assert.Equal(t, expectedDelta, pointsDelta, "Should award standard points for 4-star review")
 	})
 
 	t.Run("low rating awards no points", func(t *testing.T) {

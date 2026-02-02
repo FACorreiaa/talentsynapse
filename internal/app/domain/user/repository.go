@@ -20,6 +20,7 @@ type RepositoryInterface interface {
 	Create(ctx context.Context, email, username, hashedPassword, displayName string) (*User, error)
 	GetByEmail(ctx context.Context, email string) (*User, error)
 	GetByID(ctx context.Context, id string) (*User, error)
+	GetByIDAdmin(ctx context.Context, id string) (*User, error) // For admin use
 	GetByUsername(ctx context.Context, username string) (*User, error)
 	GetUserStats(ctx context.Context, userID string) (int, string, error)
 	UpdateLastLogin(ctx context.Context, userID string) error
@@ -122,6 +123,44 @@ func (r *Repository) GetByID(ctx context.Context, id string) (*User, error) {
 		FROM users u
         LEFT JOIN user_stats us ON u.id = us.user_id
 		WHERE u.id = $1 AND u.is_active = true
+	`
+
+	user := &User{}
+	err := r.pool.QueryRow(ctx, query, id).Scan(
+		&user.ID,
+		&user.Email,
+		&user.Username,
+		&user.HashedPassword,
+		&user.DisplayName,
+		&user.AvatarURL,
+		&user.Bio,
+		&user.Role,
+		&user.IsActive,
+		&user.EmailVerifiedAt,
+		&user.CreatedAt,
+		&user.UpdatedAt,
+		&user.LastLoginAt,
+		&user.SocialLinks,
+		&user.Tier,
+	)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, ErrUserNotFound
+		}
+		return nil, err
+	}
+
+	return user, nil
+}
+
+// GetByIDAdmin retrieves a user by their ID regardless of active status (for admin use)
+func (r *Repository) GetByIDAdmin(ctx context.Context, id string) (*User, error) {
+	query := `
+		SELECT u.id, u.email, u.username, u.hashed_password, u.display_name, u.avatar_url, u.bio, u.role, u.is_active, u.email_verified_at, u.created_at, u.updated_at, u.last_login_at, u.social_links,
+               COALESCE(us.tier, 'Bronze') as tier
+		FROM users u
+        LEFT JOIN user_stats us ON u.id = us.user_id
+		WHERE u.id = $1
 	`
 
 	user := &User{}
@@ -352,21 +391,38 @@ func (r *Repository) UnbanUser(ctx context.Context, userID string) error {
 	return err
 }
 
-// VerifyUser marks the user as verified (custom logic, e.g., via specialized table or role logic)
-// For now, let's assume verification might be a separate flag or role.
-// If we strictly follow the 'expert' role for verification:
+// VerifyUser marks the user as verified
 func (r *Repository) VerifyUser(ctx context.Context, userID string) error {
-	// Example: Upgrade to expert role or set a verified flag if it exists.
-	// Since we don't have a verified flag in users table yet (only email_verified_at),
-	// We might use the schema upgrade or just use 'expert' role as verified for now.
-	// Or we can add specific verification logic later.
-	// Let's assume 'expert' role implies verified for skill exchange.
-	return r.UpdateRole(ctx, userID, "expert")
+	query := `
+		UPDATE users
+		SET is_verified = true, updated_at = NOW()
+		WHERE id = $1
+	`
+	result, err := r.pool.Exec(ctx, query, userID)
+	if err != nil {
+		return err
+	}
+	if result.RowsAffected() == 0 {
+		return ErrUserNotFound
+	}
+	return nil
 }
 
 // UnverifyUser reverts verification
 func (r *Repository) UnverifyUser(ctx context.Context, userID string) error {
-	return r.UpdateRole(ctx, userID, "member")
+	query := `
+		UPDATE users
+		SET is_verified = false, updated_at = NOW()
+		WHERE id = $1
+	`
+	result, err := r.pool.Exec(ctx, query, userID)
+	if err != nil {
+		return err
+	}
+	if result.RowsAffected() == 0 {
+		return ErrUserNotFound
+	}
+	return nil
 }
 
 // UpdatePassword updates a user's hashed password

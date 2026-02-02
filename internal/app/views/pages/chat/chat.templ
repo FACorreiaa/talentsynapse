@@ -2,8 +2,10 @@ package chat
 
 import (
 	"fmt"
-	"github.com/FACorreiaa/talentsynapse/internal/app/views/layouts"
+	"strings"
 	"time"
+
+	"github.com/FACorreiaa/talentsynapse/internal/app/views/layouts"
 )
 
 // MessageItem represents a message for display
@@ -101,6 +103,19 @@ templ ChatRoomContent(data ChatRoomData, currentUserID string) {
 				hx-on::after-request="this.reset(); document.getElementById('messages-container').scrollTop = document.getElementById('messages-container').scrollHeight;"
 				class="flex items-center gap-3"
 			>
+				<!-- File Upload Button -->
+				<label for="file-input" class="btn btn-ghost p-3 text-muted-foreground hover:text-primary cursor-pointer" title="Attach file">
+					<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"></path>
+					</svg>
+				</label>
+				<input
+					type="file"
+					id="file-input"
+					accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt"
+					style="display: none;"
+					onchange="handleFileUpload(event)"
+				/>
 				<input
 					type="text"
 					id="message-input"
@@ -194,6 +209,10 @@ templ MessageBubble(msg MessageItem) {
 		<div class={ "max-w-[70%] rounded-2xl px-4 py-2", templ.KV("bg-primary text-primary-foreground rounded-br-md", msg.IsOwn), templ.KV("bg-muted text-foreground rounded-bl-md", !msg.IsOwn) }>
 			if msg.Type == "voice" {
 				@VoiceMessageContent(msg)
+			} else if msg.Type == "image" {
+				@ImageMessageContent(msg)
+			} else if msg.Type == "file" {
+				@FileMessageContent(msg)
 			} else {
 				<p class="text-sm whitespace-pre-wrap break-words">{ msg.Content }</p>
 			}
@@ -290,4 +309,80 @@ func getWaveformHeight(index int) string {
 		return heights[index]
 	}
 	return "h-4"
+}
+
+// ImageMessageContent renders an image message
+templ ImageMessageContent(msg MessageItem) {
+	<div class="image-message">
+		<img
+			src={ msg.FileURL }
+			alt={ msg.FileName }
+			class="max-w-full max-h-80 rounded-lg cursor-pointer"
+			onclick={ templ.ComponentScript{Call: "openImageModal(this.src)"} }
+		/>
+		if msg.FileName != "" {
+			<p class="text-xs mt-1 opacity-70">{ msg.FileName }</p>
+		}
+	</div>
+}
+
+// FileMessageContent renders a file attachment
+templ FileMessageContent(msg MessageItem) {
+	<div class="file-message flex items-center gap-3 min-w-[200px]">
+		<div class="file-icon-container w-10 h-10 rounded-lg bg-white/20 flex items-center justify-center flex-shrink-0">
+			@templ.Raw(getFileIcon(msg.FileMimeType))
+		</div>
+		<div class="flex-1 min-w-0">
+			<p class="text-sm font-medium truncate">{ msg.FileName }</p>
+			<p class="text-xs opacity-70">{ formatFileSize(msg.FileSize) }</p>
+		</div>
+		<a
+			href={ templ.SafeURL(msg.FileURL) }
+			download={ msg.FileName }
+			class="download-btn w-8 h-8 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center transition-colors flex-shrink-0"
+			title="Download"
+		>
+			<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+				<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
+			</svg>
+		</a>
+	</div>
+}
+
+// formatFileSize converts bytes to human-readable format
+func formatFileSize(bytes int64) string {
+	const (
+		KB = 1024
+		MB = KB * 1024
+		GB = MB * 1024
+	)
+
+	switch {
+	case bytes >= GB:
+		return fmt.Sprintf("%.2f GB", float64(bytes)/float64(GB))
+	case bytes >= MB:
+		return fmt.Sprintf("%.2f MB", float64(bytes)/float64(MB))
+	case bytes >= KB:
+		return fmt.Sprintf("%.2f KB", float64(bytes)/float64(KB))
+	default:
+		return fmt.Sprintf("%d B", bytes)
+	}
+}
+
+// getFileIcon returns SVG icon based on mime type
+func getFileIcon(mimeType string) string {
+	switch {
+	case strings.Contains(mimeType, "pdf"):
+		return `<svg class="w-5 h-5 text-red-400" fill="currentColor" viewBox="0 0 20 20"><path d="M4 18h12V6h-4V2H4v16zm-2 1V0h12l4 4v16H2v-1z"/></svg>`
+	case strings.Contains(mimeType, "word"), strings.Contains(mimeType, "document"):
+		return `<svg class="w-5 h-5 text-blue-400" fill="currentColor" viewBox="0 0 20 20"><path d="M4 2h8l4 4v12H4V2zm2 2v12h8V6h-3V4H6z"/></svg>`
+	case strings.Contains(mimeType, "sheet"), strings.Contains(mimeType, "excel"):
+		return `<svg class="w-5 h-5 text-green-400" fill="currentColor" viewBox="0 0 20 20"><path d="M4 2h12v16H4V2zm2 2v12h8V4H6z"/></svg>`
+	case strings.Contains(mimeType, "presentation"), strings.Contains(mimeType, "powerpoint"):
+		return `<svg class="w-5 h-5 text-orange-400" fill="currentColor" viewBox="0 0 20 20"><path d="M4 2h12v16H4V2zm2 2v12h8V4H6z"/></svg>`
+	case strings.Contains(mimeType, "text"):
+		return `<svg class="w-5 h-5 text-gray-400" fill="currentColor" viewBox="0 0 20 20"><path d="M4 2h12v16H4V2zm2 4h8v2H6V6zm0 4h8v2H6v-2z"/></svg>`
+	default:
+		return `<svg class="w-5 h-5 text-gray-400" fill="currentColor" viewBox="0 0 20 20"><path d="M4 2h8l4 4v12H4V2zm2 2v12h8V6h-3V4H6z"/></svg>`
+	}
 }

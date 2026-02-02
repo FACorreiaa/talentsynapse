@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"mime/multipart"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -19,24 +20,27 @@ import (
 	"github.com/FACorreiaa/talentsynapse/internal/app/domain/auth"
 	"github.com/FACorreiaa/talentsynapse/internal/app/domain/matches"
 	"github.com/FACorreiaa/talentsynapse/internal/app/domain/push"
+	"github.com/FACorreiaa/talentsynapse/internal/app/domain/storage"
 	chatpages "github.com/FACorreiaa/talentsynapse/internal/app/views/pages/chat"
 )
 
 // Handler handles chat HTTP requests
 type Handler struct {
-	repo        *Repository
-	matchesRepo *matches.Repository
-	hub         *Hub
-	pushService *push.Service
+	repo           *Repository
+	matchesRepo    *matches.Repository
+	hub            *Hub
+	pushService    *push.Service
+	storageService *storage.Service
 }
 
 // NewHandler creates a new chat handler
-func NewHandler(repo *Repository, matchesRepo *matches.Repository, hub *Hub, pushService *push.Service) *Handler {
+func NewHandler(repo *Repository, matchesRepo *matches.Repository, hub *Hub, pushService *push.Service, storageService *storage.Service) *Handler {
 	return &Handler{
-		repo:        repo,
-		matchesRepo: matchesRepo,
-		hub:         hub,
-		pushService: pushService,
+		repo:           repo,
+		matchesRepo:    matchesRepo,
+		hub:            hub,
+		pushService:    pushService,
+		storageService: storageService,
 	}
 }
 
@@ -486,4 +490,162 @@ func truncateMessage(s string, maxLen int) string {
 		return s
 	}
 	return s[:maxLen-3] + "..."
+}
+
+// UploadFile handles file and image uploads for chat
+func (h *Handler) UploadFile(w http.ResponseWriter, r *http.Request) {
+	sessionData := auth.GetSessionData(r)
+	if sessionData.UserID == "" {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	conversationID := chi.URLParam(r, "id")
+	if conversationID == "" {
+		http.Error(w, "Missing conversation ID", http.StatusBadRequest)
+		return
+	}
+
+	// Verify participant
+	isParticipant, err := h.repo.IsParticipant(r.Context(), conversationID, sessionData.UserID)
+	if err != nil || !isParticipant {
+		http.Error(w, "Conversation not found", http.StatusNotFound)
+		return
+	}
+
+	// Parse multipart form (max 10MB)
+	err = r.ParseMultipartForm(10 << 20)
+	if err != nil {
+		http.Error(w, "File too large (max 10MB)", http.StatusBadRequest)
+		return
+	}
+
+	file, header, err := r.FormFile("file")
+	if err != nil {
+		http.Error(w, "Invalid file", http.StatusBadRequest)
+		return
+	}
+	defer func(file multipart.File) {
+		err := file.Close()
+		if err != nil {
+			log.Printf("Failed to close uploaded file: %v", err)
+		}
+	}(file)
+
+	// Validate file type
+	mimeType := header.Header.Get("Content-Type")
+	if !storage.IsAllowedMimeType(mimeType) {
+		http.Error(w, "File type not allowed", http.StatusBadRequest)
+		return
+	}
+
+	// Upload to storage
+	uploaded, err := h.storageService.UploadChatFile(
+		r.Context(),
+		file,
+		header.Filename,
+		mimeType,
+		header.Size,
+		sessionData.UserID,
+		conversationID,
+	)
+	if err != nil {
+		log.Printf("Failed to upload file: %v", err)
+		http.Error(w, "Failed to upload file", http.StatusInternalServerError)
+		return
+	}
+
+	// Determine message type
+	msgType := "file"
+	if isImage(mimeType) {
+		msgType = "image"
+	}
+
+	// Create message with file metadata
+	msg, err := h.repo.CreateFileMessage(
+		r.Context(),
+		conversationID,
+		sessionData.UserID,
+		msgType,
+		uploaded.URL,
+		uploaded.FileName,
+		uploaded.Size,
+		uploaded.MimeType,
+		uploaded.ThumbnailURL,
+	)
+	if err != nil {
+		log.Printf("Failed to create file message: %v", err)
+		http.Error(w, "Failed to create message", http.StatusInternalServerError)
+		return
+	}
+
+	// Broadcast via WebSocket if available
+	if h.hub != nil {
+		// Render message bubble for broadcast
+		viewMsg := chatpages.MessageItem{
+			ID:           msg.ID,
+			SenderID:     msg.SenderID,
+			SenderName:   msg.SenderName,
+			SenderAvatar: msg.SenderAvatar,
+			Content:      msg.Content,
+			Type:         msg.Type,
+			FileURL:      msg.FileURL,
+			FileName:     msg.FileName,
+			FileSize:     msg.FileSize,
+			FileMimeType: msg.FileMimeType,
+			SentAt:       msg.SentAt,
+			IsOwn:        false,
+		}
+
+		var buf bytes.Buffer
+		component := chatpages.MessageBubble(viewMsg)
+		if err := component.Render(r.Context(), &buf); err == nil {
+			h.hub.Broadcast(conversationID, buf.Bytes(), sessionData.UserID)
+		}
+	}
+
+	// Send push notification to partner
+	participants, err := h.repo.GetConversationParticipants(r.Context(), conversationID)
+	if err == nil {
+		for _, participantID := range participants {
+			if participantID != sessionData.UserID && h.pushService != nil {
+				notifMsg := "📎 Sent a file"
+				if msgType == "image" {
+					notifMsg = "📷 Sent an image"
+				}
+				participantUUID, _ := uuid.Parse(participantID)
+				_ = h.pushService.SendNotification(r.Context(), participantUUID, push.PushNotification{
+					Title: "New Message",
+					Body:  notifMsg,
+					URL:   "/chat/" + conversationID,
+					Type:  push.NotificationTypeNewMessage,
+				})
+			}
+		}
+	}
+
+	// Return the message bubble HTML for the sender
+	senderViewMsg := chatpages.MessageItem{
+		ID:           msg.ID,
+		SenderID:     msg.SenderID,
+		SenderName:   msg.SenderName,
+		SenderAvatar: msg.SenderAvatar,
+		Content:      msg.Content,
+		Type:         msg.Type,
+		FileURL:      msg.FileURL,
+		FileName:     msg.FileName,
+		FileSize:     msg.FileSize,
+		FileMimeType: msg.FileMimeType,
+		SentAt:       msg.SentAt,
+		IsOwn:        true,
+	}
+	component := chatpages.MessageBubble(senderViewMsg)
+	if err := component.Render(r.Context(), w); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	}
+}
+
+// isImage checks if the MIME type is an image
+func isImage(mimeType string) bool {
+	return strings.HasPrefix(mimeType, "image/")
 }

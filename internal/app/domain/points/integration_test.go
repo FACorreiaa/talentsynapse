@@ -220,12 +220,12 @@ func TestServiceIntegration(t *testing.T) {
 		hub.Clear()
 
 		// Award multiple high-rating reviews to trigger upgrade
-		for i := 0; i < 5; i++ {
+		for i := 0; i < 10; i++ {
 			_, _ = service.AwardReviewPoints(ctx, testUserID, 5)
 		}
 
 		up, _ := service.GetUserPoints(ctx, testUserID)
-		// Should have: 20 (session) + 5 * 20 (reviews with 2x multiplier) = 120
+		// Should have: 10 (session) + 10 * 10 (reviews with 2x multiplier) = 110
 		expectedMin := 100 // At least silver threshold
 		if up.Points < expectedMin {
 			t.Errorf("Points = %d, want at least %d", up.Points, expectedMin)

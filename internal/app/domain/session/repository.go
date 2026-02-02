@@ -17,20 +17,21 @@ func NewRepository(pool *pgxpool.Pool) *Repository {
 
 // CreateRequest creates a new session request
 func (r *Repository) CreateRequest(ctx context.Context, initiatorID, partnerID string, startTime time.Time) error {
+	endTime := startTime.Add(time.Hour)
 	query := `
 		INSERT INTO sessions (
 			initiator_id, partner_id, 
-			initiator_offers, partner_offers, -- Required by schema, we'll use placeholder
+			initiator_offers, partner_offers,
 			scheduled_start, scheduled_end,
 			status
 		) VALUES (
 			$1, $2, 
-			'{}', '{}', 
-			$3, $3 + interval '1 hour',
+			ARRAY[]::TEXT[], ARRAY[]::TEXT[], 
+			$3, $4,
 			'pending'
 		)
 	`
-	_, err := r.pool.Exec(ctx, query, initiatorID, partnerID, startTime)
+	_, err := r.pool.Exec(ctx, query, initiatorID, partnerID, startTime, endTime)
 	return err
 }
 

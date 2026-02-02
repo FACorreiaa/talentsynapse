@@ -73,3 +73,10 @@ CREATE TABLE message_reactions (
                                  PRIMARY KEY (message_id, user_id, emoji)
 );
 
+-- +goose Down
+DROP TABLE IF EXISTS message_reactions CASCADE;
+DROP TABLE IF EXISTS conversation_participants CASCADE;
+DROP TABLE IF EXISTS message_read_status CASCADE;
+DROP TABLE IF EXISTS messages CASCADE;
+DROP TYPE IF EXISTS message_type CASCADE;
+DROP TABLE IF EXISTS conversations CASCADE;

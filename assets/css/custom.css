@@ -995,3 +995,53 @@ h6,
         transform: translateY(0);
     }
 }
+
+/* ── File/Image Message Styles ──────────────────────────────────────── */
+.image-message {
+    max-width: 100%;
+}
+
+.image-message img {
+    transition: transform 0.2s var(--ease-smooth);
+    border-radius: var(--radius);
+}
+
+.image-message img:hover {
+    transform: scale(1.02);
+}
+
+.file-message {
+    min-width: 220px;
+    transition: all 0.2s var(--ease-smooth);
+}
+
+.file-icon-container {
+    transition: all 0.2s var(--ease-smooth);
+}
+
+.download-btn {
+    transition: all 0.2s var(--ease-smooth);
+}
+
+.download-btn:hover {
+    transform: scale(1.1);
+}
+
+.download-btn:active {
+    transform: scale(0.95);
+}
+
+/* Upload progress indicator */
+#upload-progress {
+    animation: slideInRight 0.3s var(--ease-smooth);
+}
+
+/* Image modal */
+#image-modal {
+    animation: fadeIn 0.2s ease;
+    backdrop-filter: blur(4px);
+}
+
+#image-modal img {
+    animation: scaleIn 0.3s var(--ease-bounce);
+}

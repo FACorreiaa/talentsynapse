@@ -484,7 +484,7 @@ type PendingMatch struct {
 // GetPendingReceivedMatches retrieves users who have accepted the current user but the current user hasn't responded
 func (r *Repository) GetPendingReceivedMatches(ctx context.Context, userID string, limit int) ([]PendingMatch, error) {
 	query := `
-		SELECT DISTINCT
+		SELECT
 			u.id,
 			u.display_name,
 			u.username,
@@ -559,7 +559,7 @@ func (r *Repository) HasConnections(ctx context.Context, userID string) (bool, e
 // GetPendingSentMatches retrieves users that the current user has liked but who haven't responded yet
 func (r *Repository) GetPendingSentMatches(ctx context.Context, userID string, limit int) ([]PendingMatch, error) {
 	query := `
-		SELECT DISTINCT
+		SELECT
 			u.id,
 			u.display_name,
 			u.username,

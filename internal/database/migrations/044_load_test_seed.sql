@@ -108,6 +108,7 @@ ON CONFLICT (category_id, name) DO NOTHING;
 -- Generate 150 test users with diverse profiles
 -- Password for all test users: 'testpass123' (hashed with bcrypt)
 -- Hash generated with: bcrypt.GenerateFromPassword([]byte("testpass123"), bcrypt.DefaultCost)
+-- +goose StatementBegin
 DO $$
 DECLARE
     v_user_id UUID;
@@ -229,7 +230,7 @@ BEGIN
             v_city,
             v_lat,
             v_lng,
-            v_role,
+            v_role::user_role,
             true,
             RANDOM() > 0.3, -- 70% verified
             CASE WHEN RANDOM() > 0.3 THEN NOW() - (RANDOM() * INTERVAL '90 days') ELSE NULL END,
@@ -258,9 +259,11 @@ BEGIN
 
     END LOOP;
 END $$;
+-- +goose StatementEnd
 
 -- Assign diverse skills to users
 -- Each user gets 3-8 offered skills and 2-6 wanted skills
+-- +goose StatementBegin
 DO $$
 DECLARE
     v_user RECORD;
@@ -315,6 +318,7 @@ BEGIN
         END LOOP;
     END LOOP;
 END $$;
+-- +goose StatementEnd
 
 -- Update skill usage counts
 UPDATE skills s
