@@ -270,8 +270,8 @@ BEGIN
         END IF;
 
         -- Insert conversation
-        INSERT INTO conversations (user_a_id, user_b_id, created_at, updated_at)
-        VALUES (v_user_a, v_user_b, NOW() - (RANDOM() * INTERVAL '30 days'), NOW())
+        INSERT INTO conversations (user_a_id, user_b_id, created_at)
+        VALUES (v_user_a, v_user_b, NOW() - (RANDOM() * INTERVAL '30 days'))
         RETURNING id INTO v_conversation_id;
 
         -- Initialize participant metadata
@@ -319,8 +319,7 @@ BEGIN
         UPDATE conversations
         SET
             last_message_id = v_last_message_id,
-            last_message_at = NOW(),
-            updated_at = NOW()
+            last_message_at = NOW()
         WHERE id = v_conversation_id;
 
     END LOOP;
