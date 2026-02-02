@@ -13,6 +13,22 @@ jobs:
   test:
     name: Test
     runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:17
+        ports:
+          - 5470:5432
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: myapp
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
     steps:
       - uses: actions/checkout@v4
 
@@ -24,10 +40,22 @@ jobs:
       - name: Install Templ
         run: go install github.com/a-h/templ/cmd/templ@latest
 
+      - name: Install goose for migrations
+        run: go install github.com/pressly/goose/v3/cmd/goose@latest
+
       - name: Generate Templ templates
         run: templ generate
 
+      - name: Run database migrations
+        env:
+          DATABASE_URL: postgres://postgres:postgres@127.0.0.1:5470/myapp?sslmode=disable
+        run: |
+          cd internal/database/migrations
+          goose postgres "$DATABASE_URL" up
+
       - name: Run tests
+        env:
+          TEST_DATABASE_URL: postgres://postgres:postgres@127.0.0.1:5470/myapp?sslmode=disable
         run: go test -v ./...
 
   build:
