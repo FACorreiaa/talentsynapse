@@ -184,7 +184,6 @@ DECLARE
     v_user_a UUID;
     v_user_b UUID;
     v_counter INT;
-    v_action_type TEXT;
 BEGIN
     SELECT ARRAY_AGG(id) INTO v_user_ids FROM users WHERE email LIKE '%@loadtest.example.com';
 
@@ -197,16 +196,24 @@ BEGIN
             v_user_b := v_user_ids[1 + FLOOR(RANDOM() * array_length(v_user_ids, 1))];
         END LOOP;
 
-        -- Weighted actions: more views than matches
-        v_action_type := CASE
-            WHEN RANDOM() < 0.7 THEN 'viewed'
-            WHEN RANDOM() < 0.9 THEN 'skipped'
-            ELSE 'matched'
-        END;
-
-        INSERT INTO match_history (user_a_id, user_b_id, action_type, created_at)
-        VALUES (v_user_a, v_user_b, v_action_type, NOW() - (RANDOM() * INTERVAL '60 days'))
-        ON CONFLICT (user_a_id, user_b_id) DO NOTHING;
+        -- Generate random match scores (weighted towards higher scores)
+        INSERT INTO match_history (
+            user_id_a,
+            user_id_b,
+            algorithm_used,
+            match_score,
+            interaction_initiated,
+            created_at
+        )
+        VALUES (
+            v_user_a,
+            v_user_b,
+            'cosine_similarity',
+            0.5 + (RANDOM() * 0.5), -- Score between 0.5 and 1.0
+            RANDOM() > 0.7, -- 30% initiated interaction
+            NOW() - (RANDOM() * INTERVAL '60 days')
+        )
+        ON CONFLICT (user_id_a, user_id_b, created_at) DO NOTHING;
 
     END LOOP;
 END $$;
@@ -433,7 +440,7 @@ DELETE FROM conversations WHERE user_a_id IN (
     SELECT id FROM users WHERE email LIKE '%@loadtest.example.com'
 );
 
-DELETE FROM match_history WHERE user_a_id IN (
+DELETE FROM match_history WHERE user_id_a IN (
     SELECT id FROM users WHERE email LIKE '%@loadtest.example.com'
 );
 
