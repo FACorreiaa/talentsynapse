@@ -36,10 +36,15 @@ mv server.new "$BINARY_NAME"
 
 # Restart service
 echo "🔄 Restarting service..."
-systemctl --no-ask-password restart "$SERVICE_NAME" 2>/dev/null || {
-    echo "⚠️  Using sudo for systemctl..."
-    echo "" | sudo -S systemctl restart "$SERVICE_NAME"
-}
+if systemctl restart "$SERVICE_NAME" 2>/dev/null; then
+    echo "✅ Restarted without sudo"
+elif sudo systemctl restart "$SERVICE_NAME" 2>/dev/null; then
+    echo "✅ Restarted with sudo"
+else
+    echo "❌ Failed to restart service"
+    echo "⚠️  Please configure passwordless sudo for systemctl"
+    exit 1
+fi
 
 # Wait for service to start
 sleep 3
@@ -58,8 +63,9 @@ else
 
     # Rollback
     if [ -f "${BINARY_NAME}.backup" ]; then
+        echo "🔙 Rolling back to previous version..."
         mv "${BINARY_NAME}.backup" "$BINARY_NAME"
-        systemctl --no-ask-password restart "$SERVICE_NAME" 2>/dev/null || sudo -S systemctl restart "$SERVICE_NAME" <<< ""
+        systemctl restart "$SERVICE_NAME" 2>/dev/null || sudo systemctl restart "$SERVICE_NAME"
         echo "🔙 Rolled back to previous version"
     fi
 
