@@ -130,6 +130,11 @@ jobs:
             bin/${{ env.BINARY_NAME }} \
             ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}:/var/www/myapp/server.new
 
+          # Upload deploy script to ensure it's up to date
+          scp -o StrictHostKeyChecking=no \
+            scripts/deploy.sh \
+            ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}:/var/www/myapp/deploy.sh
+
           # Run deployment script on VPS
           ssh -o StrictHostKeyChecking=no \
             ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} \
